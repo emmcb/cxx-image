@@ -1,0 +1,43 @@
+project(math)
+
+set(TARGET math)
+set(SRC_DIR src)
+set(PUBLIC_HDR_DIR include)
+set(TEST_DIR test)
+
+# Include and target definitions
+
+add_library(${TARGET} INTERFACE)
+if(NOT PROJECT_IS_TOP_LEVEL)
+    add_library(cxximg::${TARGET} ALIAS ${TARGET})
+endif()
+
+target_include_directories(
+    ${TARGET} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${PUBLIC_HDR_DIR}> $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${TARGET} INTERFACE util)
+
+# Compiler flags
+
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_options(
+        ${TARGET} INTERFACE $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-ffast-math> $<$<CXX_COMPILER_ID:MSVC>:/fp:fast>
+    )
+endif()
+
+# Installation
+
+if(CXXIMG_ENABLE_INSTALL)
+    install(TARGETS ${TARGET} EXPORT CXXImageTargets)
+    install(DIRECTORY ${PUBLIC_HDR_DIR}/${TARGET} DESTINATION include)
+endif()
+
+# Test
+
+if(BUILD_TESTING)
+    add_executable(${TARGET}-test ${TEST_DIR}/HistogramTest.cpp)
+    target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main math)
+    target_compile_options(${TARGET}-test PRIVATE $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wno-literal-conversion>)
+
+    add_test(NAME ${TARGET}-test COMMAND ${TARGET}-test)
+endif()

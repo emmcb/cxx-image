@@ -1,0 +1,5 @@
+#pragma once
+
+#define GIT_REVISION "@GIT_REVISION@"
+#define GIT_DESCRIBE_LONG "@GIT_DESCRIBE_LONG@"
+#define BUILD_TIMESTAMP __DATE__ " " __TIME__

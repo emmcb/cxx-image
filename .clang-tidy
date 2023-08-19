@@ -1,0 +1,75 @@
+---
+# Configure clang-tidy for this project.
+
+Checks: '
+bugprone-*,
+cert-*,
+cppcoreguidelines-*,
+google-*,
+misc-*,
+modernize-*,
+performance-*,
+portability-*,
+readability-*,
+hicpp-exception-baseclass,
+hicpp-member-init,
+hicpp-multiway-paths-covered,
+-bugprone-easily-swappable-parameters,
+-bugprone-narrowing-conversions,
+-cert-err33-c,
+-cert-err58-cpp,
+-cppcoreguidelines-avoid-c-arrays,
+-cppcoreguidelines-avoid-magic-numbers,
+-cppcoreguidelines-narrowing-conversions,
+-cppcoreguidelines-owning-memory,
+-cppcoreguidelines-pro-*,
+-google-build-using-namespace,
+-google-readability-todo,
+-google-runtime-references,
+-misc-no-recursion,
+-misc-use-anonymous-namespace,
+-modernize-avoid-c-arrays,
+-modernize-concat-nested-namespaces,
+-modernize-use-nodiscard,
+-modernize-use-trailing-return-type,
+-readability-function-cognitive-complexity,
+-readability-identifier-length,
+-readability-isolate-declaration,
+-readability-magic-numbers,
+-readability-uppercase-literal-suffix,
+'
+
+WarningsAsErrors: '
+*,
+-bugprone-unchecked-optional-access,
+-cppcoreguidelines-avoid-const-or-ref-data-members,
+-cppcoreguidelines-init-variables,
+-cppcoreguidelines-non-private-member-variables-in-classes,
+-cppcoreguidelines-special-member-functions,
+-google-readability-casting,
+-misc-non-private-member-variables-in-classes,
+'
+
+CheckOptions:
+  - { key: cppcoreguidelines-macro-usage.AllowedRegexp,              value: ^(BUILD|DEBUG|GIT|UTIL)_* }
+  - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor, value: true }
+  - { key: misc-const-correctness.AnalyzeValues,                     value: false      }
+  - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: true }
+  - { key: readability-identifier-naming.NamespaceCase,              value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,                  value: CamelCase  }
+  - { key: readability-identifier-naming.StructCase,                 value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,               value: camelBack  }
+  - { key: readability-identifier-naming.VariableCase,               value: camelBack  }
+  - { key: readability-identifier-naming.GlobalConstantCase,         value: UPPER_CASE }
+  - { key: readability-identifier-naming.ConstexprVariableCase,      value: UPPER_CASE }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,        value: m          }
+  - { key: readability-identifier-naming.StaticVariablePrefix,       value: s          }
+  - { key: readability-identifier-naming.TypeAliasCase,              value: CamelCase  }
+  - { key: readability-identifier-naming.TypeTemplateParameterCase,  value: CamelCase  }
+  - { key: readability-identifier-naming.ValueTemplateParameterCase, value: UPPER_CASE }
+  - { key: readability-identifier-naming.FunctionIgnoredRegexp,      value: (read_variant_value|read_json_value|write_json_value|json_io|parse_value) }
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions, value: true    }
+  - { key: readability-function-size.NestingThreshold,               value: 6          }
+
+HeaderFilterRegex: '.*'
+UseColor: true
