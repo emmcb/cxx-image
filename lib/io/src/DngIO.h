@@ -19,9 +19,10 @@
 
 #include "util/File.h"
 
-#include "dng_file_stream.h"
-#include "dng_host.h"
-#include "dng_info.h"
+class dng_file_stream;
+class dng_host;
+class dng_info;
+class dng_negative;
 
 namespace cxximg {
 
@@ -36,6 +37,7 @@ public:
     }
 
     DngReader(const std::string &path, const Options &options);
+    ~DngReader() override;
 
     Image16u read16u() override;
     Imagef readf() override;
@@ -47,11 +49,10 @@ private:
     template <typename T>
     Image<T> read();
 
-    dng_file_stream mStream;
-    dng_host mHost;
-    dng_info mInfo;
-
-    AutoPtr<dng_negative> mNegative;
+    std::unique_ptr<dng_file_stream> mStream;
+    std::unique_ptr<dng_host> mHost;
+    std::unique_ptr<dng_info> mInfo;
+    std::unique_ptr<dng_negative> mNegative;
 };
 
 class DngWriter final : public ImageWriter {

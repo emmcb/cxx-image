@@ -18,8 +18,11 @@
 
 #include <dng_color_space.h>
 #include <dng_color_spec.h>
+#include <dng_file_stream.h>
 #include <dng_gain_map.h>
+#include <dng_host.h>
 #include <dng_image_writer.h>
+#include <dng_info.h>
 #include <loguru.hpp>
 
 using namespace std::string_literals;
@@ -55,24 +58,28 @@ static PixelType cfaPatternToPixelType(const dng_ifd *ifd) {
 }
 
 DngReader::DngReader(const std::string &path, const Options &options)
-    : ImageReader(path, options), mStream(path.c_str()), mNegative(mHost.Make_dng_negative()) {
+    : ImageReader(path, options),
+      mStream(std::make_unique<dng_file_stream>(path.c_str())),
+      mHost(std::make_unique<dng_host>()),
+      mInfo(std::make_unique<dng_info>()),
+      mNegative(mHost->Make_dng_negative()) {
     try {
         // Parse top-level info structure from stream.
-        mInfo.Parse(mHost, mStream);
-        mInfo.PostParse(mHost);
+        mInfo->Parse(*mHost, *mStream);
+        mInfo->PostParse(*mHost);
 
-        if (!mInfo.IsValidDNG()) {
+        if (!mInfo->IsValidDNG()) {
             throw IOError(MODULE, "Invalid DNG image");
         }
 
         // Parse image negative.
-        mNegative->Parse(mHost, mStream, mInfo);
-        mNegative->PostParse(mHost, mStream, mInfo);
+        mNegative->Parse(*mHost, *mStream, *mInfo);
+        mNegative->PostParse(*mHost, *mStream, *mInfo);
     } catch (const dng_exception &except) {
         throw IOError(MODULE, "Reading failed with error code " + std::to_string(except.ErrorCode()));
     }
 
-    const dng_ifd *ifd = mInfo.fIFD[mInfo.fMainIndex];
+    const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
     LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(ifd->fImageWidth, ifd->fImageLength);
 
     if (ifd->fSamplesPerPixel == 1) {
@@ -116,6 +123,8 @@ DngReader::DngReader(const std::string &path, const Options &options)
     setDescriptor({builder.build(), pixelRepresentation});
 }
 
+DngReader::~DngReader() = default;
+
 Image16u DngReader::read16u() {
     LOG_SCOPE_F(INFO, "Read DNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
@@ -135,10 +144,10 @@ Image<T> DngReader::read() {
     validateType<T>();
 
     try {
-        const dng_ifd *ifd = mInfo.fIFD[mInfo.fMainIndex];
+        const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
 
         // Read stage 1 image from negative
-        mNegative->ReadStage1Image(mHost, mStream, mInfo);
+        mNegative->ReadStage1Image(*mHost, *mStream, *mInfo);
 
         const dng_image *dngImage = mNegative->Stage1Image();
         dng_rect imageBound(dngImage->Height(), dngImage->Width());
