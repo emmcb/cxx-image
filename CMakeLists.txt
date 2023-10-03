@@ -28,7 +28,7 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
 endif()
 
-add_subdirectory(third-party)
+add_subdirectory(external)
 add_subdirectory(lib)
 
 if(CXXIMG_BUILD_TOOLS)
