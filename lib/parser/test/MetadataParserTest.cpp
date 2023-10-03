@@ -52,7 +52,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                .faceDetection = std::vector<ImageMetadata::ROI>{{0.1f, 0.15f, 0.2f, 0.3f}}},
             .shootingParams =
                     {.aperture = 5.6f, .exposureTime = 0.01f, .totalGain = 1.0f, .sensorGain = 1.0f, .ispGain = 1.0f},
-            .tuningData = {
+            .calibrationData = {
                     .blackLevel = 64,
                     .whiteLevel = 1024.0f,
                     .luminanceLensShading = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
@@ -155,7 +155,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
         "sensorGain": 1.0,
         "ispGain": 1.0
     },
-    "tuningData": {
+    "calibrationData": {
         "blackLevel": 64,
         "whiteLevel": 1024.0,
         "luminanceLensShading": [
@@ -233,7 +233,7 @@ TEST(MetadataParserTest, TestDeserializationPartial) {
     "exifMetadata": {},
     "cameraControls": {},
     "shootingParams": {},
-    "tuningData": {}
+    "calibrationData": {}
 })V0G0N";
 
     ASSERT_EQ(ref, json);

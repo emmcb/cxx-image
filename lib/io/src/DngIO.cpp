@@ -222,10 +222,10 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
         spec->SetWhiteXY(spec->NeutralToXY(neutral));
         dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
 
-        metadata->tuningData.colorMatrix = Matrix3{};
+        metadata->calibrationData.colorMatrix = Matrix3{};
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
-                (*metadata->tuningData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
+                (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
             }
         }
     }
@@ -233,11 +233,11 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
     const dng_linearization_info *linearizationInfo = mNegative->GetLinearizationInfo();
     if (linearizationInfo) {
         if (mNegative->IsFloatingPoint()) {
-            metadata->tuningData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
-            metadata->tuningData.whiteLevel = static_cast<float>(linearizationInfo->fWhiteLevel[0]);
+            metadata->calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
+            metadata->calibrationData.whiteLevel = static_cast<float>(linearizationInfo->fWhiteLevel[0]);
         } else {
-            metadata->tuningData.blackLevel = static_cast<int>(linearizationInfo->MaxBlackLevel(0));
-            metadata->tuningData.whiteLevel = static_cast<int>(linearizationInfo->fWhiteLevel[0]);
+            metadata->calibrationData.blackLevel = static_cast<int>(linearizationInfo->MaxBlackLevel(0));
+            metadata->calibrationData.whiteLevel = static_cast<int>(linearizationInfo->fWhiteLevel[0]);
         }
     }
 
@@ -378,21 +378,21 @@ void DngWriter::writeImpl(const Image<T> &image) const {
             if (metadata.shootingParams.ispGain) {
                 negative->SetBaselineExposure(std::log2(*metadata.shootingParams.ispGain));
             }
-            if (metadata.tuningData.blackLevel) {
-                double blackLevel = std::is_floating_point_v<T> ? std::get<float>(*metadata.tuningData.blackLevel)
-                                                                : std::get<int>(*metadata.tuningData.blackLevel);
+            if (metadata.calibrationData.blackLevel) {
+                double blackLevel = std::is_floating_point_v<T> ? std::get<float>(*metadata.calibrationData.blackLevel)
+                                                                : std::get<int>(*metadata.calibrationData.blackLevel);
                 negative->SetBlackLevel(blackLevel);
             }
-            if (metadata.tuningData.whiteLevel) {
-                double whiteLevel = std::is_floating_point_v<T> ? std::get<float>(*metadata.tuningData.whiteLevel)
-                                                                : std::get<int>(*metadata.tuningData.whiteLevel);
+            if (metadata.calibrationData.whiteLevel) {
+                double whiteLevel = std::is_floating_point_v<T> ? std::get<float>(*metadata.calibrationData.whiteLevel)
+                                                                : std::get<int>(*metadata.calibrationData.whiteLevel);
                 negative->SetWhiteLevel(whiteLevel);
             }
-            if (metadata.tuningData.colorMatrix && metadata.cameraControls.whiteBalance) {
-                Matrix3 xyzToCamera = metadata.tuningData.colorMatrix->inverse() *
+            if (metadata.calibrationData.colorMatrix && metadata.cameraControls.whiteBalance) {
+                Matrix3 xyzToCamera = metadata.calibrationData.colorMatrix->inverse() *
                                       colorspace::transformationMatrix(
                                               RgbColorSpace::XYZ_D50,
-                                              metadata.tuningData.colorMatrixTarget.value_or(RgbColorSpace::SRGB));
+                                              metadata.calibrationData.colorMatrixTarget.value_or(RgbColorSpace::SRGB));
 
                 dng_matrix colorMatrix(3, 3);
                 for (int i = 0; i < 3; ++i) {

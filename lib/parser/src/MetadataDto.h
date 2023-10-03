@@ -308,12 +308,12 @@ void json_io(JsonIo& io, ImageMetadata::ShootingParams& shootingParams) {
 }
 
 template <typename JsonIo>
-void json_io(JsonIo& io, ImageMetadata::TuningData& tuningData) {
-    io& json_dto::optional("blackLevel", tuningData.blackLevel, std::nullopt) &
-            json_dto::optional("whiteLevel", tuningData.whiteLevel, std::nullopt) &
-            json_dto::optional("luminanceLensShading", tuningData.luminanceLensShading, std::nullopt) &
-            json_dto::optional("colorMatrix", tuningData.colorMatrix, std::nullopt) &
-            json_dto::optional("colorMatrixTarget", tuningData.colorMatrixTarget, std::nullopt);
+void json_io(JsonIo& io, ImageMetadata::CalibrationData& calibrationData) {
+    io& json_dto::optional("blackLevel", calibrationData.blackLevel, std::nullopt) &
+            json_dto::optional("whiteLevel", calibrationData.whiteLevel, std::nullopt) &
+            json_dto::optional("luminanceLensShading", calibrationData.luminanceLensShading, std::nullopt) &
+            json_dto::optional("colorMatrix", calibrationData.colorMatrix, std::nullopt) &
+            json_dto::optional("colorMatrixTarget", calibrationData.colorMatrixTarget, std::nullopt);
 }
 
 template <typename JsonIo>
@@ -322,7 +322,7 @@ void json_io(JsonIo& io, ImageMetadata& metadata) {
             json_dto::optional_no_default("exifMetadata", metadata.exifMetadata) &
             json_dto::optional_no_default("cameraControls", metadata.cameraControls) &
             json_dto::optional_no_default("shootingParams", metadata.shootingParams) &
-            json_dto::optional_no_default("tuningData", metadata.tuningData);
+            json_dto::optional_no_default("calibrationData", metadata.calibrationData);
 }
 
 } // namespace cxximg

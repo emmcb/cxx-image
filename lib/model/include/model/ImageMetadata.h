@@ -83,7 +83,7 @@ struct ImageMetadata final {
         std::optional<float> ispGain;      ///< ISP gain
     };
 
-    struct TuningData final {
+    struct CalibrationData final {
         std::optional<std::variant<int, float>> blackLevel; ///< Black level
         std::optional<std::variant<int, float>> whiteLevel; ///< White level
         std::optional<DynamicMatrix> luminanceLensShading;  ///< Luminance lens shading correction map
@@ -91,11 +91,11 @@ struct ImageMetadata final {
         std::optional<RgbColorSpace> colorMatrixTarget;     ///< Target color space of color matrix
     };
 
-    FileInfo fileInfo;             ///< File Information
-    ExifMetadata exifMetadata;     ///< Exif metadata
-    CameraControls cameraControls; ///< Camera controls
-    ShootingParams shootingParams; ///< Shooting params
-    TuningData tuningData;         ///< Tuning data
+    FileInfo fileInfo;               ///< File Information
+    ExifMetadata exifMetadata;       ///< Exif metadata
+    CameraControls cameraControls;   ///< Camera controls
+    ShootingParams shootingParams;   ///< Shooting params
+    CalibrationData calibrationData; ///< Calibration data
 };
 
 inline const char *toString(FileFormat fileFormat) {
