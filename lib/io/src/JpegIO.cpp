@@ -345,7 +345,7 @@ void JpegWriter::write(const Image8u &image) const {
     // Compress image buffer to a compressed buffer.
     // Memory is allocated by tjCompress2 if jpegSize == 0.
     unsigned char *jpegBuf = nullptr;
-    uint64_t jpegSize = 0;
+    unsigned long jpegSize = 0; // NOLINT(google-runtime-int)
 
     const auto compress = [&](const Image8u &interleavedImage) {
         const bool isGrayscale = image.pixelType() == PixelType::GRAYSCALE;

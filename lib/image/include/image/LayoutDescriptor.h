@@ -20,6 +20,7 @@
 
 #include "math/math.h"
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 

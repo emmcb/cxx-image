@@ -22,7 +22,8 @@
  * OF THIS SOFTWARE.
  */
 
-#include <tiffio.h>
+#include <tiffio.hxx>
+
 #include <assert.h> /*--: for Rational2Double */
 #include <math.h>  /*--: for Rational2Double */
 

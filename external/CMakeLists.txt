@@ -5,8 +5,8 @@ set(LOGURU_WITH_STREAMS 1)
 
 FetchContent_Declare(
     loguru
-    GIT_REPOSITORY "https://github.com/emilk/loguru.git"
-    GIT_TAG "4adaa185883e3c04da25913579c451d3c32cfac1"
+    GIT_REPOSITORY "https://github.com/emmcb/loguru.git"
+    GIT_TAG "972f4f42b402aa9507efaeef725ef877cd3e1ce5"
 )
 FetchContent_MakeAvailable(loguru)
 
@@ -23,13 +23,14 @@ if(CXXIMG_ENABLE_INSTALL)
 endif()
 
 if(CXXIMG_WITH_DNG)
+    set(DNG_THREAD_SAFE 0)
     set(DNG_WITH_JPEG 0)
     set(DNG_WITH_XMP 0)
 
     FetchContent_Declare(
         adobe-dng-sdk
         GIT_REPOSITORY "https://github.com/emmcb/adobe-dng-sdk.git"
-        GIT_TAG "bf9954940db9d211d1744cbf704960ebb11c9bdb"
+        GIT_TAG "862a2365dbb8279d73a7402a917afdfbe26fec82"
     )
     FetchContent_MakeAvailable(adobe-dng-sdk)
 

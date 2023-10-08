@@ -14,9 +14,9 @@
 
 #include "TiffIO.h"
 
-#include <tiffio.h>
 #include <tiffrational.h>
 #include <loguru.hpp>
+#include <tiffio.hxx>
 
 using namespace std::string_literals;
 
