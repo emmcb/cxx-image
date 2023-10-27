@@ -36,7 +36,7 @@ public:
 
     Image8u read8u() override;
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
     std::optional<ExifMetadata> readExif() const override;
 #endif
 
@@ -61,7 +61,7 @@ public:
 
     void write(const Image8u &image) const override;
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
     void writeExif(const ExifMetadata &exif) const override;
 #endif
 };

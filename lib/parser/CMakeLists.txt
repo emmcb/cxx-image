@@ -37,7 +37,7 @@ endif()
 
 # Test
 
-if(BUILD_TESTING)
+if(HAVE_GTEST AND BUILD_TESTING)
     add_executable(${TARGET}-test ${TEST_DIR}/MetadataParserTest.cpp)
     target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main parser)
 

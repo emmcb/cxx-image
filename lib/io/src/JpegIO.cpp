@@ -17,7 +17,7 @@
 #include <turbojpeg.h>
 #include <loguru.hpp>
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
 #include <libexif/exif-data.h>
 extern "C" {
 #include <libjpeg/jpeg-data.h>
@@ -145,7 +145,7 @@ Image8u JpegReader::read8u() {
     return image;
 }
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
 std::optional<ExifMetadata> JpegReader::readExif() const {
     ExifData *data = exif_data_new_from_data(mHeaderData.data(), mHeaderData.size());
     if (data == nullptr) {
@@ -231,7 +231,7 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
 }
 #endif
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
 static ExifEntry *addExifEntry(ExifContent *ifd, ExifTag tag) {
     ExifEntry *entry = exif_content_get_entry(ifd, tag);
     if (entry) {
@@ -431,7 +431,7 @@ void JpegWriter::write(const Image8u &image) const {
         throw IOError(MODULE, "Failed to compress data: "s + tjGetErrorStr2(handle.get()));
     }
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
     // Append exif if given
     const auto &metadata = options().metadata;
     if (metadata) {
@@ -460,12 +460,12 @@ void JpegWriter::write(const Image8u &image) const {
         }
 
         file.write(reinterpret_cast<char *>(jpegBuf), jpegSize);
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
     }
 #endif
 }
 
-#if defined(WITH_JPEG_EXIF)
+#ifdef HAVE_EXIF
 void JpegWriter::writeExif(const ExifMetadata &exif) const {
     ExifMem *mem = exif_mem_new_default();
     ExifData *data = exif_data_new();

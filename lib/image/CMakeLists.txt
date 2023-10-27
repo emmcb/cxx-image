@@ -33,7 +33,7 @@ endif()
 
 # Test
 
-if(BUILD_TESTING)
+if(HAVE_GTEST AND BUILD_TESTING)
     add_executable(
         ${TARGET}-test ${TEST_DIR}/BorderTest.cpp ${TEST_DIR}/ImageTest.cpp ${TEST_DIR}/LayoutTest.cpp
                        ${TEST_DIR}/PlaneViewTest.cpp ${TEST_DIR}/ResizeExpressionTest.cpp

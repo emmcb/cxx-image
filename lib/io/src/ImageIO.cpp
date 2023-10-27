@@ -19,19 +19,19 @@
 #include "MipiRawIO.h"
 #include "PlainIO.h"
 
-#if defined(WITH_DNG)
+#ifdef HAVE_DNG
 #include "DngIO.h"
 #endif
 
-#if defined(WITH_JPEG)
+#ifdef HAVE_JPEG
 #include "JpegIO.h"
 #endif
 
-#if defined(WITH_PNG)
+#ifdef HAVE_PNG
 #include "PngIO.h"
 #endif
 
-#if defined(WITH_TIFF)
+#ifdef HAVE_TIFF
 #include "TiffIO.h"
 #endif
 
@@ -58,25 +58,25 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageRead
         return std::make_unique<BmpReader>(path, options);
     }
 
-#if defined(WITH_DNG)
+#ifdef HAVE_DNG
     if (DngReader::accept(path)) {
         return std::make_unique<DngReader>(path, options);
     }
 #endif
 
-#if defined(WITH_JPEG)
+#ifdef HAVE_JPEG
     if (JpegReader::accept(path)) {
         return std::make_unique<JpegReader>(path, options);
     }
 #endif
 
-#if defined(WITH_PNG)
+#ifdef HAVE_PNG
     if (PngReader::accept(path)) {
         return std::make_unique<PngReader>(path, options);
     }
 #endif
 
-#if defined(WITH_TIFF)
+#ifdef HAVE_TIFF
     if (TiffReader::accept(path)) {
         return std::make_unique<TiffReader>(path, options);
     }
@@ -112,13 +112,13 @@ std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWrit
         return std::make_unique<BmpWriter>(path, options);
     }
 
-#if defined(WITH_DNG)
+#ifdef HAVE_DNG
     if (DngWriter::accept(path)) {
         return std::make_unique<DngWriter>(path, options);
     }
 #endif
 
-#if defined(WITH_JPEG)
+#ifdef HAVE_JPEG
     if (JpegWriter::accept(path)) {
         return std::make_unique<JpegWriter>(path, options);
     }
@@ -132,13 +132,13 @@ std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWrit
         return std::make_unique<MipiRaw12Writer>(path, options);
     }
 
-#if defined(WITH_PNG)
+#ifdef HAVE_PNG
     if (PngWriter::accept(path)) {
         return std::make_unique<PngWriter>(path, options);
     }
 #endif
 
-#if defined(WITH_TIFF)
+#ifdef HAVE_TIFF
     if (TiffWriter::accept(path)) {
         return std::make_unique<TiffWriter>(path, options);
     }

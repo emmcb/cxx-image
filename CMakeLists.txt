@@ -3,14 +3,29 @@ project(cxximg)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Limit the maximum number of parallel compilation jobs
-set_property(GLOBAL APPEND PROPERTY JOB_POOLS compile_job_pool=12)
-set(CMAKE_JOB_POOL_COMPILE compile_job_pool)
+    # Limit the maximum number of parallel compilation jobs
+    set_property(GLOBAL APPEND PROPERTY JOB_POOLS compile_job_pool=12)
+    set(CMAKE_JOB_POOL_COMPILE compile_job_pool)
 
+    # Build in release mode unless other specified
+    set(DEFAULT_BUILD_TYPE "Release")
+    if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+        message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
+        set(CMAKE_BUILD_TYPE
+            "${DEFAULT_BUILD_TYPE}"
+            CACHE STRING "Choose the type of build." FORCE
+        )
+        # Set the possible values of build type for cmake-gui
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+    endif()
+endif()
+
+option(CXXIMG_BUILD_TESTS "Build the project tests" ${PROJECT_IS_TOP_LEVEL})
 option(CXXIMG_BUILD_TOOLS "Build the project tools" ${PROJECT_IS_TOP_LEVEL})
 option(CXXIMG_ENABLE_INSTALL "Generate the install target" ${PROJECT_IS_TOP_LEVEL})
 
@@ -19,13 +34,66 @@ option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
 
-# Prevent CTest from adding default targets like Experimental / Nightly / etc.
-set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
+set(HAVE_GTEST 0)
+if(CXXIMG_BUILD_TESTS)
+    if(PROJECT_IS_TOP_LEVEL)
+        # Prevent CTest from adding default targets like Experimental / Nightly / etc.
+        set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
 
-include(CTest)
+        include(CTest)
+    endif()
 
-if(BUILD_TESTING)
-    find_package(GTest REQUIRED)
+    find_package(GTest)
+    if(GTest_FOUND)
+        set(HAVE_GTEST 1)
+    else()
+        message(WARNING "Disabling test build because GTest is not found")
+    endif()
+endif()
+
+set(HAVE_DNG 0)
+if(CXXIMG_WITH_DNG)
+    set(HAVE_DNG 1)
+endif()
+
+set(HAVE_JPEG 0)
+if(CXXIMG_WITH_JPEG)
+    find_package(TurboJPEG)
+    if(TurboJPEG_FOUND)
+        set(HAVE_JPEG 1)
+    else()
+        message(WARNING "Disabling JPEG support because turbojpeg is not found")
+    endif()
+endif()
+
+set(HAVE_PNG 0)
+if(CXXIMG_WITH_PNG)
+    find_package(PNG)
+    if(PNG_FOUND)
+        set(HAVE_PNG 1)
+    else()
+        message(WARNING "Disabling PNG support because libpng is not found")
+    endif()
+endif()
+
+set(HAVE_TIFF 0)
+if(CXXIMG_WITH_TIFF)
+    find_package(TIFF)
+    if(TIFF_FOUND)
+        set(HAVE_TIFF 1)
+    else()
+        message(WARNING "Disabling TIFF support because libtiff is not found")
+    endif()
+endif()
+
+set(HAVE_EXIF 0)
+if(HAVE_JPEG)
+    find_package(EXIF)
+    if(EXIF_FOUND)
+        set(HAVE_EXIF 1)
+    else()
+        message(WARNING "Disabling EXIF support in JPEG because libexif is not found")
+    endif()
 endif()
 
 add_subdirectory(external)

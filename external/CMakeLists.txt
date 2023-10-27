@@ -1,5 +1,7 @@
 include(FetchContent)
 
+# Loguru
+
 set(LOGURU_STACKTRACES 0)
 set(LOGURU_WITH_STREAMS 1)
 
@@ -21,6 +23,8 @@ if(CXXIMG_ENABLE_INSTALL)
         DESTINATION cmake
     )
 endif()
+
+# DNG
 
 if(CXXIMG_WITH_DNG)
     set(DNG_THREAD_SAFE 0)
@@ -47,6 +51,8 @@ if(CXXIMG_WITH_DNG)
     endif()
 endif()
 
+# CXXOpts
+
 if(CXXIMG_BUILD_TOOLS)
     FetchContent_Declare(
         cxxopts
@@ -59,21 +65,20 @@ if(CXXIMG_BUILD_TOOLS)
     set_target_properties(cxxopts PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${CXXOPTS_INCLUDE_DIRECTORIES}")
 endif()
 
+# Subdirectories
+
 add_subdirectory(json_dto)
 add_subdirectory(rapidjson)
 
-if(CXXIMG_WITH_JPEG)
-    find_package(EXIF)
-    if(EXIF_FOUND)
-        add_subdirectory(exif)
+if(HAVE_EXIF)
+    add_subdirectory(exif)
 
-        if(CXXIMG_ENABLE_INSTALL)
-            install(TARGETS exif-jpeg EXPORT EXIFTargets)
-            install(EXPORT EXIFTargets DESTINATION cmake)
-        endif()
+    if(CXXIMG_ENABLE_INSTALL)
+        install(TARGETS exif-jpeg EXPORT EXIFTargets)
+        install(EXPORT EXIFTargets DESTINATION cmake)
     endif()
 endif()
 
-if(CXXIMG_WITH_TIFF)
+if(HAVE_TIFF)
     add_subdirectory(tiff)
 endif()
