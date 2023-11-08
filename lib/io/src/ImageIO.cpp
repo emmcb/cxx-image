@@ -58,6 +58,10 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageRead
         return std::make_unique<BmpReader>(path, options);
     }
 
+    if (CfaReader::accept(path)) {
+        return std::make_unique<CfaReader>(path, options);
+    }
+
 #ifdef HAVE_DNG
     if (DngReader::accept(path)) {
         return std::make_unique<DngReader>(path, options);
@@ -104,12 +108,12 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageRead
 }
 
 std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWriter::Options &options) {
-    if (CfaWriter::accept(path)) {
-        return std::make_unique<CfaWriter>(path, options);
-    }
-
     if (BmpWriter::accept(path)) {
         return std::make_unique<BmpWriter>(path, options);
+    }
+
+    if (CfaWriter::accept(path)) {
+        return std::make_unique<CfaWriter>(path, options);
     }
 
 #ifdef HAVE_DNG
