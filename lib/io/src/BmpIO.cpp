@@ -89,12 +89,15 @@ Image8u BmpReader::read8u() {
 
     // ABGR to RGBA conversion, without alignment
     Image8u image(descriptor);
-    for (auto plane : image.planes()) {
-        plane = alignedImage.plane(alignedImage.numPlanes() - plane.index() - 1);
-    }
-
-    if (header->height > 0) {
-        // TODO: BMP is bottom to top, we need to convert to top to bottom
+    for (auto dstPlane : image.planes()) {
+        const auto srcPlane = alignedImage.plane(alignedImage.numPlanes() - dstPlane.index() - 1);
+        if (header->height > 0) {
+            // BMP is bottom to top, we need to convert to top to bottom
+            dstPlane = [&](int x, int y)
+                               UTIL_ALWAYS_INLINE { return expr::evaluate(srcPlane, x, srcPlane.height() - y - 1); };
+        } else {
+            dstPlane = srcPlane;
+        }
     }
 
     return image;
