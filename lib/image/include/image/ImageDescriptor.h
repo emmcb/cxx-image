@@ -43,10 +43,10 @@ struct PlaneDescriptor final {
     template <typename U>
     explicit PlaneDescriptor(const PlaneDescriptor<U> &descriptor)
         : index(descriptor.index),
+          subsample(descriptor.subsample),
           buffer(reinterpret_cast<T *>(descriptor.buffer)),
           rowStride(descriptor.rowStride),
-          pixelStride(descriptor.pixelStride),
-          subsample(descriptor.subsample) {}
+          pixelStride(descriptor.pixelStride) {}
 };
 
 template <typename T>
