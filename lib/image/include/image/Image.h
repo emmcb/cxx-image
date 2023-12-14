@@ -79,7 +79,7 @@ public:
         return mData[i];
     }
 
-    /// Returns value reference at position i.
+    /// Returns reference at position i.
     UTIL_ALWAYS_INLINE T &operator[](int64_t i) noexcept {
         assert(i >= 0 && i < size());
         return mData[i];

@@ -48,6 +48,12 @@ public:
         return mRawView(2 * x + mXOffset, 2 * y + mYOffset);
     }
 
+    /// Returns reference at position (x, y).
+    UTIL_ALWAYS_INLINE T &operator()(int x, int y) noexcept {
+        assert(x >= 0 && x < width() && y >= 0 && y < height());
+        return mRawView(2 * x + mXOffset, 2 * y + mYOffset);
+    }
+
     /// Expression assignment.
     UTIL_ALWAYS_INLINE BayerView<T> &operator=(const BayerView<T> &other) noexcept {
         if (this != &other) {

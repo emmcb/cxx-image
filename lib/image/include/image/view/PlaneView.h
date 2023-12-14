@@ -51,7 +51,7 @@ public:
         return mPlaneDescriptor.buffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
     }
 
-    /// Returns value reference at position (x, y).
+    /// Returns reference at position (x, y).
     UTIL_ALWAYS_INLINE T &operator()(int x, int y) noexcept {
         assert(x >= 0 && x < width() && y >= 0 && y < height());
         return mPlaneDescriptor.buffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];

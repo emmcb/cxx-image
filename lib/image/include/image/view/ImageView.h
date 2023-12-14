@@ -70,7 +70,7 @@ public:
         return planeDescriptor.buffer[y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
-    /// Returns value reference at position (x, y, n).
+    /// Returns reference at position (x, y, n).
     UTIL_ALWAYS_INLINE T &operator()(int x, int y, int n) noexcept {
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
