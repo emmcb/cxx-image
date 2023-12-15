@@ -31,25 +31,25 @@ struct Point2 final {
 
 /// Element-wise addition.
 /// @relates Point2
-Point2 operator+(const Point2 &lhs, const Point2 &rhs) {
+inline Point2 operator+(const Point2 &lhs, const Point2 &rhs) {
     return Point2{lhs.x + rhs.x, lhs.y + rhs.y};
 }
 
 /// Element-wise subtraction.
 /// @relates Point2
-Point2 operator-(const Point2 &lhs, const Point2 &rhs) {
+inline Point2 operator-(const Point2 &lhs, const Point2 &rhs) {
     return Point2{lhs.x - rhs.x, lhs.y - rhs.y};
 }
 
 /// Scalar multiplication.
 /// @relates Point2
-Point2 operator*(float lhs, const Point2 &rhs) {
+inline Point2 operator*(float lhs, const Point2 &rhs) {
     return Point2{lhs * rhs.x, lhs * rhs.y};
 }
 
 /// Scalar division.
 /// @relates Point2
-Point2 operator/(const Point2 &lhs, float rhs) {
+inline Point2 operator/(const Point2 &lhs, float rhs) {
     return Point2{lhs.x / rhs, lhs.x / rhs};
 }
 
