@@ -34,7 +34,7 @@ if(CXXIMG_WITH_DNG)
     FetchContent_Declare(
         adobe-dng-sdk
         GIT_REPOSITORY "https://github.com/emmcb/adobe-dng-sdk.git"
-        GIT_TAG "862a2365dbb8279d73a7402a917afdfbe26fec82"
+        GIT_TAG "7f27122442ef49bf9188cf7439945a26897c96e8"
     )
     FetchContent_MakeAvailable(adobe-dng-sdk)
 

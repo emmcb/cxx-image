@@ -25,6 +25,8 @@
 #include <dng_info.h>
 #include <loguru.hpp>
 
+#include <unordered_map>
+
 using namespace std::string_literals;
 
 namespace cxximg {
@@ -217,6 +219,9 @@ std::optional<ExifMetadata> DngReader::readExif() const {
 
 void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
     ImageReader::readMetadata(metadata);
+    if (!metadata) {
+        metadata = ImageMetadata{};
+    }
 
     metadata->shootingParams.ispGain = std::exp2(mNegative->BaselineExposure());
 
@@ -245,20 +250,70 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
             metadata->calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
             metadata->calibrationData.whiteLevel = static_cast<float>(linearizationInfo->fWhiteLevel[0]);
         } else {
-            metadata->calibrationData.blackLevel = static_cast<int>(linearizationInfo->MaxBlackLevel(0));
-            metadata->calibrationData.whiteLevel = static_cast<int>(linearizationInfo->fWhiteLevel[0]);
+            metadata->calibrationData.blackLevel = static_cast<int>(std::lround(linearizationInfo->MaxBlackLevel(0)));
+            metadata->calibrationData.whiteLevel = static_cast<int>(std::lround(linearizationInfo->fWhiteLevel[0]));
         }
     }
 
+    std::unordered_map<Bayer, const dng_gain_map *> gainMaps;
+
+    mNegative->ReadOpcodeLists(*mHost, *mStream, *mInfo);
     for (unsigned i = 0; i < mNegative->OpcodeList2().Count(); ++i) {
         const dng_opcode &opcode = mNegative->OpcodeList2().Entry(i);
         switch (opcode.OpcodeID()) {
             case dngOpcode_GainMap: {
-                // const dng_gain_map &gainMap = static_cast<const dng_opcode_GainMap &>(opcode).GainMap();
+                if (!image::isBayerPixelType(layoutDescriptor().pixelType)) {
+                    continue;
+                }
+
+                const auto &gainMapOpcode = static_cast<const dng_opcode_GainMap &>(opcode);
+                const dng_gain_map &gainMap = gainMapOpcode.GainMap();
+                const dng_rect &area = gainMapOpcode.AreaSpec().Area();
+
+                if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::R) &&
+                    area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::R)) {
+                    gainMaps[Bayer::R] = &gainMap;
+                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::GR) &&
+                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::GR)) {
+                    gainMaps[Bayer::GR] = &gainMap;
+                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::GB) &&
+                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::GB)) {
+                    gainMaps[Bayer::GB] = &gainMap;
+                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::B) &&
+                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::B)) {
+                    gainMaps[Bayer::B] = &gainMap;
+                } else {
+                    continue;
+                }
             } break;
 
             default:
                 break;
+        }
+    }
+
+    if (gainMaps.size() == 4) {
+        const auto &gainMapR = *gainMaps[Bayer::R];
+        const auto &gainMapGR = *gainMaps[Bayer::GR];
+        const auto &gainMapGB = *gainMaps[Bayer::GB];
+        const auto &gainMapB = *gainMaps[Bayer::B];
+
+        if (gainMapR.Points().h == gainMapGR.Points().h && gainMapR.Points().h == gainMapGB.Points().h &&
+            gainMapR.Points().h == gainMapB.Points().h && gainMapR.Points().v == gainMapGR.Points().v &&
+            gainMapR.Points().v == gainMapGB.Points().v && gainMapR.Points().v == gainMapB.Points().v) {
+            DynamicMatrix lls(gainMapR.Points().v, gainMapR.Points().h);
+            DynamicMatrix clsR(gainMapR.Points().v, gainMapR.Points().h);
+            DynamicMatrix clsB(gainMapR.Points().v, gainMapR.Points().h);
+            for (int y = 0; y < gainMapR.Points().v; ++y) {
+                for (int x = 0; x < gainMapR.Points().h; ++x) {
+                    lls(y, x) = 0.5f * (gainMapGR.Entry(y, x, 0) + gainMapGB.Entry(y, x, 0));
+                    clsR(y, x) = gainMapR.Entry(y, x, 0) / lls(y, x);
+                    clsB(y, x) = gainMapB.Entry(y, x, 0) / lls(y, x);
+                }
+            }
+
+            metadata->calibrationData.luminanceLensShading = std::move(lls);
+            metadata->cameraControls.colorLensShading = {std::move(clsR), std::move(clsB)};
         }
     }
 }
