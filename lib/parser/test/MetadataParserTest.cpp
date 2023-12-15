@@ -52,12 +52,14 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                .faceDetection = std::vector<ImageMetadata::ROI>{{0.1f, 0.15f, 0.2f, 0.3f}}},
             .shootingParams =
                     {.aperture = 5.6f, .exposureTime = 0.01f, .totalGain = 1.0f, .sensorGain = 1.0f, .ispGain = 1.0f},
-            .calibrationData = {
-                    .blackLevel = 64,
-                    .whiteLevel = 1024.0f,
-                    .luminanceLensShading = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
-                    .colorMatrix = Matrix3{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-                    .colorMatrixTarget = RgbColorSpace::SRGB}};
+            .calibrationData = {.blackLevel = 64,
+                                .whiteLevel = 1024.0f,
+                                .luminanceLensShading = DynamicMatrix{{3.0f, 1.5f, 3.0f},
+                                                                      {1.5f, 1.0f, 1.5f},
+                                                                      {3.0f, 1.5f, 3.0f}},
+                                .colorMatrix = Matrix3{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+                                .colorMatrixTarget = RgbColorSpace::SRGB},
+            .semanticMasks = {}};
 
     parser::writeMetadata(metadata, "test_serialization_full.json");
     EXPECT_NO_THROW(parser::readMetadata("test_serialization_full.json"));

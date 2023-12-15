@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -38,6 +39,8 @@ namespace cxximg {
 enum class FileFormat { PLAIN, RAW10, RAW12 };
 
 enum class PixelRepresentation { UINT8, UINT16, FLOAT };
+
+enum class SemanticLabel { NONE, PERSON, SKIN, SKY, UNKNOWN };
 
 /// Structure holding image metadata.
 struct ImageMetadata final {
@@ -56,6 +59,12 @@ struct ImageMetadata final {
         float y;      ///< y for ROI
         float width;  ///< width for ROI
         float height; ///< height for ROI
+    };
+
+    struct SemanticMask final {
+        std::string name;    ///< Identification string
+        SemanticLabel label; ///< Semantic label
+        DynamicMatrix mask;  ///< Semantic mask
     };
 
     struct FileInfo final {
@@ -91,11 +100,14 @@ struct ImageMetadata final {
         std::optional<RgbColorSpace> colorMatrixTarget;     ///< Target color space of color matrix
     };
 
+    using SemanticMasks = std::unordered_multimap<SemanticLabel, SemanticMask>;
+
     FileInfo fileInfo;               ///< File Information
     ExifMetadata exifMetadata;       ///< Exif metadata
     CameraControls cameraControls;   ///< Camera controls
     ShootingParams shootingParams;   ///< Shooting params
     CalibrationData calibrationData; ///< Calibration data
+    SemanticMasks semanticMasks;     ///< Semantic masks
 };
 
 inline const char *toString(FileFormat fileFormat) {
@@ -122,6 +134,22 @@ inline const char *toString(PixelRepresentation pixelRepresentation) {
     return "undefined";
 }
 
+inline const char *toString(SemanticLabel semanticLabel) {
+    switch (semanticLabel) {
+        case SemanticLabel::NONE:
+            return "none";
+        case SemanticLabel::PERSON:
+            return "person";
+        case SemanticLabel::SKIN:
+            return "skin";
+        case SemanticLabel::SKY:
+            return "sky";
+        case SemanticLabel::UNKNOWN:
+            return "unknown";
+    }
+    return "undefined";
+}
+
 inline std::optional<FileFormat> parseFileFormat(const std::string &fileFormat) {
     if (fileFormat == "plain") {
         return FileFormat::PLAIN;
@@ -144,6 +172,25 @@ inline std::optional<PixelRepresentation> parsePixelRepresentation(const std::st
     }
     if (pixelRepresentation == "float") {
         return PixelRepresentation::FLOAT;
+    }
+    return std::nullopt;
+}
+
+inline std::optional<SemanticLabel> parseSemanticLabel(const std::string &semanticLabel) {
+    if (semanticLabel == "none") {
+        return SemanticLabel::NONE;
+    }
+    if (semanticLabel == "person") {
+        return SemanticLabel::PERSON;
+    }
+    if (semanticLabel == "skin") {
+        return SemanticLabel::SKIN;
+    }
+    if (semanticLabel == "sky") {
+        return SemanticLabel::SKY;
+    }
+    if (semanticLabel == "unknown") {
+        return SemanticLabel::UNKNOWN;
     }
     return std::nullopt;
 }

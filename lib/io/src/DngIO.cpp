@@ -316,6 +316,24 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
             metadata->cameraControls.colorLensShading = {std::move(clsR), std::move(clsB)};
         }
     }
+
+    for (unsigned i = 0; i < mNegative->NumSemanticMasks(); ++i) {
+        const auto &dngSemanticMask = mNegative->SemanticMask(i);
+        ImageMetadata::SemanticMask semanticMask{
+                .name = dngSemanticMask.fName.Get(),
+                .label = SemanticLabel::UNKNOWN,
+                .mask = DynamicMatrix(dngSemanticMask.fMask->Height(), dngSemanticMask.fMask->Width())};
+
+        dng_rect bound(dngSemanticMask.fMask->Width(), dngSemanticMask.fMask->Height());
+        switch (dngSemanticMask.fMask->PixelType()) {
+            case ttFloat: {
+                dng_pixel_buffer maskBuffer(bound, 0, 1, ttFloat, pcPlanar, semanticMask.mask.data());
+                dngSemanticMask.fMask->Get(maskBuffer);
+            } break;
+        }
+
+        metadata->semanticMasks.emplace(std::make_pair(semanticMask.label, std::move(semanticMask)));
+    }
 }
 
 static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
