@@ -38,6 +38,12 @@ public:
           mXOffset(image::bayerXOffset(rawView.pixelType(), bayer)),
           mYOffset(image::bayerYOffset(rawView.pixelType(), bayer)) {}
 
+    /// Constructs bayer view from specified bayer image and bayer color.
+    BayerView(PlaneView<T> rawView, PixelType pixelType, Bayer bayer)
+        : mRawView(std::move(rawView)),
+          mXOffset(image::bayerXOffset(pixelType, bayer)),
+          mYOffset(image::bayerYOffset(pixelType, bayer)) {}
+
     ~BayerView() = default;
     BayerView(const BayerView<T> &) noexcept = default;
     BayerView(BayerView<T> &&) noexcept = default;
