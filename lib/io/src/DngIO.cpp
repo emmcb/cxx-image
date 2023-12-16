@@ -301,19 +301,19 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
         if (gainMapR.Points().h == gainMapGR.Points().h && gainMapR.Points().h == gainMapGB.Points().h &&
             gainMapR.Points().h == gainMapB.Points().h && gainMapR.Points().v == gainMapGR.Points().v &&
             gainMapR.Points().v == gainMapGB.Points().v && gainMapR.Points().v == gainMapB.Points().v) {
-            DynamicMatrix lls(gainMapR.Points().v, gainMapR.Points().h);
-            DynamicMatrix clsR(gainMapR.Points().v, gainMapR.Points().h);
-            DynamicMatrix clsB(gainMapR.Points().v, gainMapR.Points().h);
+            DynamicMatrix vignetting(gainMapR.Points().v, gainMapR.Points().h);
+            DynamicMatrix colorR(gainMapR.Points().v, gainMapR.Points().h);
+            DynamicMatrix colorB(gainMapR.Points().v, gainMapR.Points().h);
             for (int y = 0; y < gainMapR.Points().v; ++y) {
                 for (int x = 0; x < gainMapR.Points().h; ++x) {
-                    lls(y, x) = 0.5f * (gainMapGR.Entry(y, x, 0) + gainMapGB.Entry(y, x, 0));
-                    clsR(y, x) = gainMapR.Entry(y, x, 0) / lls(y, x);
-                    clsB(y, x) = gainMapB.Entry(y, x, 0) / lls(y, x);
+                    vignetting(y, x) = 0.5f * (gainMapGR.Entry(y, x, 0) + gainMapGB.Entry(y, x, 0));
+                    colorR(y, x) = gainMapR.Entry(y, x, 0) / vignetting(y, x);
+                    colorB(y, x) = gainMapB.Entry(y, x, 0) / vignetting(y, x);
                 }
             }
 
-            metadata->calibrationData.luminanceLensShading = std::move(lls);
-            metadata->cameraControls.colorLensShading = {std::move(clsR), std::move(clsB)};
+            metadata->calibrationData.vignetting = std::move(vignetting);
+            metadata->cameraControls.colorShading = {std::move(colorR), std::move(colorB)};
         }
     }
 

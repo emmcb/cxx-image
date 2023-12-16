@@ -44,7 +44,7 @@ enum class SemanticLabel { NONE, PERSON, SKIN, SKY, UNKNOWN };
 
 /// Structure holding image metadata.
 struct ImageMetadata final {
-    struct ColorLensShading final {
+    struct ColorShading final {
         DynamicMatrix gainR; ///< Color lens shading R/G correction map
         DynamicMatrix gainB; ///< Color lens shading B/G correction map
     };
@@ -79,9 +79,9 @@ struct ImageMetadata final {
     };
 
     struct CameraControls final {
-        std::optional<WhiteBalance> whiteBalance;         ///< White balance scales
-        std::optional<ColorLensShading> colorLensShading; ///< Color lens shading correction maps
-        std::optional<std::vector<ROI>> faceDetection;    ///< Array of face ROI
+        std::optional<WhiteBalance> whiteBalance;      ///< White balance scales
+        std::optional<ColorShading> colorShading;      ///< Color lens shading correction maps
+        std::optional<std::vector<ROI>> faceDetection; ///< Array of face ROI
     };
 
     struct ShootingParams final {
@@ -95,7 +95,7 @@ struct ImageMetadata final {
     struct CalibrationData final {
         std::optional<std::variant<int, float>> blackLevel; ///< Black level
         std::optional<std::variant<int, float>> whiteLevel; ///< White level
-        std::optional<DynamicMatrix> luminanceLensShading;  ///< Luminance lens shading correction map
+        std::optional<DynamicMatrix> vignetting;            ///< Luminance lens shading correction map
         std::optional<Matrix3> colorMatrix;                 ///< Color matrix
         std::optional<RgbColorSpace> colorMatrixTarget;     ///< Target color space of color matrix
     };

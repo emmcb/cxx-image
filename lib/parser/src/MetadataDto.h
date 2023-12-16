@@ -200,22 +200,22 @@ inline void write_json_value(const ExifMetadata::Rational& rational,
     object.PushBack(rational.denominator, allocator);
 }
 
-// ImageMetadata::ColorLensShading struct
+// ImageMetadata::ColorShading struct
 
-inline void read_json_value(ImageMetadata::ColorLensShading& colorLensShading, const rapidjson::Value& object) {
+inline void read_json_value(ImageMetadata::ColorShading& colorShading, const rapidjson::Value& object) {
     if (!object.IsArray() || object.Size() != 2) {
         throw json_dto::ex_t("Invalid color lens shading value");
     }
-    read_json_value(colorLensShading.gainR, object[0]);
-    read_json_value(colorLensShading.gainB, object[1]);
+    read_json_value(colorShading.gainR, object[0]);
+    read_json_value(colorShading.gainB, object[1]);
 }
 
-inline void write_json_value(const ImageMetadata::ColorLensShading& colorLensShading,
+inline void write_json_value(const ImageMetadata::ColorShading& colorShading,
                              rapidjson::Value& object,
                              rapidjson::MemoryPoolAllocator<>& allocator) {
     rapidjson::Value rValue, bValue;
-    write_json_value(colorLensShading.gainR, rValue, allocator);
-    write_json_value(colorLensShading.gainB, bValue, allocator);
+    write_json_value(colorShading.gainR, rValue, allocator);
+    write_json_value(colorShading.gainB, bValue, allocator);
 
     object.SetArray();
     object.PushBack(rValue, allocator);
@@ -294,7 +294,7 @@ void json_io(JsonIo& io, ImageMetadata::FileInfo& fileInfo) {
 template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata::CameraControls& cameraControls) {
     io& json_dto::optional("whiteBalance", cameraControls.whiteBalance, std::nullopt) &
-            json_dto::optional("colorLensShading", cameraControls.colorLensShading, std::nullopt) &
+            json_dto::optional("colorShading", cameraControls.colorShading, std::nullopt) &
             json_dto::optional("faceDetection", cameraControls.faceDetection, std::nullopt);
 }
 
@@ -311,7 +311,7 @@ template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata::CalibrationData& calibrationData) {
     io& json_dto::optional("blackLevel", calibrationData.blackLevel, std::nullopt) &
             json_dto::optional("whiteLevel", calibrationData.whiteLevel, std::nullopt) &
-            json_dto::optional("luminanceLensShading", calibrationData.luminanceLensShading, std::nullopt) &
+            json_dto::optional("vignetting", calibrationData.vignetting, std::nullopt) &
             json_dto::optional("colorMatrix", calibrationData.colorMatrix, std::nullopt) &
             json_dto::optional("colorMatrixTarget", calibrationData.colorMatrixTarget, std::nullopt);
 }

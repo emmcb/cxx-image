@@ -43,20 +43,18 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .focalLength = ExifMetadata::Rational{35, 1},
                              .focalLengthIn35mmFilm = 50},
             .cameraControls = {.whiteBalance = ImageMetadata::WhiteBalance{2.0f, 1.5},
-                               .colorLensShading = ImageMetadata::ColorLensShading{{{1.2f, 1.05f, 1.2f},
-                                                                                    {1.05f, 1.0f, 1.05f},
-                                                                                    {1.2f, 1.05f, 1.2f}},
-                                                                                   {{0.95f, 0.99f, 0.95f},
-                                                                                    {0.99f, 1.0f, 0.99f},
-                                                                                    {0.95f, 0.99f, 0.95f}}},
+                               .colorShading = ImageMetadata::ColorShading{{{1.2f, 1.05f, 1.2f},
+                                                                            {1.05f, 1.0f, 1.05f},
+                                                                            {1.2f, 1.05f, 1.2f}},
+                                                                           {{0.95f, 0.99f, 0.95f},
+                                                                            {0.99f, 1.0f, 0.99f},
+                                                                            {0.95f, 0.99f, 0.95f}}},
                                .faceDetection = std::vector<ImageMetadata::ROI>{{0.1f, 0.15f, 0.2f, 0.3f}}},
             .shootingParams =
                     {.aperture = 5.6f, .exposureTime = 0.01f, .totalGain = 1.0f, .sensorGain = 1.0f, .ispGain = 1.0f},
             .calibrationData = {.blackLevel = 64,
                                 .whiteLevel = 1024.0f,
-                                .luminanceLensShading = DynamicMatrix{{3.0f, 1.5f, 3.0f},
-                                                                      {1.5f, 1.0f, 1.5f},
-                                                                      {3.0f, 1.5f, 3.0f}},
+                                .vignetting = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
                                 .colorMatrix = Matrix3{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
                                 .colorMatrixTarget = RgbColorSpace::SRGB},
             .semanticMasks = {}};
@@ -105,7 +103,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
             2.0,
             1.5
         ],
-        "colorLensShading": [
+        "colorShading": [
             [
                 [
                     1.2000000476837158,
@@ -160,7 +158,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
     "calibrationData": {
         "blackLevel": 64,
         "whiteLevel": 1024.0,
-        "luminanceLensShading": [
+        "vignetting": [
             [
                 3.0,
                 1.5,
