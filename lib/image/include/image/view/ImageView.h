@@ -95,35 +95,35 @@ public:
     /// Expression assignment.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T> &operator=(const Expr &expr) noexcept {
-        forEach([&](int x, int y, int n) { (*this)(x, y, n) = expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) = expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T> &operator+=(const Expr &expr) noexcept {
-        forEach([&](int x, int y, int n) { (*this)(x, y, n) += expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) += expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T> &operator-=(const Expr &expr) noexcept {
-        forEach([&](int x, int y, int n) { (*this)(x, y, n) -= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) -= expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T> &operator*=(const Expr &expr) noexcept {
-        forEach([&](int x, int y, int n) { (*this)(x, y, n) *= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) *= expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T> &operator/=(const Expr &expr) noexcept {
-        forEach([&](int x, int y, int n) { (*this)(x, y, n) /= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) /= expr::evaluate(expr, x, y, n); });
         return *this;
     }
 

@@ -74,35 +74,35 @@ public:
     /// Expression assignment.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PlaneView<T> &operator=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) { (*this)(x, y) = expr::evaluate(expr, x, y); });
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) = expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PlaneView<T> &operator+=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) { (*this)(x, y) += expr::evaluate(expr, x, y); });
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) += expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PlaneView<T> &operator-=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) { (*this)(x, y) -= expr::evaluate(expr, x, y); });
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) -= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PlaneView<T> &operator*=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) { (*this)(x, y) *= expr::evaluate(expr, x, y); });
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) *= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PlaneView<T> &operator/=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) { (*this)(x, y) /= expr::evaluate(expr, x, y); });
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) /= expr::evaluate(expr, x, y); });
         return *this;
     }
 

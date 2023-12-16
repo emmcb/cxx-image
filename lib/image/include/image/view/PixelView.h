@@ -74,7 +74,7 @@ public:
     /// Expression assignment.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) {
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.planes[n];
@@ -87,7 +87,7 @@ public:
     /// Expression add-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator+=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) {
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.planes[n];
@@ -100,7 +100,7 @@ public:
     /// Expression subtract-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator-=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) {
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.planes[n];
@@ -113,7 +113,7 @@ public:
     /// Expression multiply-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator*=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) {
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.planes[n];
@@ -126,7 +126,7 @@ public:
     /// Expression divide-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator/=(const Expr &expr) noexcept {
-        forEach([&](int x, int y) {
+        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.planes[n];
