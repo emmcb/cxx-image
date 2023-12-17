@@ -80,7 +80,8 @@ decltype(auto) inv(Expr &&expr) {
 template <typename T, typename Expr>
 decltype(auto) lut(Expr &&expr, const std::vector<T> &lut) {
 #if !defined(NDEBUG)
-    return detail::UnaryExpression<Expr, detail::LutOperator<T>>(std::forward<Expr>(expr), {lut.data(), lut.size()});
+    return detail::UnaryExpression<Expr, detail::LutOperator<T>>(std::forward<Expr>(expr),
+                                                                 {lut.data(), static_cast<int>(lut.size())});
 #else
     return detail::UnaryExpression<Expr, detail::LutOperator<T>>(std::forward<Expr>(expr), {lut.data()});
 #endif
