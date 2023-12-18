@@ -42,6 +42,17 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .dateTimeOriginal = "2023:08:25 17:13:31",
                              .focalLength = ExifMetadata::Rational{35, 1},
                              .focalLengthIn35mmFilm = 50},
+            .shootingParams = {.aperture = 5.6f,
+                               .exposureTime = 0.01f,
+                               .totalGain = 1.0f,
+                               .sensorGain = 1.0f,
+                               .ispGain = 1.0f,
+                               .zoom = ImageMetadata::ROI{0.05f, 0.1f, 0.9f, 0.8f}},
+            .calibrationData = {.blackLevel = 64,
+                                .whiteLevel = 1024.0f,
+                                .vignetting = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
+                                .colorMatrix = Matrix3{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+                                .colorMatrixTarget = RgbColorSpace::SRGB},
             .cameraControls = {.whiteBalance = ImageMetadata::WhiteBalance{2.0f, 1.5},
                                .colorShading = ImageMetadata::ColorShading{{{1.2f, 1.05f, 1.2f},
                                                                             {1.05f, 1.0f, 1.05f},
@@ -50,13 +61,6 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                                                             {0.99f, 1.0f, 0.99f},
                                                                             {0.95f, 0.99f, 0.95f}}},
                                .faceDetection = std::vector<ImageMetadata::ROI>{{0.1f, 0.15f, 0.2f, 0.3f}}},
-            .shootingParams =
-                    {.aperture = 5.6f, .exposureTime = 0.01f, .totalGain = 1.0f, .sensorGain = 1.0f, .ispGain = 1.0f},
-            .calibrationData = {.blackLevel = 64,
-                                .whiteLevel = 1024.0f,
-                                .vignetting = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
-                                .colorMatrix = Matrix3{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-                                .colorMatrixTarget = RgbColorSpace::SRGB},
             .semanticMasks = {}};
 
     parser::writeMetadata(metadata, "test_serialization_full.json");
@@ -97,6 +101,58 @@ TEST(MetadataParserTest, TestSerializationFull) {
             1
         ],
         "focalLengthIn35mmFilm": 50
+    },
+    "shootingParams": {
+        "aperture": 5.599999904632568,
+        "exposureTime": 0.009999999776482582,
+        "totalGain": 1.0,
+        "sensorGain": 1.0,
+        "ispGain": 1.0,
+        "zoom": [
+            0.05000000074505806,
+            0.10000000149011612,
+            0.8999999761581421,
+            0.800000011920929
+        ]
+    },
+    "calibrationData": {
+        "blackLevel": 64,
+        "whiteLevel": 1024.0,
+        "vignetting": [
+            [
+                3.0,
+                1.5,
+                3.0
+            ],
+            [
+                1.5,
+                1.0,
+                1.5
+            ],
+            [
+                3.0,
+                1.5,
+                3.0
+            ]
+        ],
+        "colorMatrix": [
+            [
+                1.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                1.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0
+            ]
+        ],
+        "colorMatrixTarget": "srgb"
     },
     "cameraControls": {
         "whiteBalance": [
@@ -147,52 +203,6 @@ TEST(MetadataParserTest, TestSerializationFull) {
                 0.30000001192092896
             ]
         ]
-    },
-    "shootingParams": {
-        "aperture": 5.599999904632568,
-        "exposureTime": 0.009999999776482582,
-        "totalGain": 1.0,
-        "sensorGain": 1.0,
-        "ispGain": 1.0
-    },
-    "calibrationData": {
-        "blackLevel": 64,
-        "whiteLevel": 1024.0,
-        "vignetting": [
-            [
-                3.0,
-                1.5,
-                3.0
-            ],
-            [
-                1.5,
-                1.0,
-                1.5
-            ],
-            [
-                3.0,
-                1.5,
-                3.0
-            ]
-        ],
-        "colorMatrix": [
-            [
-                1.0,
-                0.0,
-                0.0
-            ],
-            [
-                0.0,
-                1.0,
-                0.0
-            ],
-            [
-                0.0,
-                0.0,
-                1.0
-            ]
-        ],
-        "colorMatrixTarget": "srgb"
     }
 })V0G0N";
 
@@ -231,9 +241,9 @@ TEST(MetadataParserTest, TestDeserializationPartial) {
         "widthAlignment": 1
     },
     "exifMetadata": {},
-    "cameraControls": {},
     "shootingParams": {},
-    "calibrationData": {}
+    "calibrationData": {},
+    "cameraControls": {}
 })V0G0N";
 
     ASSERT_EQ(ref, json);

@@ -90,6 +90,7 @@ struct ImageMetadata final {
         std::optional<float> totalGain;    ///< Total gain
         std::optional<float> sensorGain;   ///< Sensor gain
         std::optional<float> ispGain;      ///< ISP gain
+        std::optional<ROI> zoom;           ///< Zoom ROI
     };
 
     struct CalibrationData final {
@@ -104,9 +105,9 @@ struct ImageMetadata final {
 
     FileInfo fileInfo;               ///< File Information
     ExifMetadata exifMetadata;       ///< Exif metadata
-    CameraControls cameraControls;   ///< Camera controls
     ShootingParams shootingParams;   ///< Shooting params
     CalibrationData calibrationData; ///< Calibration data
+    CameraControls cameraControls;   ///< Camera controls
     SemanticMasks semanticMasks;     ///< Semantic masks
 };
 

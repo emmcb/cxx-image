@@ -304,7 +304,8 @@ void json_io(JsonIo& io, ImageMetadata::ShootingParams& shootingParams) {
             json_dto::optional("exposureTime", shootingParams.exposureTime, std::nullopt) &
             json_dto::optional("totalGain", shootingParams.totalGain, std::nullopt) &
             json_dto::optional("sensorGain", shootingParams.sensorGain, std::nullopt) &
-            json_dto::optional("ispGain", shootingParams.ispGain, std::nullopt);
+            json_dto::optional("ispGain", shootingParams.ispGain, std::nullopt) &
+            json_dto::optional("zoom", shootingParams.zoom, std::nullopt);
 }
 
 template <typename JsonIo>
@@ -320,9 +321,9 @@ template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata& metadata) {
     io& json_dto::optional_no_default("fileInfo", metadata.fileInfo) &
             json_dto::optional_no_default("exifMetadata", metadata.exifMetadata) &
-            json_dto::optional_no_default("cameraControls", metadata.cameraControls) &
             json_dto::optional_no_default("shootingParams", metadata.shootingParams) &
-            json_dto::optional_no_default("calibrationData", metadata.calibrationData);
+            json_dto::optional_no_default("calibrationData", metadata.calibrationData) &
+            json_dto::optional_no_default("cameraControls", metadata.cameraControls);
 }
 
 } // namespace cxximg
