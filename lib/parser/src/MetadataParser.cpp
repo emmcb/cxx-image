@@ -37,16 +37,13 @@ std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
                 if (metadataPath) {
                     fs::path fsMetadata(*metadataPath);
 
-                    // If the metadata path ends with .json, we can use it
-                    if (fsMetadata.extension() == METADATA_EXTENSION) {
-                        return fsMetadata;
-                    }
-
                     // If the metadata path is a directory, we assume that it will contain a metadata file with the same
                     // name than the image.
                     if (fs::is_directory(fsMetadata)) {
                         return fsMetadata / fs::path(imagePath).filename().replace_extension(METADATA_EXTENSION);
                     }
+
+                    return fsMetadata;
                 }
 
                 // We do not have a metadata path, try with a sidecar along the image

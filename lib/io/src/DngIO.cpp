@@ -230,16 +230,21 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
         metadata->cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
                                                  static_cast<float>(1.0 / neutral[2])};
 
-        // Compute camera to sRGB color matrix
-        dng_camera_profile_id profileID; // default profile ID
-        AutoPtr<dng_color_spec> spec(mNegative->MakeColorSpec(profileID));
-        spec->SetWhiteXY(spec->NeutralToXY(neutral));
-        dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
+        dng_camera_profile_id profileId; // default profile ID
+        dng_camera_profile profile;
+        const bool haveProfile = mNegative->GetProfileByID(profileId, profile);
 
-        metadata->calibrationData.colorMatrix = Matrix3{};
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
+        if (haveProfile && profile.IsValid(mNegative->ColorChannels()) && !profile.ColorMatrix1().IsIdentity()) {
+            // Compute camera to sRGB color matrix
+            AutoPtr<dng_color_spec> spec(mNegative->MakeColorSpec(profileId));
+            spec->SetWhiteXY(spec->NeutralToXY(neutral));
+            dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
+
+            metadata->calibrationData.colorMatrix = Matrix3{};
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
+                }
             }
         }
     }
