@@ -40,12 +40,14 @@ Image<T> convertLayout(const ImageView<T> &img, ImageLayout imageLayout) {
     return Image<T>(LayoutDescriptor::Builder(img.layoutDescriptor()).imageLayout(imageLayout).build(), img);
 }
 
-/// Allocates a new image and copy data with pixel precision conversion.
+/// Allocates a new image and copy data with image layout and pixel precision conversion.
 template <typename U, typename T>
-Image<U> convertPixelPrecision(const ImageView<T> &img, int pixelPrecision = 0) {
-    ImageDescriptor<U> descriptor(ImageDescriptor<T>(
-            LayoutDescriptor::Builder(img.descriptor().layout).pixelPrecision(pixelPrecision).build(),
-            img.descriptor().planes));
+Image<U> convertLayoutAndPixelPrecision(const ImageView<T> &img, ImageLayout imageLayout, int pixelPrecision = 0) {
+    ImageDescriptor<U> descriptor(ImageDescriptor<T>(LayoutDescriptor::Builder(img.layoutDescriptor())
+                                                             .imageLayout(imageLayout)
+                                                             .pixelPrecision(pixelPrecision)
+                                                             .build(),
+                                                     img.descriptor().planes));
 
     // int -> int conversion
     if constexpr (std::is_integral_v<T> && std::is_integral_v<U>) {
@@ -74,6 +76,12 @@ Image<U> convertPixelPrecision(const ImageView<T> &img, int pixelPrecision = 0) 
     else {
         return Image<U>(descriptor, img);
     }
+}
+
+/// Allocates a new image and copy data with pixel precision conversion.
+template <typename U, typename T>
+Image<U> convertPixelPrecision(const ImageView<T> &img, int pixelPrecision = 0) {
+    return convertLayoutAndPixelPrecision<U, T>(img, img.layoutDescriptor().imageLayout, pixelPrecision);
 }
 
 } // namespace image
