@@ -125,8 +125,14 @@ public:
     /// Returns layout descriptor.
     const LayoutDescriptor &layoutDescriptor() const noexcept { return mLayoutDescriptor; }
 
-    /// Returns plane referenced by this view.
+    /// Returns plane index in the underlying image.
     int index() const noexcept { return mPlaneDescriptor.index; }
+
+    /// Returns pointer to first plane element.
+    T *buffer() { return mPlaneDescriptor.buffer; }
+
+    /// Returns pointer to first plane element.
+    const T *buffer() const { return mPlaneDescriptor.buffer; }
 
     /// Returns pixel type.
     PixelType pixelType() const noexcept { return mLayoutDescriptor.pixelType; }
