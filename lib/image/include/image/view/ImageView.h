@@ -36,7 +36,8 @@ public:
     class PlaneIterable;
 
     /// Constructs image from a given descriptor.
-    explicit ImageView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
+    ImageView(const ImageDescriptor<T> &imageDescriptor) // NOLINT(google-explicit-constructor)
+        : mDescriptor(imageDescriptor) {}
 
     /// Constructs one-plane image view from plane view.
     ImageView(const PlaneView<T> &planeView) // NOLINT(google-explicit-constructor)
