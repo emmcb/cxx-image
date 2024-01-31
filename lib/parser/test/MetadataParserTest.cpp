@@ -203,7 +203,8 @@ TEST(MetadataParserTest, TestSerializationFull) {
                 0.30000001192092896
             ]
         ]
-    }
+    },
+    "semanticMasks": []
 })V0G0N";
 
     ASSERT_EQ(ref, json);
@@ -243,7 +244,8 @@ TEST(MetadataParserTest, TestDeserializationPartial) {
     "exifMetadata": {},
     "shootingParams": {},
     "calibrationData": {},
-    "cameraControls": {}
+    "cameraControls": {},
+    "semanticMasks": []
 })V0G0N";
 
     ASSERT_EQ(ref, json);

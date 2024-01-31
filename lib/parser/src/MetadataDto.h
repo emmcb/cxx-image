@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "ImageReaderWriter.h"
 #include "JsonDto.h"
 
 #include "model/ImageMetadata.h"
@@ -113,6 +114,25 @@ inline void write_json_value(const RgbColorSpace& rgbColorSpace,
                              rapidjson::Value& object,
                              rapidjson::MemoryPoolAllocator<>& allocator) {
     json_dto::write_json_value(json_dto::make_string_ref(toString(rgbColorSpace)), object, allocator);
+}
+
+// SemanticLabel enum
+
+inline void read_json_value(SemanticLabel& semanticLabel, const rapidjson::Value& object) {
+    std::string representation;
+    json_dto::read_json_value(representation, object);
+
+    const auto parsed = parseSemanticLabel(representation);
+    if (!parsed) {
+        throw json_dto::ex_t("Invalid semantic label " + representation);
+    }
+    semanticLabel = *parsed;
+}
+
+inline void write_json_value(const SemanticLabel& semanticLabel,
+                             rapidjson::Value& object,
+                             rapidjson::MemoryPoolAllocator<>& allocator) {
+    json_dto::write_json_value(json_dto::make_string_ref(toString(semanticLabel)), object, allocator);
 }
 
 // DynamicMatrix class
@@ -262,6 +282,34 @@ inline void write_json_value(const ImageMetadata::ROI& roi,
     object.PushBack(roi.height, allocator);
 }
 
+struct SemanticMasksReaderWriter final {
+    static void read(ImageMetadata::SemanticMasks& semanticMasks, const rapidjson::Value& object) {
+        std::vector<ImageMetadata::SemanticMask> semanticMasksList;
+        json_dto::read_json_value(semanticMasksList, object);
+
+        for (auto& semanticMask : semanticMasksList) {
+            semanticMasks.emplace(semanticMask.label, std::move(semanticMask));
+        }
+    }
+
+    static void write(const ImageMetadata::SemanticMasks& semanticMasks,
+                      rapidjson::Value& object,
+                      rapidjson::MemoryPoolAllocator<>& allocator) {
+        std::vector<ImageMetadata::SemanticMask> semanticMasksList;
+        for (const auto& [label, semanticMask] : semanticMasks) {
+            semanticMasksList.push_back(semanticMask);
+        }
+
+        json_dto::write_json_value(semanticMasksList, object, allocator);
+    }
+};
+
+template <typename JsonIo>
+void json_io(JsonIo& io, ImageMetadata::SemanticMask& semanticMask) {
+    io& json_dto::mandatory("label", semanticMask.label) &
+            json_dto::mandatory(ImageLoader{}, "file", semanticMask.mask);
+}
+
 template <typename JsonIo>
 void json_io(JsonIo& io, ExifMetadata& exifMetadata) {
     io& json_dto::optional("imageWidth", exifMetadata.imageWidth, std::nullopt) &
@@ -323,7 +371,8 @@ void json_io(JsonIo& io, ImageMetadata& metadata) {
             json_dto::optional_no_default("exifMetadata", metadata.exifMetadata) &
             json_dto::optional_no_default("shootingParams", metadata.shootingParams) &
             json_dto::optional_no_default("calibrationData", metadata.calibrationData) &
-            json_dto::optional_no_default("cameraControls", metadata.cameraControls);
+            json_dto::optional_no_default("cameraControls", metadata.cameraControls) &
+            json_dto::optional_no_default(SemanticMasksReaderWriter{}, "semanticMasks", metadata.semanticMasks);
 }
 
 } // namespace cxximg

@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include "parser/MetadataParser.h"
-#include "MetadataDto.h"
 #include "parser/Exceptions.h"
+
+#include "MetadataDto.h"
 
 #include <loguru.hpp>
 
@@ -25,8 +26,12 @@ namespace fs = std::filesystem;
 
 namespace cxximg {
 
-namespace parser {
+struct CurrentPathRestorer final {
+    fs::path currentPath = fs::current_path();
+    ~CurrentPathRestorer() { fs::current_path(currentPath); }
+};
 
+namespace parser {
 std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
                                           const std::optional<std::string>& metadataPath) {
     const std::string metadataGuess =
@@ -67,8 +72,13 @@ ImageMetadata readMetadata(const std::string& metadataPath) {
         throw ParserError("Cannot open input file for reading");
     }
 
-    ImageMetadata metadata;
+    CurrentPathRestorer currentPathRestorer{};
+    fs::path fsMetadataPath(metadataPath);
+    if (fsMetadataPath.has_parent_path()) {
+        fs::current_path(fsMetadataPath.parent_path());
+    }
 
+    ImageMetadata metadata;
     try {
         json_dto::from_stream(ifs, metadata);
     } catch (const json_dto::ex_t& e) {
@@ -78,10 +88,16 @@ ImageMetadata readMetadata(const std::string& metadataPath) {
     return metadata;
 }
 
-void writeMetadata(const ImageMetadata& metadata, const std::string& outputPath) {
-    std::ofstream ofs(outputPath);
+void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath) {
+    std::ofstream ofs(metadataPath);
     if (!ofs) {
         throw ParserError("Cannot open output file for writing");
+    }
+
+    CurrentPathRestorer currentPathRestorer{};
+    fs::path fsMetadataPath(metadataPath);
+    if (fsMetadataPath.has_parent_path()) {
+        fs::current_path(fsMetadataPath.parent_path());
     }
 
     try {

@@ -42,7 +42,7 @@ std::optional<ImageMetadata> readMetadata(const std::string& imagePath, const st
 ImageMetadata readMetadata(const std::string& metadataPath);
 
 /// Write metadata to then given file.
-void writeMetadata(const ImageMetadata& metadata, const std::string& outputPath);
+void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath);
 
 } // namespace parser
 
