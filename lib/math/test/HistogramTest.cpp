@@ -163,9 +163,11 @@ TEST(HistogramTest, TestHistogram1D) {
     ASSERT_EQ(acc[5], 8u);
     ASSERT_EQ(acc[6], 9u);
 
-    ASSERT_EQ(acc.count(1.25f), 6.0f);
-    ASSERT_EQ(acc.count(1.75f), 8.0f);
-    ASSERT_EQ(acc.coord(7u), 1.5f);
+    ASSERT_EQ(acc.count(1.25f), 6u);
+    ASSERT_EQ(acc.count(1.75f), 8u);
+    ASSERT_EQ(acc.coord(6u), 1.5f);
+    ASSERT_EQ(acc.coord(7u), 1.75f);
+    ASSERT_EQ(acc.coord(8u), 2.0f);
 }
 
 TEST(HistogramTest, TestHistogram2D) {

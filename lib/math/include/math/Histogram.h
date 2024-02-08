@@ -273,7 +273,7 @@ public:
     float coord(float count) const {
         const auto &axis = this->axis();
         if (count <= this->at(0)) {
-            return axis.coord(0.5f);
+            return axis.coord(count / this->at(0));
         }
 
         for (int i = 1; i < axis.size(); ++i) {
@@ -281,11 +281,11 @@ public:
             const U &cur = this->at(i);
             if (count > prev && count <= cur) {
                 const float k = (count - prev) / (cur - prev);
-                return (1.0f - k) * axis.coord(i - 0.5f) + k * axis.coord(i + 0.5f);
+                return (1.0f - k) * axis.coord(i) + k * axis.coord(i + 1);
             }
         }
 
-        return axis.coord(axis.size() - 0.5f);
+        return axis.coord(axis.size());
     }
 };
 
@@ -325,10 +325,13 @@ public:
         float sum = 0.0f;
         float totalCount = 0.0f;
         for (const auto &bin : this->indexed()) {
-            const T coord = bin.template interval<N>().center();
-            if (coord < from || coord > to) {
+            const T upperRange = bin.template interval<N>().upper();
+            const T lowerRange = bin.template interval<N>().lower();
+            if (upperRange <= from || lowerRange >= to) {
                 continue;
             }
+
+            const T coord = bin.template interval<N>().center();
 
             sum += static_cast<float>(coord) * (*bin);
             totalCount += (*bin);
