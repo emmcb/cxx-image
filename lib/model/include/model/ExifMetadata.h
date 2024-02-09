@@ -31,6 +31,14 @@ struct ExifMetadata final {
         inline double asDouble() const noexcept { return static_cast<double>(numerator) / denominator; }
     };
 
+    struct SRational final {
+        int32_t numerator = 0;
+        int32_t denominator = 1;
+
+        inline double asFloat() const noexcept { return static_cast<float>(numerator) / denominator; }
+        inline double asDouble() const noexcept { return static_cast<double>(numerator) / denominator; }
+    };
+
     std::optional<uint16_t> imageWidth;            ///< Image width reported in EXIF data
     std::optional<uint16_t> imageHeight;           ///< Image height reported in EXIF data
     std::optional<std::string> imageDescription;   ///< Image description
@@ -42,6 +50,7 @@ struct ExifMetadata final {
     std::optional<Rational> fNumber;               ///< F/stop
     std::optional<uint16_t> isoSpeedRatings;       ///< ISO speed
     std::optional<std::string> dateTimeOriginal;   ///< Date when original image was taken
+    std::optional<SRational> brightnessValue;      ///< The value of brightness.
     std::optional<Rational> focalLength;           ///< Focal length of lens in millimeters
     std::optional<uint16_t> focalLengthIn35mmFilm; ///< Focal length of lens in millimeters (35mm equivalent)
 };

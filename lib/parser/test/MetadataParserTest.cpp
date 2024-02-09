@@ -40,6 +40,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .fNumber = ExifMetadata::Rational{56, 10},
                              .isoSpeedRatings = 100,
                              .dateTimeOriginal = "2023:08:25 17:13:31",
+                             .brightnessValue = ExifMetadata::SRational{25, 10},
                              .focalLength = ExifMetadata::Rational{35, 1},
                              .focalLengthIn35mmFilm = 50},
             .shootingParams = {.aperture = 5.6f,
@@ -96,6 +97,10 @@ TEST(MetadataParserTest, TestSerializationFull) {
         ],
         "isoSpeedRatings": 100,
         "dateTimeOriginal": "2023:08:25 17:13:31",
+        "brightnessValue": [
+            25,
+            10
+        ],
         "focalLength": [
             35,
             1

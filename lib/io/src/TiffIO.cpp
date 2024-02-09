@@ -207,6 +207,12 @@ static ExifMetadata::Rational doubleToRational(double x) {
     return r;
 }
 
+static ExifMetadata::SRational doubleToSRational(double x) {
+    ExifMetadata::SRational r;
+    TIFFDoubleToSrational(x, &r.numerator, &r.denominator);
+    return r;
+}
+
 std::optional<ExifMetadata> TiffReader::readExif() const {
     TIFF *tif = mTiff.get();
 
@@ -268,6 +274,11 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
         exif.dateTimeOriginal = dateTimeOriginal;
     }
 
+    float brightnessValue = 0.0f;
+    if (TIFFGetField(tif, EXIFTAG_BRIGHTNESSVALUE, &brightnessValue) != 0) {
+        exif.brightnessValue = doubleToSRational(brightnessValue);
+    }
+
     float focalLength = 0.0f;
     if (TIFFGetField(tif, EXIFTAG_FOCALLENGTH, &focalLength) != 0) {
         exif.focalLength = doubleToRational(focalLength);
@@ -319,6 +330,9 @@ static void populateExif(TIFF *tif, const ExifMetadata &exif) {
     }
     if (exif.dateTimeOriginal) {
         TIFFSetField(tif, EXIFTAG_DATETIMEORIGINAL, (*exif.dateTimeOriginal).c_str());
+    }
+    if (exif.brightnessValue) {
+        TIFFSetField(tif, EXIFTAG_BRIGHTNESSVALUE, (*exif.brightnessValue).asFloat());
     }
     if (exif.focalLength) {
         TIFFSetField(tif, EXIFTAG_FOCALLENGTH, (*exif.focalLength).asFloat());

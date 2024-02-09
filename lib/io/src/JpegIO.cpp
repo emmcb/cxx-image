@@ -196,6 +196,7 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
                 const ExifByteOrder byteOrder = exif_data_get_byte_order(entry->parent->parent);
                 auto *exif = static_cast<ExifMetadata *>(userData);
                 ExifRational rational;
+                ExifSRational srational;
 
                 switch (entry->tag) {
                     case EXIF_TAG_EXPOSURE_TIME:
@@ -211,6 +212,10 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
                         break;
                     case EXIF_TAG_DATE_TIME_ORIGINAL:
                         exif->dateTimeOriginal = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        break;
+                    case EXIF_TAG_BRIGHTNESS_VALUE:
+                        srational = exif_get_srational(entry->data, byteOrder);
+                        exif->brightnessValue = {srational.numerator, srational.denominator};
                         break;
                     case EXIF_TAG_FOCAL_LENGTH:
                         rational = exif_get_rational(entry->data, byteOrder);
@@ -324,6 +329,11 @@ static void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
     if (exif.dateTimeOriginal) {
         entry = addExifEntry(ifdExif, EXIF_TAG_DATE_TIME_ORIGINAL);
         exifSetString(mem, entry, *exif.dateTimeOriginal);
+    }
+    if (exif.brightnessValue) {
+        entry = addExifEntry(ifdExif, EXIF_TAG_BRIGHTNESS_VALUE);
+        exif_set_srational(
+                entry->data, FILE_BYTE_ORDER, {exif.brightnessValue->numerator, exif.brightnessValue->denominator});
     }
     if (exif.focalLength) {
         entry = addExifEntry(ifdExif, EXIF_TAG_FOCAL_LENGTH);

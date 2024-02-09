@@ -220,6 +220,24 @@ inline void write_json_value(const ExifMetadata::Rational& rational,
     object.PushBack(rational.denominator, allocator);
 }
 
+// ExifMetadata::SRational struct
+
+inline void read_json_value(ExifMetadata::SRational& rational, const rapidjson::Value& object) {
+    if (!object.IsArray() || object.Size() != 2) {
+        throw json_dto::ex_t("Invalid EXIF rational value");
+    }
+    json_dto::read_json_value(rational.numerator, object[0]);
+    json_dto::read_json_value(rational.denominator, object[1]);
+}
+
+inline void write_json_value(const ExifMetadata::SRational& rational,
+                             rapidjson::Value& object,
+                             rapidjson::MemoryPoolAllocator<>& allocator) {
+    object.SetArray();
+    object.PushBack(rational.numerator, allocator);
+    object.PushBack(rational.denominator, allocator);
+}
+
 // ImageMetadata::ColorShading struct
 
 inline void read_json_value(ImageMetadata::ColorShading& colorShading, const rapidjson::Value& object) {
@@ -323,6 +341,7 @@ void json_io(JsonIo& io, ExifMetadata& exifMetadata) {
             json_dto::optional("fNumber", exifMetadata.fNumber, std::nullopt) &
             json_dto::optional("isoSpeedRatings", exifMetadata.isoSpeedRatings, std::nullopt) &
             json_dto::optional("dateTimeOriginal", exifMetadata.dateTimeOriginal, std::nullopt) &
+            json_dto::optional("brightnessValue", exifMetadata.brightnessValue, std::nullopt) &
             json_dto::optional("focalLength", exifMetadata.focalLength, std::nullopt) &
             json_dto::optional("focalLengthIn35mmFilm", exifMetadata.focalLengthIn35mmFilm, std::nullopt);
 }

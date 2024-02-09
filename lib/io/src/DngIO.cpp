@@ -207,6 +207,9 @@ std::optional<ExifMetadata> DngReader::readExif() const {
                  dateTime.fSecond);
         exif.dateTimeOriginal = data;
     }
+    if (dngExif->fBrightnessValue.IsValid()) {
+        exif.brightnessValue = {dngExif->fBrightnessValue.n, dngExif->fBrightnessValue.d};
+    }
     if (dngExif->fFocalLength.IsValid()) {
         exif.focalLength = {dngExif->fFocalLength.n, dngExif->fFocalLength.d};
     }
@@ -370,6 +373,9 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
         if (dateTime.Parse(exif.dateTimeOriginal->c_str())) {
             dngExif->fDateTimeOriginal.SetDateTime(dateTime);
         }
+    }
+    if (exif.brightnessValue) {
+        dngExif->fBrightnessValue = {exif.brightnessValue->numerator, exif.brightnessValue->denominator};
     }
     if (exif.focalLength) {
         dngExif->fFocalLength = {exif.focalLength->numerator, exif.focalLength->denominator};
