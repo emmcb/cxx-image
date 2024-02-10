@@ -279,6 +279,11 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
         exif.brightnessValue = doubleToSRational(brightnessValue);
     }
 
+    float exposureBiasValue = 0.0f;
+    if (TIFFGetField(tif, EXIFTAG_EXPOSUREBIASVALUE, &exposureBiasValue) != 0) {
+        exif.exposureBiasValue = doubleToSRational(exposureBiasValue);
+    }
+
     float focalLength = 0.0f;
     if (TIFFGetField(tif, EXIFTAG_FOCALLENGTH, &focalLength) != 0) {
         exif.focalLength = doubleToRational(focalLength);
@@ -333,6 +338,9 @@ static void populateExif(TIFF *tif, const ExifMetadata &exif) {
     }
     if (exif.brightnessValue) {
         TIFFSetField(tif, EXIFTAG_BRIGHTNESSVALUE, (*exif.brightnessValue).asFloat());
+    }
+    if (exif.exposureBiasValue) {
+        TIFFSetField(tif, EXIFTAG_EXPOSUREBIASVALUE, (*exif.exposureBiasValue).asFloat());
     }
     if (exif.focalLength) {
         TIFFSetField(tif, EXIFTAG_FOCALLENGTH, (*exif.focalLength).asFloat());

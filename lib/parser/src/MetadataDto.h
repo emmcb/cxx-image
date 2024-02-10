@@ -342,6 +342,7 @@ void json_io(JsonIo& io, ExifMetadata& exifMetadata) {
             json_dto::optional("isoSpeedRatings", exifMetadata.isoSpeedRatings, std::nullopt) &
             json_dto::optional("dateTimeOriginal", exifMetadata.dateTimeOriginal, std::nullopt) &
             json_dto::optional("brightnessValue", exifMetadata.brightnessValue, std::nullopt) &
+            json_dto::optional("exposureBiasValue", exifMetadata.exposureBiasValue, std::nullopt) &
             json_dto::optional("focalLength", exifMetadata.focalLength, std::nullopt) &
             json_dto::optional("focalLengthIn35mmFilm", exifMetadata.focalLengthIn35mmFilm, std::nullopt);
 }

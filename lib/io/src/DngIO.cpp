@@ -210,6 +210,9 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     if (dngExif->fBrightnessValue.IsValid()) {
         exif.brightnessValue = {dngExif->fBrightnessValue.n, dngExif->fBrightnessValue.d};
     }
+    if (dngExif->fExposureBiasValue.IsValid()) {
+        exif.exposureBiasValue = {dngExif->fExposureBiasValue.n, dngExif->fExposureBiasValue.d};
+    }
     if (dngExif->fFocalLength.IsValid()) {
         exif.focalLength = {dngExif->fFocalLength.n, dngExif->fFocalLength.d};
     }
@@ -376,6 +379,9 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
     }
     if (exif.brightnessValue) {
         dngExif->fBrightnessValue = {exif.brightnessValue->numerator, exif.brightnessValue->denominator};
+    }
+    if (exif.exposureBiasValue) {
+        dngExif->fExposureBiasValue = {exif.exposureBiasValue->numerator, exif.exposureBiasValue->denominator};
     }
     if (exif.focalLength) {
         dngExif->fFocalLength = {exif.focalLength->numerator, exif.focalLength->denominator};

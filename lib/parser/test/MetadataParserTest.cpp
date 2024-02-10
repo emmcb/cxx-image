@@ -41,6 +41,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .isoSpeedRatings = 100,
                              .dateTimeOriginal = "2023:08:25 17:13:31",
                              .brightnessValue = ExifMetadata::SRational{25, 10},
+                             .exposureBiasValue = ExifMetadata::SRational{-100, 100},
                              .focalLength = ExifMetadata::Rational{35, 1},
                              .focalLengthIn35mmFilm = 50},
             .shootingParams = {.aperture = 5.6f,
@@ -100,6 +101,10 @@ TEST(MetadataParserTest, TestSerializationFull) {
         "brightnessValue": [
             25,
             10
+        ],
+        "exposureBiasValue": [
+            -100,
+            100
         ],
         "focalLength": [
             35,

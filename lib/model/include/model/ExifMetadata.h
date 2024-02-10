@@ -51,6 +51,7 @@ struct ExifMetadata final {
     std::optional<uint16_t> isoSpeedRatings;       ///< ISO speed
     std::optional<std::string> dateTimeOriginal;   ///< Date when original image was taken
     std::optional<SRational> brightnessValue;      ///< The value of brightness.
+    std::optional<SRational> exposureBiasValue;    ///< The exposure bias.
     std::optional<Rational> focalLength;           ///< Focal length of lens in millimeters
     std::optional<uint16_t> focalLengthIn35mmFilm; ///< Focal length of lens in millimeters (35mm equivalent)
 };

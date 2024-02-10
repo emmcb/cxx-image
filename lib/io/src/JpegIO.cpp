@@ -217,6 +217,10 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
                         srational = exif_get_srational(entry->data, byteOrder);
                         exif->brightnessValue = {srational.numerator, srational.denominator};
                         break;
+                    case EXIF_TAG_EXPOSURE_BIAS_VALUE:
+                        srational = exif_get_srational(entry->data, byteOrder);
+                        exif->exposureBiasValue = {srational.numerator, srational.denominator};
+                        break;
                     case EXIF_TAG_FOCAL_LENGTH:
                         rational = exif_get_rational(entry->data, byteOrder);
                         exif->focalLength = {rational.numerator, rational.denominator};
@@ -334,6 +338,11 @@ static void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
         entry = addExifEntry(ifdExif, EXIF_TAG_BRIGHTNESS_VALUE);
         exif_set_srational(
                 entry->data, FILE_BYTE_ORDER, {exif.brightnessValue->numerator, exif.brightnessValue->denominator});
+    }
+    if (exif.exposureBiasValue) {
+        entry = addExifEntry(ifdExif, EXIF_TAG_EXPOSURE_BIAS_VALUE);
+        exif_set_srational(
+                entry->data, FILE_BYTE_ORDER, {exif.exposureBiasValue->numerator, exif.exposureBiasValue->denominator});
     }
     if (exif.focalLength) {
         entry = addExifEntry(ifdExif, EXIF_TAG_FOCAL_LENGTH);
