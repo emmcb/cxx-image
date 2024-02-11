@@ -27,7 +27,7 @@ struct ExifMetadata final {
         uint32_t numerator = 0;
         uint32_t denominator = 1;
 
-        inline double asFloat() const noexcept { return static_cast<float>(numerator) / denominator; }
+        inline float asFloat() const noexcept { return static_cast<float>(numerator) / denominator; }
         inline double asDouble() const noexcept { return static_cast<double>(numerator) / denominator; }
     };
 
@@ -35,7 +35,7 @@ struct ExifMetadata final {
         int32_t numerator = 0;
         int32_t denominator = 1;
 
-        inline double asFloat() const noexcept { return static_cast<float>(numerator) / denominator; }
+        inline float asFloat() const noexcept { return static_cast<float>(numerator) / denominator; }
         inline double asDouble() const noexcept { return static_cast<double>(numerator) / denominator; }
     };
 
