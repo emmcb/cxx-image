@@ -82,7 +82,7 @@ DngReader::DngReader(const std::string &path, const Options &options)
     }
 
     const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
-    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(ifd->fImageWidth, ifd->fImageLength);
+    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(ifd->fActiveArea.W(), ifd->fActiveArea.H());
 
     if (ifd->fSamplesPerPixel == 1) {
         if (ifd->fPhotometricInterpretation != piCFA) {
@@ -152,11 +152,14 @@ Image<T> DngReader::read() {
         mNegative->ReadStage1Image(*mHost, *mStream, *mInfo);
 
         const dng_image *dngImage = mNegative->Stage1Image();
-        dng_rect imageBound(dngImage->Height(), dngImage->Width());
 
         Image<T> image(layoutDescriptor());
-        dng_pixel_buffer rawPixelBuffer(
-                imageBound, 0, dngImage->Planes(), dngImage->PixelType(), ifd->fPlanarConfiguration, image.data());
+        dng_pixel_buffer rawPixelBuffer(ifd->fActiveArea,
+                                        0,
+                                        dngImage->Planes(),
+                                        dngImage->PixelType(),
+                                        ifd->fPlanarConfiguration,
+                                        image.data());
 
         dngImage->Get(rawPixelBuffer);
 
