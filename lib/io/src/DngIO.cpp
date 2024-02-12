@@ -238,22 +238,36 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
         const dng_vector &neutral = mNegative->CameraNeutral();
         metadata->cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
                                                  static_cast<float>(1.0 / neutral[2])};
+    }
 
-        dng_camera_profile_id profileId; // default profile ID
-        dng_camera_profile profile;
-        const bool haveProfile = mNegative->GetProfileByID(profileId, profile);
+    dng_camera_profile_id profileId; // default profile ID
+    dng_camera_profile profile;
+    const bool haveProfile = mNegative->GetProfileByID(profileId, profile);
 
-        if (haveProfile && profile.IsValid(mNegative->ColorChannels()) && !profile.ColorMatrix1().IsIdentity()) {
-            // Compute camera to sRGB color matrix
-            AutoPtr<dng_color_spec> spec(mNegative->MakeColorSpec(profileId));
-            spec->SetWhiteXY(spec->NeutralToXY(neutral));
-            dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
+    if (haveProfile && profile.IsValid(mNegative->ColorChannels()) && !profile.ColorMatrix1().IsIdentity()) {
+        AutoPtr<dng_color_spec> spec(mNegative->MakeColorSpec(profileId));
 
-            metadata->calibrationData.colorMatrix = Matrix3{};
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
-                }
+        if (mNegative->HasCameraNeutral()) {
+            spec->SetWhiteXY(spec->NeutralToXY(mNegative->CameraNeutral()));
+        } else if (mNegative->HasCameraWhiteXY()) {
+            spec->SetWhiteXY(mNegative->CameraWhiteXY());
+        } else {
+            spec->SetWhiteXY(D55_xy_coord());
+        }
+
+        const dng_vector &neutral = spec->CameraWhite();
+        if (mNegative->HasCameraWhiteXY() && !mNegative->HasCameraNeutral()) {
+            metadata->cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
+                                                     static_cast<float>(1.0 / neutral[2])};
+        }
+
+        // Compute camera to sRGB color matrix
+        dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
+
+        metadata->calibrationData.colorMatrix = Matrix3{};
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
             }
         }
     }
