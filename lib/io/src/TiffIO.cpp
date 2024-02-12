@@ -132,9 +132,9 @@ TiffReader::TiffReader(const std::string &path, const Options &options)
     } else if (sampleFormat == SAMPLEFORMAT_UINT) {
         builder.pixelPrecision(bitsPerSample);
 
-        if (bitsPerSample == 8) {
+        if (bitsPerSample <= 8) {
             pixelRepresentation = PixelRepresentation::UINT8;
-        } else if (bitsPerSample == 16) {
+        } else if (bitsPerSample <= 16) {
             pixelRepresentation = PixelRepresentation::UINT16;
         } else {
             throw IOError(MODULE, "Unsupported bits per sample " + std::to_string(bitsPerSample));

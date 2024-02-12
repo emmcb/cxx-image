@@ -111,13 +111,12 @@ DngReader::DngReader(const std::string &path, const Options &options)
     if (ifd->fSampleFormat[0] == sfFloatingPoint) {
         pixelRepresentation = PixelRepresentation::FLOAT;
     } else if (ifd->fSampleFormat[0] == sfUnsignedInteger) {
-        if (ifd->fBitsPerSample[0] != 16) {
+        if (ifd->fBitsPerSample[0] <= 8 || ifd->fBitsPerSample[0] > 16) {
             throw IOError(MODULE, "Unsupported bits per sample " + std::to_string(ifd->fBitsPerSample[0]));
         }
         pixelRepresentation = PixelRepresentation::UINT16;
 
-        const int pixelPrecision = std::ceil(std::log2(ifd->fWhiteLevel[0]));
-        builder.pixelPrecision(pixelPrecision);
+        builder.pixelPrecision(std::ceil(std::log2(ifd->fWhiteLevel[0])));
     } else {
         throw IOError(MODULE, "Unsupported sample format " + std::to_string(ifd->fSampleFormat[0]));
     }
@@ -151,17 +150,22 @@ Image<T> DngReader::read() {
         // Read stage 1 image from negative
         mNegative->ReadStage1Image(*mHost, *mStream, *mInfo);
 
-        const dng_image *dngImage = mNegative->Stage1Image();
-
         Image<T> image(layoutDescriptor());
-        dng_pixel_buffer rawPixelBuffer(ifd->fActiveArea,
-                                        0,
-                                        dngImage->Planes(),
-                                        dngImage->PixelType(),
-                                        ifd->fPlanarConfiguration,
-                                        image.data());
+        const auto copyBuffer = [&](const dng_image *src, const dng_rect &bounds) {
+            dng_pixel_buffer buffer(
+                    bounds, 0, src->Planes(), src->PixelType(), ifd->fPlanarConfiguration, image.data());
+            src->Get(buffer);
+        };
 
-        dngImage->Get(rawPixelBuffer);
+        if (mNegative->GetLinearizationInfo() && mNegative->GetLinearizationInfo()->fLinearizationTable.Get() &&
+            ifd->fPhotometricInterpretation == piLinearRaw) {
+            LOG_S(INFO) << "Apply linearization table";
+
+            mNegative->BuildStage2Image(*mHost);
+            copyBuffer(mNegative->Stage2Image(), ifd->fActiveArea.Size());
+        } else {
+            copyBuffer(mNegative->Stage1Image(), ifd->fActiveArea);
+        }
 
         return image;
     } catch (const dng_exception &except) {
@@ -433,17 +437,17 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         dng_file_stream stream(path().c_str(), true);
         dng_host host;
 
-        const dng_rect imageBounds(image.height(), image.width());
         const uint32 pixelType = std::is_floating_point_v<T> ? ttFloat : ttShort;
-        AutoPtr<dng_image> dngImage(host.Make_dng_image(imageBounds, image.numPlanes(), pixelType));
+        AutoPtr<dng_image> stage1(
+                host.Make_dng_image(dng_rect(image.height(), image.width()), image.numPlanes(), pixelType));
 
-        dng_pixel_buffer buffer(imageBounds,
+        dng_pixel_buffer buffer(stage1->Bounds(),
                                 0,
-                                dngImage->Planes(),
-                                dngImage->PixelType(),
+                                stage1->Planes(),
+                                stage1->PixelType(),
                                 pcInterleaved,
                                 const_cast<void *>(reinterpret_cast<const void *>(image.data())));
-        dngImage->Put(buffer);
+        stage1->Put(buffer);
 
         AutoPtr<dng_negative> negative(host.Make_dng_negative());
         negative->SetFloatingPoint(std::is_floating_point_v<T>);
@@ -523,7 +527,7 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         }
 
         negative->AddProfile(profile);
-        negative->SetStage1Image(dngImage);
+        negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
         dng_image_writer writer;
