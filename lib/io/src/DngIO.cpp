@@ -284,7 +284,6 @@ void DngReader::updateMetadata(std::optional<ImageMetadata> &metadata) const {
     if (linearizationInfo) {
         if (mNegative->IsFloatingPoint()) {
             metadata->calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
-            metadata->calibrationData.whiteLevel = static_cast<float>(linearizationInfo->fWhiteLevel[0]);
         } else {
             metadata->calibrationData.blackLevel = static_cast<int>(std::lround(linearizationInfo->MaxBlackLevel(0)));
             metadata->calibrationData.whiteLevel = static_cast<int>(std::lround(linearizationInfo->fWhiteLevel[0]));
@@ -507,10 +506,8 @@ void DngWriter::writeImpl(const Image<T> &image) const {
                                                                 : std::get<int>(*metadata.calibrationData.blackLevel);
                 negative->SetBlackLevel(blackLevel);
             }
-            if (metadata.calibrationData.whiteLevel) {
-                double whiteLevel = std::is_floating_point_v<T> ? std::get<float>(*metadata.calibrationData.whiteLevel)
-                                                                : std::get<int>(*metadata.calibrationData.whiteLevel);
-                negative->SetWhiteLevel(whiteLevel);
+            if (metadata.calibrationData.whiteLevel && !std::is_floating_point_v<T>) {
+                negative->SetWhiteLevel(std::get<int>(*metadata.calibrationData.whiteLevel));
             }
             if (metadata.calibrationData.colorMatrix && metadata.cameraControls.whiteBalance) {
                 Matrix3 xyzToCamera = metadata.calibrationData.colorMatrix->inverse() *
