@@ -38,10 +38,10 @@ namespace parser {
 ///   4. If everything has failed then return an empty optional.
 std::optional<ImageMetadata> readMetadata(const std::string& imagePath, const std::optional<std::string>& metadataPath);
 
-/// Read metadata from then given file.
+/// Read metadata from the given file.
 ImageMetadata readMetadata(const std::string& metadataPath);
 
-/// Write metadata to then given file.
+/// Write metadata to the given file.
 void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath);
 
 } // namespace parser

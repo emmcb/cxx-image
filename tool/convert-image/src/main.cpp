@@ -96,7 +96,7 @@ static void run(const std::string& inputPath,
     std::optional<ImageMetadata> metadata = parser::readMetadata(inputPath, metadataPath);
 
     std::unique_ptr<ImageReader> imageReader = io::makeReader(inputPath, ImageReader::Options(metadata));
-    imageReader->readMetadata(metadata);
+    imageReader->updateMetadata(metadata);
 
     // Output
     ImageWriter::Options writeOptions(metadata);

@@ -230,10 +230,14 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     return exif;
 }
 
-void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
-    ImageReader::readMetadata(metadata);
+void DngReader::updateMetadata(std::optional<ImageMetadata> &metadata) const {
     if (!metadata) {
         metadata = ImageMetadata{};
+    }
+
+    std::optional<ExifMetadata> exifMetadata = readExif();
+    if (exifMetadata) {
+        metadata->exifMetadata = std::move(*exifMetadata);
     }
 
     metadata->shootingParams.ispGain = std::exp2(mNegative->BaselineExposure());

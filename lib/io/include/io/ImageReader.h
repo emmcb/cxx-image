@@ -72,8 +72,8 @@ public:
     /// Read the file EXIF metadata, if present.
     virtual std::optional<ExifMetadata> readExif() const { return std::nullopt; }
 
-    /// Read the file metadata and updates the given structure with the result.
-    virtual void readMetadata(std::optional<ImageMetadata>& metadata) const {
+    /// Read the image metadata if present and updates the given structure with the result.
+    virtual void updateMetadata(std::optional<ImageMetadata>& metadata) const {
         std::optional<ExifMetadata> exif = readExif();
         if (exif) {
             if (!metadata) {
@@ -81,6 +81,14 @@ public:
             }
             metadata->exifMetadata = std::move(*exif);
         }
+    }
+
+    /// Read the image metadata, if present.
+    std::optional<ImageMetadata> readMetadata() const {
+        std::optional<ImageMetadata> metadata;
+        updateMetadata(metadata);
+
+        return metadata;
     }
 
 protected:
