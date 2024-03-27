@@ -283,7 +283,7 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     return exif;
 }
 
-void DngReader::updateMetadata(std::optional<ImageMetadata> &metadata) const {
+void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
     if (!metadata) {
         metadata = ImageMetadata{};
     }

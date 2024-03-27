@@ -90,7 +90,7 @@ public:
     virtual std::optional<ExifMetadata> readExif() const { return std::nullopt; }
 
     /// Read the image metadata if present and updates the given structure with the result.
-    virtual void updateMetadata(std::optional<ImageMetadata>& metadata) const {
+    virtual void readMetadata(std::optional<ImageMetadata>& metadata) const {
         std::optional<ExifMetadata> exif = readExif();
         if (exif) {
             if (!metadata) {
@@ -103,7 +103,7 @@ public:
     /// Read the image metadata, if present.
     std::optional<ImageMetadata> readMetadata() const {
         std::optional<ImageMetadata> metadata;
-        updateMetadata(metadata);
+        readMetadata(metadata);
 
         return metadata;
     }
