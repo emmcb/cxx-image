@@ -23,13 +23,39 @@ namespace cxximg {
 
 static const std::string MODULE = "PNG";
 
-void PngReadDeleter::operator()(png_struct *png) const {
-    png_destroy_read_struct(&png, nullptr, nullptr);
+namespace {
+
+void pngReadData(png_structp png, png_bytep data, png_size_t length) {
+    auto *stream = static_cast<std::istream *>(png_get_io_ptr(png));
+    stream->read(reinterpret_cast<char *>(data), length);
+
+    if (stream->fail()) {
+        png_error(png, "Read error");
+    }
 }
 
-void PngInfoDeleter::operator()(png_info *info) const {
-    assert(png != nullptr);
-    png_destroy_info_struct(png, &info);
+void pngWriteData(png_structp png, png_bytep data, png_size_t length) {
+    auto *stream = static_cast<std::ostream *>(png_get_io_ptr(png));
+    stream->write(reinterpret_cast<const char *>(data), length);
+
+    if (stream->fail()) {
+        png_error(png, "Write error");
+    }
+}
+
+void pngFlushData(png_structp png) {
+    auto *stream = static_cast<std::ostream *>(png_get_io_ptr(png));
+    stream->flush();
+}
+
+} // namespace
+
+void PngReadDeleter::operator()(png_struct *png) {
+    if (info) {
+        png_destroy_read_struct(&png, &info, nullptr);
+    } else {
+        png_destroy_read_struct(&png, nullptr, nullptr);
+    }
 }
 
 static PixelType colorTypeToPixelType(int colorType) {
@@ -63,24 +89,20 @@ static int pixelTypeToColorType(PixelType pixelType) {
     }
 }
 
-PngReader::PngReader(const std::string &path, const Options &options)
-    : ImageReader(path, options),
-      mFile(fopen(path.c_str(), "rb")),
-      mPng(png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr)),
-      mInfo(png_create_info_struct(mPng.get()), PngInfoDeleter{mPng.get()}) {
-    if (!mFile) {
-        throw IOError(MODULE, "Cannot open input file for reading");
-    }
+void PngReader::readHeader() {
+    mPng.reset(png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr));
 
     png_structp png = mPng.get();
-    png_infop info = mInfo.get();
+    png_infop info = png_create_info_struct(png);
+
+    mPng.get_deleter().info = info;
 
     // setjmp() must be called in every function that calls a PNG-writing libpng function
     if (setjmp(png_jmpbuf(png))) { // NOLINT(cert-err52-cpp)
-        throw IOError(MODULE, "An error occured while reading");
+        throw IOError(MODULE, "Reading failed");
     }
 
-    png_init_io(png, mFile.get());
+    png_set_read_fn(png, static_cast<png_voidp>(mStream), pngReadData);
     png_read_info(png, info); // read all PNG info up to image data
 
     uint32_t width = 0, height = 0;
@@ -114,12 +136,12 @@ PngReader::PngReader(const std::string &path, const Options &options)
         throw IOError(MODULE, "Unsupported bit depth " + std::to_string(bitDepth));
     }
 
-    setDescriptor({LayoutDescriptor::Builder(width, height)
+    mDescriptor = {LayoutDescriptor::Builder(width, height)
                            .imageLayout(ImageLayout::INTERLEAVED)
                            .pixelType(colorTypeToPixelType(colorType))
                            .pixelPrecision(bitDepth)
                            .build(),
-                   pixelRepresentation});
+                   pixelRepresentation};
 }
 
 Image8u PngReader::read8u() {
@@ -144,7 +166,7 @@ Image<T> PngReader::read() {
 
     // setjmp() must be called in every function that calls a PNG-writing libpng function
     if (setjmp(png_jmpbuf(png))) { // NOLINT(cert-err52-cpp)
-        throw IOError(MODULE, "An error occured while reading");
+        throw IOError(MODULE, "Reading failed");
     }
 
     // allocate image memory
@@ -185,9 +207,9 @@ void PngWriter::writeImpl(const Image<T> &image) const {
         return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
 
-    std::unique_ptr<FILE, FileDeleter> file(fopen(path().c_str(), "wb"));
-    if (!file) {
-        throw IOError(MODULE, "Cannot open output file for writing");
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
     }
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -196,11 +218,10 @@ void PngWriter::writeImpl(const Image<T> &image) const {
     // setjmp() must be called in every function that calls a PNG-writing libpng function
     if (setjmp(png_jmpbuf(png))) { // NOLINT(cert-err52-cpp)
         png_destroy_write_struct(&png, &info);
-        throw IOError(MODULE, "An error occured while writing");
+        throw IOError(MODULE, "Writing failed");
     }
 
-    // make sure fp is (re)opened in BINARY mode
-    png_init_io(png, file.get());
+    png_set_write_fn(png, static_cast<png_voidp>(&stream), pngWriteData, pngFlushData);
 
     // set the compression levels
     png_set_compression_level(png, 3);
@@ -229,7 +250,7 @@ void PngWriter::writeImpl(const Image<T> &image) const {
     std::vector<png_bytep> rowPointers(image.height());
     const int64_t rowStride = image.width() * image.numPlanes();
 
-    T *imageData = const_cast<T *>(image.data());
+    auto *imageData = const_cast<T *>(image.data());
     for (int y = 0; y < image.height(); ++y) {
         rowPointers[y] = reinterpret_cast<png_bytep>(&imageData[y * rowStride]);
     }

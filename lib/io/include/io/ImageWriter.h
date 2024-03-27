@@ -57,6 +57,9 @@ public:
         return std::nullopt;
     }
 
+    /// Constructs with stream and options.
+    ImageWriter(std::string path, Options options) : mPath(std::move(path)), mOptions(std::move(options)) {}
+
     /// Destructor.
     virtual ~ImageWriter() = default;
 
@@ -90,9 +93,6 @@ public:
     }
 
 protected:
-    /// Constructs with file path and options.
-    ImageWriter(std::string path, Options options) : mPath(std::move(path)), mOptions(std::move(options)) {}
-
     const std::string &path() const { return mPath; }
     const Options &options() const { return mOptions; }
 

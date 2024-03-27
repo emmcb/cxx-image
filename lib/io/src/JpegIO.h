@@ -19,21 +19,28 @@
 
 #include "util/File.h"
 
+struct jpeg_decompress_struct;
+
 namespace cxximg {
 
-struct JpegDeleter final {
-    void operator()(void *handle) const;
+struct JpegDecompressDeleter final {
+    void operator()(jpeg_decompress_struct *dinfo) const;
 };
 
 class JpegReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
-        std::vector<uint8_t> header = file::readBinary(path, 4);
-        return header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF && (header[3] == 0xE1 || header[3] == 0xE0);
+    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+        if (!signatureValid) {
+            const std::string ext = file::extension(path);
+            return ext == "jpeg" || ext == "jpg";
+        }
+        return signature[0] == 0xFF && signature[1] == 0xD8 && signature[2] == 0xFF &&
+               (signature[3] == 0xE1 || signature[3] == 0xE0);
     }
 
-    JpegReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
 
+    void readHeader() override;
     Image8u read8u() override;
 
 #ifdef HAVE_EXIF
@@ -41,18 +48,17 @@ public:
 #endif
 
 private:
-    std::unique_ptr<void, JpegDeleter> mHandle;
-    std::vector<uint8_t> mHeaderData;
+    std::unique_ptr<jpeg_decompress_struct, JpegDecompressDeleter> mInfo;
 };
 
 class JpegWriter final : public ImageWriter {
 public:
     static bool accept(const std::string &path) {
-        std::string ext = file::extension(path);
+        const std::string ext = file::extension(path);
         return ext == "jpeg" || ext == "jpg";
     }
 
-    JpegWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||

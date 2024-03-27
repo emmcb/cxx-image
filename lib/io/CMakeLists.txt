@@ -39,12 +39,8 @@ endif()
 
 if(HAVE_JPEG)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/JpegIO.cpp)
-    target_link_libraries(${TARGET} PRIVATE TurboJPEG::TurboJPEG)
+    target_link_libraries(${TARGET} PRIVATE JPEG::JPEG)
     target_compile_definitions(${TARGET} PRIVATE HAVE_JPEG)
-
-    if(HAVE_EXIF)
-        target_link_libraries(${TARGET} PRIVATE exif-jpeg)
-    endif()
 endif()
 
 if(HAVE_PNG)
@@ -55,7 +51,7 @@ endif()
 
 if(HAVE_TIFF)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/TiffIO.cpp)
-    target_link_libraries(${TARGET} PRIVATE TIFF::TIFF $<BUILD_INTERFACE:tiff-rational>)
+    target_link_libraries(${TARGET} PRIVATE TIFF::TIFF TIFF::CXX $<BUILD_INTERFACE:tiff-rational>)
     target_compile_definitions(${TARGET} PRIVATE HAVE_TIFF)
 endif()
 

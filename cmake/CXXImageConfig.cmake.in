@@ -2,7 +2,6 @@
 
 # Include external targets first
 include(${CMAKE_CURRENT_LIST_DIR}/DNGTargets.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/EXIFTargets.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/LoguruTargets.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/CXXImageTargets.cmake)

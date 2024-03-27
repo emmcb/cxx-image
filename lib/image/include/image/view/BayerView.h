@@ -63,14 +63,14 @@ public:
     /// Expression assignment.
     UTIL_ALWAYS_INLINE BayerView<T> &operator=(const BayerView<T> &other) noexcept {
         if (this != &other) {
-            operator=<BayerView<T>>(other);
+            operator= <BayerView<T>>(other);
         }
         return *this;
     }
 
     /// Expression assignment.
     UTIL_ALWAYS_INLINE BayerView<T> &operator=(BayerView<T> &&other) noexcept {
-        operator=<BayerView<T>>(other);
+        operator= <BayerView<T>>(other);
         return *this;
     }
 

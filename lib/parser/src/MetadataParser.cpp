@@ -56,12 +56,12 @@ std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
             }()
                     .string();
 
-    LOG_S(INFO) << "Using metadata: " << metadataGuess;
-
     if (!fs::exists(metadataGuess)) {
-        LOG_S(INFO) << "No metadata found";
+        LOG_S(INFO) << "No metadata found at " << metadataGuess;
         return std::nullopt;
     }
+
+    LOG_S(INFO) << "Using metadata: " << metadataGuess;
 
     return readMetadata(metadataGuess);
 }
@@ -69,7 +69,7 @@ std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
 ImageMetadata readMetadata(const std::string& metadataPath) {
     std::ifstream ifs(metadataPath);
     if (!ifs) {
-        throw ParserError("Cannot open input file for reading");
+        throw ParserError("Cannot open file for reading: " + metadataPath);
     }
 
     CurrentPathRestorer currentPathRestorer{};
@@ -91,7 +91,7 @@ ImageMetadata readMetadata(const std::string& metadataPath) {
 void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath) {
     std::ofstream ofs(metadataPath);
     if (!ofs) {
-        throw ParserError("Cannot open output file for writing");
+        throw ParserError("Cannot open file for writing: " + metadataPath);
     }
 
     CurrentPathRestorer currentPathRestorer{};

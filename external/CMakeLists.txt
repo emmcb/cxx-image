@@ -70,15 +70,6 @@ endif()
 add_subdirectory(json_dto)
 add_subdirectory(rapidjson)
 
-if(HAVE_EXIF)
-    add_subdirectory(exif)
-
-    if(CXXIMG_ENABLE_INSTALL)
-        install(TARGETS exif-jpeg EXPORT EXIFTargets)
-        install(EXPORT EXIFTargets DESTINATION cmake)
-    endif()
-endif()
-
 if(HAVE_TIFF)
     add_subdirectory(tiff)
 endif()

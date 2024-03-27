@@ -41,15 +41,19 @@ static decltype(auto) guessPixelFromExtension(const std::string &path) {
     return std::make_tuple(imageLayout, pixelType);
 }
 
-PlainReader::PlainReader(const std::string &path, const Options &options) : ImageReader(path, options) {
-    const auto &fileInfo = options.fileInfo;
+void PlainReader::readHeader() {
+    mStream->seekg(0, std::istream::end);
+    int64_t fileSize = mStream->tellg();
+    mStream->seekg(0);
+
+    const auto &fileInfo = options().fileInfo;
     if (!fileInfo.width || !fileInfo.height) {
         throw IOError(MODULE, "Unspecified image dimensions");
     }
 
     const int width = *fileInfo.width;
     const int height = *fileInfo.height;
-    const auto [imageLayout, pixelType] = guessPixelFromExtension(path);
+    const auto [imageLayout, pixelType] = guessPixelFromExtension(path());
 
     LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(width, height);
     if (fileInfo.imageLayout || imageLayout) {
@@ -68,7 +72,6 @@ PlainReader::PlainReader(const std::string &path, const Options &options) : Imag
         }
 
         // Look for the width alignment that matches with the file size.
-        const int fileSize = file::fileSize(path);
         std::optional<int> widthAlignment = detail::guessWidthAlignment(builder, fileSize);
         if (!widthAlignment) {
             throw IOError(
@@ -91,7 +94,6 @@ PlainReader::PlainReader(const std::string &path, const Options &options) : Imag
         }
 
         // Look for pixel size that can fit with file size.
-        const int fileSize = file::fileSize(path);
         const int pixelSize = detail::guessPixelSize(builder, fileSize);
 
         if (pixelSize == 1) {
@@ -106,7 +108,7 @@ PlainReader::PlainReader(const std::string &path, const Options &options) : Imag
         throw IOError(MODULE, "Unsupported pixel size " + std::to_string(pixelSize));
     }();
 
-    setDescriptor({layout, pixelRepresentation});
+    mDescriptor = {layout, pixelRepresentation};
 }
 
 Image8u PlainReader::read8u() {
@@ -134,19 +136,21 @@ template <typename T>
 Image<T> PlainReader::read() {
     validateType<T>();
 
-    constexpr auto PIXEL_SIZE = sizeof(T);
-    std::vector<uint8_t> data = file::readBinary(path());
+    Image<T> image(layoutDescriptor());
 
-    LayoutDescriptor descriptor = layoutDescriptor();
-    if (data.size() != descriptor.requiredBufferSize() * PIXEL_SIZE) {
+    mStream->seekg(0, std::istream::end);
+    int64_t fileSize = mStream->tellg();
+    mStream->seekg(0);
+
+    if (static_cast<uint64_t>(fileSize) != image.size() * sizeof(T)) {
         throw IOError(MODULE,
-                      "File size does not match specified plain image (" + std::to_string(PIXEL_SIZE) +
-                              " bits) dimension (expected " +
-                              std::to_string(descriptor.requiredBufferSize() * PIXEL_SIZE) + ", got " +
-                              std::to_string(data.size()) + ")");
+                      "File size does not match expected buffer size (expected " +
+                              std::to_string(image.size() * sizeof(T)) + ", got " + std::to_string(fileSize) + ")");
     }
 
-    return Image<T>(descriptor, reinterpret_cast<T *>(data.data()));
+    mStream->read(reinterpret_cast<char *>(image.data()), image.size());
+
+    return image;
 }
 
 void PlainWriter::write(const Image8u &image) const {
@@ -172,14 +176,12 @@ void PlainWriter::write(const Imagef &image) const {
 
 template <typename T>
 void PlainWriter::writeImpl(const Image<T> &image) const {
-    constexpr auto PIXEL_SIZE = sizeof(T);
-
-    std::ofstream file(path(), std::ios::binary);
-    if (!file) {
-        throw IOError(MODULE, "Cannot open output file for writing");
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
     }
 
-    file.write(reinterpret_cast<const char *>(image.data()), image.size() * PIXEL_SIZE);
+    stream.write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
 }
 
 } // namespace cxximg

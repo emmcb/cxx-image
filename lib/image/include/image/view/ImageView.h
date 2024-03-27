@@ -82,14 +82,14 @@ public:
     /// Expression assignment.
     UTIL_ALWAYS_INLINE ImageView<T> &operator=(const ImageView<T> &other) noexcept {
         if (this != &other) {
-            operator=<ImageView<T>>(other);
+            operator= <ImageView<T>>(other);
         }
         return *this;
     }
 
     /// Expression assignment.
     UTIL_ALWAYS_INLINE ImageView<T> &operator=(ImageView<T> &&other) noexcept {
-        operator=<ImageView<T>>(other);
+        operator= <ImageView<T>>(other);
         return *this;
     }
 

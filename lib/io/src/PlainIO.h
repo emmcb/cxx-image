@@ -28,7 +28,9 @@ public:
         return (extension == "nv12" || extension == "y8" || extension == "plain16");
     }
 
-    PlainReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
+
+    void readHeader() override;
 
     Image8u read8u() override;
     Image16u read16u() override;
@@ -46,7 +48,7 @@ public:
         return (extension == "nv12" || extension == "y8" || extension == "plain16");
     }
 
-    PlainWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor([[maybe_unused]] const LayoutDescriptor &descriptor) const override { return true; }
 

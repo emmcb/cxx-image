@@ -20,6 +20,8 @@
 #include "model/ExifMetadata.h"
 #include "model/ImageMetadata.h"
 
+#include <fstream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -45,6 +47,19 @@ public:
         }
     };
 
+    /// Constructs with stream and options.
+    ImageReader(std::string path, std::istream* stream, Options options)
+        : mStream(stream), mPath(std::move(path)), mOptions(options) {
+        if (!stream) {
+            mOwnedStream = std::make_unique<std::ifstream>(mPath, std::ios::binary);
+            mStream = mOwnedStream.get();
+
+            if (!*mStream) {
+                throw IOError("Cannot open file for reading: " + mPath);
+            }
+        }
+    }
+
     /// Destructor.
     virtual ~ImageReader() = default;
 
@@ -59,6 +74,8 @@ public:
         assert(mDescriptor.has_value());
         return mDescriptor->layout;
     }
+
+    virtual void readHeader() = 0;
 
     /// Read and decode the given file into a newly allocated 8 bits image.
     virtual Image8u read8u() { throw IOError("This format does not support 8 bits read."); }
@@ -99,13 +116,8 @@ protected:
         PixelRepresentation pixelRepresentation;
     };
 
-    /// Constructs with file path and options.
-    ImageReader(std::string mPath, Options options) : mPath(std::move(mPath)), mOptions(options) {}
-
-    const std::string& path() const noexcept { return mPath; }
-    const Options& options() const noexcept { return mOptions; }
-
-    void setDescriptor(const Descriptor& descriptor) noexcept { mDescriptor = descriptor; }
+    const std::string& path() const { return mPath; }
+    const Options& options() const { return mOptions; }
 
     template <typename T>
     void validateType() const {
@@ -130,11 +142,14 @@ protected:
         }
     }
 
+    std::istream* mStream;
+    std::optional<Descriptor> mDescriptor;
+
 private:
     std::string mPath;
     Options mOptions;
 
-    std::optional<Descriptor> mDescriptor;
+    std::unique_ptr<std::istream> mOwnedStream;
 };
 
 } // namespace cxximg

@@ -30,17 +30,25 @@ struct TiffDeleter final {
     void operator()(TIFF *tif) const;
 };
 
+using TiffPtr = std::unique_ptr<TIFF, TiffDeleter>;
+
 class TiffReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
-        // Bytes 0-1 should be 'II' or 'MM', 'II' means little endian, 'MM' means
-        // big endian, and Byte 2-3 should be magic number 42.
-        std::vector<uint8_t> header = file::readBinary(path, 4);
-        return (header[0] == 'I' && header[1] == 'I' && header[2] == 42 && header[3] == 0) ||
-               (header[0] == 'M' && header[1] == 'M' && header[2] == 0 && header[3] == 42);
+    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+        if (!signatureValid) {
+            const std::string ext = file::extension(path);
+            return ext == "tiff" || ext == "tif";
+        }
+
+        // Bytes 0-1 should be 'II' or 'MM', 'II' means little endian, 'MM' means big endian, and bytes 2-3 should be
+        // magic number 42.
+        return (signature[0] == 'I' && signature[1] == 'I' && signature[2] == 0x2a && signature[3] == 0) ||
+               (signature[0] == 'M' && signature[1] == 'M' && signature[2] == 0 && signature[3] == 0x2a);
     }
 
-    TiffReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
+
+    void readHeader() override;
 
     Image8u read8u() override;
     Image16u read16u() override;
@@ -52,17 +60,17 @@ private:
     template <typename T>
     Image<T> read();
 
-    std::unique_ptr<TIFF, TiffDeleter> mTiff;
+    TiffPtr mTiff;
 };
 
 class TiffWriter final : public ImageWriter {
 public:
     static bool accept(const std::string &path) {
-        std::string ext = file::extension(path);
+        const std::string ext = file::extension(path);
         return ext == "tiff" || ext == "tif";
     }
 
-    TiffWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||

@@ -66,8 +66,9 @@ static_assert(sizeof(Raw16From12Pixel) == 4, "Raw16From12Pixel must by 4 bytes")
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
 class MipiRawReader : public ImageReader {
 public:
-    MipiRawReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
 
+    void readHeader() override;
     Image16u read16u() override;
 };
 
@@ -91,7 +92,7 @@ public:
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
 class MipiRawWriter : public ImageWriter {
 public:
-    MipiRawWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return image::isBayerPixelType(descriptor.pixelType);

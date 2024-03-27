@@ -130,7 +130,7 @@ public:
     }
 
 private:
-    std::array<float, static_cast<int64_t>(M) *N> mData = {};
+    std::array<float, static_cast<int64_t>(M) * N> mData = {};
 };
 
 using Matrix3 = Matrix<3, 3>;

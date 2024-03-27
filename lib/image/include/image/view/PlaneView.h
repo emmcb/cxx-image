@@ -60,14 +60,14 @@ public:
     /// Expression assignment.
     UTIL_ALWAYS_INLINE PlaneView<T> &operator=(const PlaneView<T> &other) noexcept {
         if (this != &other) {
-            operator=<PlaneView<T>>(other);
+            operator= <PlaneView<T>>(other);
         }
         return *this;
     }
 
     /// Expression assignment.
     UTIL_ALWAYS_INLINE PlaneView<T> &operator=(PlaneView<T> &&other) noexcept {
-        operator=<PlaneView<T>>(other);
+        operator= <PlaneView<T>>(other);
         return *this;
     }
 

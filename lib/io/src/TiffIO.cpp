@@ -24,6 +24,18 @@ namespace cxximg {
 
 static const std::string MODULE = "TIFF";
 
+namespace {
+
+void tiffWarningHandler(const char *module, const char *fmt, va_list ap) {
+    LOG_S(INFO) << module << ": " << loguru::vstrprintf(fmt, ap);
+}
+
+void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
+    LOG_S(WARNING) << module << ": " << loguru::vstrprintf(fmt, ap);
+}
+
+} // namespace
+
 void TiffDeleter::operator()(TIFF *tif) const {
     TIFFClose(tif);
 }
@@ -45,10 +57,13 @@ static PixelType cfaPatternToPixelType(const uint8_t *cfaPattern) {
                   "Unsupported CFA pattern " + std::to_string(cfaPattern[0]) + " " + std::to_string(cfaPattern[1]));
 }
 
-TiffReader::TiffReader(const std::string &path, const Options &options)
-    : ImageReader(path, options), mTiff(TIFFOpen(path.c_str(), "r")) {
+void TiffReader::readHeader() {
+    TIFFSetWarningHandler(tiffWarningHandler);
+    TIFFSetErrorHandler(tiffErrorHandler);
+
+    mTiff.reset(TIFFStreamOpen(path().c_str(), mStream));
     if (!mTiff) {
-        throw IOError(MODULE, "Cannot open input file for reading");
+        throw IOError(MODULE, "Cannot open stream for reading");
     }
     TIFF *tif = mTiff.get();
 
@@ -81,6 +96,7 @@ TiffReader::TiffReader(const std::string &path, const Options &options)
     }
 
     LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(width, height);
+    const auto &fileInfo = options().fileInfo;
 
     if (samplesPerPixel == 1) {
         switch (photoMetric) {
@@ -93,9 +109,9 @@ TiffReader::TiffReader(const std::string &path, const Options &options)
                 uint8_t *cfaPattern = nullptr;
                 if (TIFFGetField(tif, TIFFTAG_CFAPATTERN, &count, &cfaPattern) != 0) {
                     builder.pixelType(cfaPatternToPixelType(cfaPattern));
-                } else if (options.fileInfo.pixelType && (image::isBayerPixelType(*options.fileInfo.pixelType) ||
-                                                          image::isQuadBayerPixelType(*options.fileInfo.pixelType))) {
-                    builder.pixelType(*options.fileInfo.pixelType);
+                } else if (fileInfo.pixelType && (image::isBayerPixelType(*fileInfo.pixelType) ||
+                                                  image::isQuadBayerPixelType(*fileInfo.pixelType))) {
+                    builder.pixelType(*fileInfo.pixelType);
                 } else {
                     throw IOError(MODULE, "Unspecified CFA pattern");
                 }
@@ -143,11 +159,11 @@ TiffReader::TiffReader(const std::string &path, const Options &options)
         throw IOError(MODULE, "Unsupported sample format " + std::to_string(sampleFormat));
     }
 
-    if (options.fileInfo.pixelPrecision) {
-        builder.pixelPrecision(*options.fileInfo.pixelPrecision);
+    if (fileInfo.pixelPrecision) {
+        builder.pixelPrecision(*fileInfo.pixelPrecision);
     }
 
-    setDescriptor({builder.build(), pixelRepresentation});
+    mDescriptor = {builder.build(), pixelRepresentation};
 }
 
 Image8u TiffReader::read8u() {
@@ -378,9 +394,12 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
         return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
 
-    std::unique_ptr<TIFF, TiffDeleter> tiffPtr(TIFFOpen(path().c_str(), "w"));
+    TIFFSetWarningHandler(tiffWarningHandler);
+    TIFFSetErrorHandler(tiffErrorHandler);
+
+    TiffPtr tiffPtr(TIFFOpen(path().c_str(), "w")); // TODO: use stream
     if (!tiffPtr) {
-        throw IOError(MODULE, "Cannot open output file for writing");
+        throw IOError(MODULE, "Cannot open stream for writing");
     }
     TIFF *tif = tiffPtr.get();
 
@@ -473,6 +492,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
     // Write IFD
     TIFFWriteDirectory(tif);
 
+    // Write EXIF
     if (metadata) {
         TIFFCreateEXIFDirectory(tif);
         populateExif(tif, metadata->exifMetadata);
@@ -487,9 +507,12 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
 }
 
 void TiffWriter::writeExif(const ExifMetadata &exif) const {
-    std::unique_ptr<TIFF, TiffDeleter> tiffPtr(TIFFOpen(path().c_str(), "r+"));
+    TIFFSetWarningHandler(tiffWarningHandler);
+    TIFFSetErrorHandler(tiffErrorHandler);
+
+    TiffPtr tiffPtr(TIFFOpen(path().c_str(), "r+")); // TODO: use stream
     if (!tiffPtr) {
-        throw IOError(MODULE, "Cannot open output file for read/write");
+        throw IOError(MODULE, "Cannot open stream for writing");
     }
     TIFF *tif = tiffPtr.get();
 
@@ -497,6 +520,7 @@ void TiffWriter::writeExif(const ExifMetadata &exif) const {
     populateIfd(tif, exif);
     TIFFRewriteDirectory(tif);
 
+    // Write EXIF
     TIFFCreateEXIFDirectory(tif);
     populateExif(tif, exif);
 

@@ -14,15 +14,14 @@
 
 #include "JpegIO.h"
 
-#include <turbojpeg.h>
+#include <jpeglib.h>
 #include <loguru.hpp>
 
 #ifdef HAVE_EXIF
 #include <libexif/exif-data.h>
-extern "C" {
-#include <libjpeg/jpeg-data.h>
-}
 #endif
+
+#include <csetjmp>
 
 using namespace std::string_literals;
 
@@ -30,124 +29,224 @@ namespace cxximg {
 
 static const std::string MODULE = "JPEG";
 
-void JpegDeleter::operator()(void *handle) const {
-    tjDestroy(handle);
+namespace {
+
+struct JpegErrorMgr {
+    jpeg_error_mgr pub;    ///< "public" fields
+    jmp_buf setjmp_buffer; ///< for return to caller
+};
+
+struct JpegReadStream {
+    jpeg_source_mgr pub;  ///< "public" fields
+    std::istream *stream; ///< source stream
+    uint8_t buffer[4096]; ///< start of buffer
+    bool start_of_file;   ///< have we gotten any data yet?
+};
+
+struct JpegWriteStream {
+    jpeg_destination_mgr pub; ///< "public" fields
+    std::ostream *stream;     ///< destination stream
+    uint8_t buffer[4096];     ///< start of buffer
+};
+
+void errorExit(j_common_ptr info) {
+    // info->err really points to a CustomErrorMgr struct, so coerce pointer
+    auto *jerr = reinterpret_cast<JpegErrorMgr *>(info->err);
+
+    // Return control to the setjmp point
+    longjmp(jerr->setjmp_buffer, 1); // NOLINT(cert-err52-cpp)
 }
 
-JpegReader::JpegReader(const std::string &path, const Options &options) : ImageReader(path, options) {
-    int width = 0;
-    int height = 0;
-    int jpegSubsamp = 0;
-    int jpegColorspace = 0;
-    int result = -1;
+void outputMessage(j_common_ptr info) {
+    char buffer[JMSG_LENGTH_MAX];
 
-    std::ifstream file(path, std::ios::binary);
-    if (!file) {
-        throw IOError(MODULE, "Cannot open input file for reading");
+    // Create the message
+    (*info->err->format_message)(info, buffer);
+
+    LOG_S(WARNING) << buffer;
+}
+
+void initSource(j_decompress_ptr dinfo) {
+    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
+    src->start_of_file = true;
+}
+
+boolean fillInputBuffer(j_decompress_ptr dinfo) {
+    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
+    src->stream->read(reinterpret_cast<char *>(src->buffer), sizeof(src->buffer));
+
+    src->pub.next_input_byte = src->buffer;
+    src->pub.bytes_in_buffer = src->stream->gcount();
+
+    if (src->pub.bytes_in_buffer <= 0) {
+        // Insert a fake EOI marker
+        src->buffer[0] = 0xFF;
+        src->buffer[1] = JPEG_EOI;
+        src->pub.next_input_byte = src->buffer;
+        src->pub.bytes_in_buffer = 2;
     }
 
-    // 65K should be enough to read JPEG header in most case, however we have no guarantee about this. Particularly,
-    // some manufacturers may add custom APP segments with proprietary data, which increases the header size.
-    constexpr int CHUNK_SIZE = 65536;
-    std::vector<uint8_t> chunk(CHUNK_SIZE);
+    return TRUE;
+}
 
-    while (result != 0) {
-        const int bytesRead = file.rdbuf()->sgetn(reinterpret_cast<char *>(chunk.data()), CHUNK_SIZE);
-        if (bytesRead <= 0) {
-            break;
-        }
-        mHeaderData.insert(mHeaderData.end(), chunk.begin(), chunk.begin() + bytesRead);
-
-        mHandle.reset(tjInitDecompress());
-        result = tjDecompressHeader3(
-                mHandle.get(), mHeaderData.data(), mHeaderData.size(), &width, &height, &jpegSubsamp, &jpegColorspace);
-
-        if (bytesRead < CHUNK_SIZE) {
-            break;
-        }
+void skipInputData(j_decompress_ptr dinfo, int64_t numBytes) {
+    if (numBytes <= 0) {
+        return;
     }
 
-    if (result != 0) {
-        throw IOError(MODULE, "Failed to decompress header: "s + tjGetErrorStr2(mHandle.get()));
-    }
+    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
 
-    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(width, height).pixelPrecision(8);
-
-    if (jpegSubsamp == TJSAMP_GRAY) {
-        builder.pixelType(PixelType::GRAYSCALE);
-    } else if (options.jpegDecodingMode == ImageReader::JpegDecodingMode::RGB) {
-        builder.imageLayout(ImageLayout::INTERLEAVED).pixelType(PixelType::RGB);
-    } else if (jpegSubsamp == TJSAMP_444) {
-        builder.pixelType(PixelType::YUV);
-    } else if (jpegSubsamp == TJSAMP_420) {
-        builder.imageLayout(ImageLayout::YUV_420);
+    if (static_cast<uint64_t>(numBytes) <= src->pub.bytes_in_buffer) {
+        src->pub.next_input_byte += numBytes;
+        src->pub.bytes_in_buffer -= numBytes;
     } else {
-        throw IOError(MODULE, "Unsupported subsampling value " + std::to_string(jpegSubsamp));
+        src->stream->seekg(numBytes - src->pub.bytes_in_buffer, std::istream::cur);
+        src->pub.next_input_byte = nullptr;
+        src->pub.bytes_in_buffer = 0;
+    }
+}
+
+void termSource([[maybe_unused]] j_decompress_ptr dinfo) {
+    // nothing to do
+}
+
+void initDestination(j_compress_ptr cinfo) {
+    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+    dest->pub.next_output_byte = dest->buffer;
+    dest->pub.free_in_buffer = sizeof(dest->buffer);
+}
+
+boolean emptyOutputBuffer(j_compress_ptr cinfo) {
+    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+
+    dest->stream->write(reinterpret_cast<const char *>(dest->buffer), sizeof(dest->buffer));
+
+    dest->pub.next_output_byte = dest->buffer;
+    dest->pub.free_in_buffer = sizeof(dest->buffer);
+
+    return TRUE;
+}
+
+void termDestination(j_compress_ptr cinfo) {
+    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+    int64_t datacount = sizeof(dest->buffer) - dest->pub.free_in_buffer;
+
+    // Write any data remaining in the buffer
+    if (datacount > 0) {
+        dest->stream->write(reinterpret_cast<const char *>(dest->buffer), datacount);
+    }
+}
+
+} // namespace
+
+static void setupJpegSourceStream(j_decompress_ptr dinfo, std::istream *stream) {
+    auto *src = static_cast<JpegReadStream *>(
+            (*dinfo->mem->alloc_small)(reinterpret_cast<j_common_ptr>(dinfo), JPOOL_PERMANENT, sizeof(JpegReadStream)));
+    dinfo->src = &src->pub;
+    src->pub.init_source = initSource;
+    src->pub.fill_input_buffer = fillInputBuffer;
+    src->pub.skip_input_data = skipInputData;
+    src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
+    src->pub.term_source = termSource;
+    src->pub.bytes_in_buffer = 0;       /* forces fill_input_buffer on first read */
+    src->pub.next_input_byte = nullptr; /* until buffer loaded */
+    src->stream = stream;
+}
+
+static void setupJpegDestinationStream(j_compress_ptr cinfo, std::ostream *stream) {
+    auto *dest = static_cast<JpegWriteStream *>((*cinfo->mem->alloc_small)(
+            reinterpret_cast<j_common_ptr>(cinfo), JPOOL_PERMANENT, sizeof(JpegWriteStream)));
+    cinfo->dest = &dest->pub;
+    dest->pub.init_destination = initDestination;
+    dest->pub.empty_output_buffer = emptyOutputBuffer;
+    dest->pub.term_destination = termDestination;
+    dest->stream = stream;
+}
+
+void JpegDecompressDeleter::operator()(jpeg_decompress_struct *dinfo) const {
+    jpeg_destroy_decompress(dinfo);
+
+    auto *jerr = reinterpret_cast<JpegErrorMgr *>(dinfo->err);
+    delete jerr;
+
+    delete dinfo;
+}
+
+void JpegReader::readHeader() {
+    mInfo.reset(new jpeg_decompress_struct());
+    jpeg_decompress_struct *dinfo = mInfo.get();
+
+    auto *jerr = new JpegErrorMgr();
+    dinfo->err = jpeg_std_error(&jerr->pub);
+    jerr->pub.error_exit = errorExit;
+    jerr->pub.output_message = outputMessage;
+
+    if (setjmp(jerr->setjmp_buffer)) { // NOLINT(cert-err52-cpp)
+        throw IOError(MODULE, "Reading failed");
     }
 
-    setDescriptor({builder.build(), PixelRepresentation::UINT8});
+    jpeg_create_decompress(dinfo);
+
+    setupJpegSourceStream(dinfo, mStream);
+
+    jpeg_save_markers(dinfo, JPEG_APP0 + 1, 0xFFFF);
+    jpeg_read_header(dinfo, TRUE);
+
+    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(dinfo->image_width, dinfo->image_height)
+                                                .pixelPrecision(8);
+
+    if (dinfo->num_components == 1) {
+        builder.pixelType(PixelType::GRAYSCALE);
+    } else if (dinfo->num_components == 3) {
+        builder.imageLayout(ImageLayout::INTERLEAVED);
+        if (options().jpegDecodingMode == ImageReader::JpegDecodingMode::YUV) {
+            builder.pixelType(PixelType::YUV);
+            dinfo->out_color_space = JCS_YCbCr;
+        } else {
+            builder.pixelType(PixelType::RGB);
+        }
+    } else {
+        throw IOError(MODULE, "Unsupported number of components " + std::to_string(dinfo->num_components));
+    }
+
+    mDescriptor = {builder.build(), PixelRepresentation::UINT8};
 }
 
 Image8u JpegReader::read8u() {
     LOG_SCOPE_F(INFO, "Read JPEG");
     LOG_S(INFO) << "Path: " << path();
 
-    // Read the binary file to a buffer
-    std::vector<uint8_t> data = file::readBinary(path());
-
     Image8u image(layoutDescriptor());
-    int result = -1;
 
-    switch (image.pixelType()) {
-        case PixelType::GRAYSCALE:
-            result = tjDecompress2(mHandle.get(),
-                                   data.data(),
-                                   data.size(),
-                                   image.data(),
-                                   image.width(),
-                                   0,
-                                   image.height(),
-                                   TJPF_GRAY,
-                                   TJFLAG_ACCURATEDCT);
-            break;
+    jpeg_decompress_struct *dinfo = mInfo.get();
 
-        case PixelType::RGB:
-            result = tjDecompress2(mHandle.get(),
-                                   data.data(),
-                                   data.size(),
-                                   image.data(),
-                                   image.width(),
-                                   0,
-                                   image.height(),
-                                   TJPF_RGB,
-                                   TJFLAG_ACCURATEDCT);
-            break;
-
-        case PixelType::YUV:
-            result = tjDecompressToYUV2(mHandle.get(),
-                                        data.data(),
-                                        data.size(),
-                                        image.data(),
-                                        image.width(),
-                                        image.layoutDescriptor().widthAlignment,
-                                        image.height(),
-                                        TJFLAG_ACCURATEDCT);
-            break;
-
-        default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(image.pixelType()));
+    auto *jerr = reinterpret_cast<JpegErrorMgr *>(dinfo->err);
+    if (setjmp(jerr->setjmp_buffer)) { // NOLINT(cert-err52-cpp)
+        throw IOError(MODULE, "Reading failed");
     }
 
-    if (result != 0) {
-        throw IOError(MODULE, "Failed to decompress data: "s + tjGetErrorStr2(mHandle.get()));
+    jpeg_start_decompress(dinfo);
+
+    const int64_t rowStride = image.width() * image.numPlanes();
+    for (int y = 0; y < image.height(); ++y) {
+        auto *buffer = &image[y * rowStride];
+        jpeg_read_scanlines(dinfo, &buffer, 1);
     }
+
+    jpeg_finish_decompress(dinfo);
 
     return image;
 }
 
 #ifdef HAVE_EXIF
 std::optional<ExifMetadata> JpegReader::readExif() const {
-    ExifData *data = exif_data_new_from_data(mHeaderData.data(), mHeaderData.size());
+    jpeg_decompress_struct *dinfo = mInfo.get();
+
+    if (!dinfo->marker_list) {
+        return std::nullopt;
+    }
+
+    ExifData *data = exif_data_new_from_data(dinfo->marker_list->data, dinfo->marker_list->data_length);
     if (data == nullptr) {
         return std::nullopt;
     }
@@ -356,102 +455,60 @@ static void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
 #endif
 
 void JpegWriter::write(const Image8u &image) const {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+        // Planar to interleaved conversion
+        return write(image::convertLayout(image, ImageLayout::INTERLEAVED));
+    }
+
     LOG_SCOPE_F(INFO, "Write JPEG");
     LOG_S(INFO) << "Path: " << path();
 
-    std::unique_ptr<void, JpegDeleter> handle(tjInitCompress());
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
+    }
 
-    // Compress image buffer to a compressed buffer.
-    // Memory is allocated by tjCompress2 if jpegSize == 0.
-    unsigned char *jpegBuf = nullptr;
-    unsigned long jpegSize = 0; // NOLINT(google-runtime-int)
+    jpeg_compress_struct cinfo{};
 
-    const auto compress = [&](const Image8u &interleavedImage) {
-        const bool isGrayscale = image.pixelType() == PixelType::GRAYSCALE;
-        const int pixelFormat = isGrayscale ? TJPF_GRAY : TJPF_RGB;
-        const int jpegSubsamp = isGrayscale ? TJSAMP_GRAY : TJSAMP_420;
+    JpegErrorMgr jerr{};
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = errorExit;
+    jerr.pub.output_message = outputMessage;
 
-        return tjCompress2(handle.get(),
-                           interleavedImage.data(),
-                           interleavedImage.width(),
-                           0,
-                           interleavedImage.height(),
-                           pixelFormat,
-                           &jpegBuf,
-                           &jpegSize,
-                           jpegSubsamp,
-                           options().jpegQuality,
-                           TJFLAG_ACCURATEDCT);
-    };
+    if (setjmp(jerr.setjmp_buffer)) { // NOLINT(cert-err52-cpp)
+        jpeg_destroy_compress(&cinfo);
+        throw IOError(MODULE, "Writing failed");
+    }
 
-    const auto compressYUV = [&](const Image8u &yuvImage) {
-        const bool isYuv444 = yuvImage.imageLayout() == ImageLayout::PLANAR && yuvImage.pixelType() == PixelType::YUV;
-        const int jpegSubsamp = isYuv444 ? TJSAMP_444 : TJSAMP_420;
+    jpeg_create_compress(&cinfo);
 
-        return tjCompressFromYUV(handle.get(),
-                                 yuvImage.data(),
-                                 yuvImage.width(),
-                                 yuvImage.layoutDescriptor().widthAlignment,
-                                 yuvImage.height(),
-                                 jpegSubsamp,
-                                 &jpegBuf,
-                                 &jpegSize,
-                                 options().jpegQuality,
-                                 TJFLAG_ACCURATEDCT);
-    };
+    setupJpegDestinationStream(&cinfo, &stream);
 
-    int result = -1;
+    cinfo.image_width = image.width();
+    cinfo.image_height = image.height();
+    cinfo.input_components = image.numPlanes();
+
     switch (image.pixelType()) {
         case PixelType::GRAYSCALE:
-            // No conversion needed
-            result = compress(image);
+            cinfo.in_color_space = JCS_GRAYSCALE;
             break;
-
         case PixelType::RGB:
-            switch (image.imageLayout()) {
-                case ImageLayout::INTERLEAVED:
-                    // No conversion needed
-                    result = compress(image);
-                    break;
-                case ImageLayout::PLANAR:
-                    // Planar to interleaved conversion
-                    result = compress(image::convertLayout(image, ImageLayout::INTERLEAVED));
-                    break;
-                default:
-                    throw IOError(MODULE,
-                                  "Unsupported image layout "s + toString(image.imageLayout()) + " for pixel type " +
-                                          toString(image.pixelType()));
-            }
+            cinfo.in_color_space = JCS_RGB;
             break;
-
         case PixelType::YUV:
-            switch (image.imageLayout()) {
-                case ImageLayout::PLANAR:
-                case ImageLayout::YUV_420:
-                    // No conversion needed
-                    result = compressYUV(image);
-                    break;
-                case ImageLayout::NV12:
-                    // NV12 to YUV_420 conversion
-                    result = compressYUV(image::convertLayout(image, ImageLayout::YUV_420));
-                    break;
-                default:
-                    throw IOError(MODULE,
-                                  "Unsupported image layout "s + toString(image.imageLayout()) + " for pixel type " +
-                                          toString(image.pixelType()));
-            }
+            cinfo.in_color_space = JCS_YCbCr;
             break;
-
         default:
             throw IOError(MODULE, "Unsupported pixel type "s + toString(image.pixelType()));
     }
 
-    if (result != 0) {
-        throw IOError(MODULE, "Failed to compress data: "s + tjGetErrorStr2(handle.get()));
-    }
+    jpeg_set_defaults(&cinfo);
+    jpeg_set_quality(&cinfo, options().jpegQuality, FALSE);
+
+    jpeg_start_compress(&cinfo, TRUE);
 
 #ifdef HAVE_EXIF
-    // Append exif if given
+    // Write EXIF
     const auto &metadata = options().metadata;
     if (metadata) {
         ExifMem *mem = exif_mem_new_default();
@@ -459,47 +516,106 @@ void JpegWriter::write(const Image8u &image) const {
 
         populateExif(mem, data, metadata->exifMetadata);
 
-        JPEGData *jpeg = jpeg_data_new_from_data(jpegBuf, jpegSize);
-        jpeg_data_set_exif_data(jpeg, data);
-        if (jpeg_data_save_file(jpeg, path().c_str()) == 0) {
-            throw IOError(MODULE, "Cannot save file");
-        }
-        jpeg_data_unref(jpeg);
+        uint8_t *exifBuffer = nullptr;
+        uint32_t exifLength = 0;
+        exif_data_save_data(data, &exifBuffer, &exifLength);
 
+        jpeg_write_marker(&cinfo, JPEG_APP0 + 1, exifBuffer, exifLength);
+
+        free(exifBuffer); // NOLINT(cppcoreguidelines-no-malloc)
         exif_mem_unref(mem);
         exif_data_unref(data);
     }
-
-    // Else directly write the compressed buffer to file
-    else {
 #endif
-        std::ofstream file(path(), std::ios::binary);
-        if (!file) {
-            throw IOError(MODULE, "Cannot open output file for writing");
-        }
 
-        file.write(reinterpret_cast<char *>(jpegBuf), jpegSize);
-#ifdef HAVE_EXIF
+    const int64_t rowStride = image.width() * image.numPlanes();
+    auto *imageData = const_cast<uint8_t *>(image.data());
+
+    for (int y = 0; y < image.height(); ++y) {
+        auto *buffer = &imageData[y * rowStride];
+        jpeg_write_scanlines(&cinfo, &buffer, 1);
     }
-#endif
+
+    jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
 }
 
 #ifdef HAVE_EXIF
 void JpegWriter::writeExif(const ExifMetadata &exif) const {
+    std::ifstream ifs(path(), std::ios::binary);
+    if (!ifs) {
+        throw IOError("Cannot open file for reading: " + path());
+    }
+
+    jpeg_decompress_struct dinfo{};
+    jpeg_compress_struct cinfo{};
+
+    // Initialize the JPEG decompression object
+    JpegErrorMgr jderr{};
+    dinfo.err = jpeg_std_error(&jderr.pub);
+    jderr.pub.error_exit = errorExit;
+    jderr.pub.output_message = outputMessage;
+
+    if (setjmp(jderr.setjmp_buffer)) { // NOLINT(cert-err52-cpp)
+        jpeg_destroy_compress(&cinfo);
+        jpeg_destroy_decompress(&dinfo);
+        throw IOError(MODULE, "Reading failed");
+    }
+
+    jpeg_create_decompress(&dinfo);
+    setupJpegSourceStream(&dinfo, &ifs);
+
+    // Initialize the JPEG compression object
+    JpegErrorMgr jcerr{};
+    cinfo.err = jpeg_std_error(&jcerr.pub);
+    jcerr.pub.error_exit = errorExit;
+    jcerr.pub.output_message = outputMessage;
+
+    if (setjmp(jcerr.setjmp_buffer)) { // NOLINT(cert-err52-cpp)
+        jpeg_destroy_compress(&cinfo);
+        jpeg_destroy_decompress(&dinfo);
+        throw IOError(MODULE, "Writing failed");
+    }
+
+    jpeg_create_compress(&cinfo);
+
+    // Read source DCT coefficients
+    jpeg_read_header(&dinfo, TRUE);
+    jvirt_barray_ptr *coefficients = jpeg_read_coefficients(&dinfo);
+
+    // Initialize destination compression parameters from source values
+    jpeg_copy_critical_parameters(&dinfo, &cinfo);
+
+    // Close input file and open output file
+    ifs.close();
+    std::ofstream ofs(path(), std::ios::binary);
+    setupJpegDestinationStream(&cinfo, &ofs);
+
+    // Write destination DCT coefficients
+    jpeg_write_coefficients(&cinfo, coefficients);
+
+    // Write EXIF
     ExifMem *mem = exif_mem_new_default();
     ExifData *data = exif_data_new();
 
     populateExif(mem, data, exif);
 
-    JPEGData *jpeg = jpeg_data_new_from_file(path().c_str());
-    jpeg_data_set_exif_data(jpeg, data);
-    if (jpeg_data_save_file(jpeg, path().c_str()) == 0) {
-        throw IOError(MODULE, "Cannot open output file for writing");
-    }
-    jpeg_data_unref(jpeg);
+    uint8_t *exifBuffer = nullptr;
+    uint32_t exifLength = 0;
+    exif_data_save_data(data, &exifBuffer, &exifLength);
 
+    jpeg_write_marker(&cinfo, JPEG_APP0 + 1, exifBuffer, exifLength);
+
+    free(exifBuffer); // NOLINT(cppcoreguidelines-no-malloc)
     exif_mem_unref(mem);
     exif_data_unref(data);
+
+    // Finish compression and release memory
+    jpeg_finish_compress(&cinfo);
+    jpeg_finish_decompress(&dinfo);
+
+    jpeg_destroy_compress(&cinfo);
+    jpeg_destroy_decompress(&dinfo);
 }
 #endif
 

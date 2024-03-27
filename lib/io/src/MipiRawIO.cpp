@@ -54,10 +54,8 @@ Raw16From12Pixel &Raw16From12Pixel::operator=(const Raw12Pixel &pixel) {
 }
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
-MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::MipiRawReader(const std::string &path,
-                                                                          const Options &options)
-    : ImageReader(path, options) {
-    const auto &fileInfo = options.fileInfo;
+void MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::readHeader() {
+    const auto &fileInfo = options().fileInfo;
     if (!fileInfo.width || !fileInfo.height) {
         throw IOError(MODULE, "Unspecified image dimensions");
     }
@@ -73,11 +71,11 @@ MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::MipiRawReader(const 
                               " format: " + std::to_string(*fileInfo.width));
     }
 
-    setDescriptor({LayoutDescriptor::Builder(*fileInfo.width, *fileInfo.height)
+    mDescriptor = {LayoutDescriptor::Builder(*fileInfo.width, *fileInfo.height)
                            .pixelType(*fileInfo.pixelType)
                            .pixelPrecision(PIXEL_PRECISION)
                            .build(),
-                   PixelRepresentation::UINT16});
+                   PixelRepresentation::UINT16};
 }
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
@@ -85,7 +83,12 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
     LOG_SCOPE_F(INFO, "Read MIPIRAW%d", PIXEL_PRECISION);
     LOG_S(INFO) << "Path: " << path();
 
-    std::vector<uint8_t> data = file::readBinary(path());
+    mStream->seekg(0, std::istream::end);
+    int64_t fileSize = mStream->tellg();
+    mStream->seekg(0);
+
+    std::vector<uint8_t> data(fileSize);
+    mStream->read(reinterpret_cast<char *>(data.data()), data.size());
 
     LayoutDescriptor descriptor = layoutDescriptor();
     LayoutDescriptor::Builder packedBuilder = LayoutDescriptor::Builder(descriptor.width * PIXEL_PRECISION / 8,
@@ -156,6 +159,11 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     LOG_SCOPE_F(INFO, "Write MIPIRAW%d", PIXEL_PRECISION);
     LOG_S(INFO) << "Path: " << path();
 
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
+    }
+
     if (image.pixelPrecision() != PIXEL_PRECISION) {
         throw IOError(MODULE,
                       "Invalid pixel precision for MIPIRAW" + std::to_string(PIXEL_PRECISION) +
@@ -188,12 +196,7 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     // Pack to MIPIRAW
     rawXImage = raw16Image;
 
-    std::ofstream file(path(), std::ios::binary);
-    if (!file) {
-        throw IOError(MODULE, "Cannot open output file for writing");
-    }
-
-    file.write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
+    stream.write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
 }
 
 template class MipiRawReader<10, Raw10Pixel, Raw16From10Pixel>;

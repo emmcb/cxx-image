@@ -33,6 +33,61 @@ namespace cxximg {
 
 static const std::string MODULE = "DNG";
 
+namespace {
+
+class DngReadStream final : public dng_stream {
+public:
+    explicit DngReadStream(std::istream *stream)
+        : dng_stream(static_cast<dng_abort_sniffer *>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
+
+protected:
+    uint64 DoGetLength() override {
+        mStream->seekg(0, std::istream::end);
+        return mStream->tellg();
+    }
+
+    void DoRead(void *data, uint32 count, uint64 offset) override {
+        mStream->seekg(offset);
+        mStream->read(reinterpret_cast<char *>(data), count);
+
+        if (mStream->fail()) {
+            ThrowReadFile();
+        }
+    }
+
+private:
+    std::istream *mStream;
+};
+
+class DngWriteStream final : public dng_stream {
+public:
+    explicit DngWriteStream(std::ostream *stream)
+        : dng_stream(static_cast<dng_abort_sniffer *>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
+
+protected:
+    uint64 DoGetLength() override { return 0; }
+
+    void DoWrite(const void *data, uint32 count, uint64 offset) override {
+        mStream->seekp(offset);
+        mStream->write(reinterpret_cast<const char *>(data), count);
+
+        if (mStream->fail()) {
+            ThrowWriteFile();
+        }
+    }
+
+private:
+    std::ostream *mStream;
+};
+
+} // namespace
+
+DngReader::DngReader(const std::string &path, std::istream *stream, const Options &options)
+    : ImageReader(path, stream, options) {
+}
+
+DngReader::~DngReader() = default;
+
 static PixelType cfaPatternToPixelType(const dng_ifd *ifd) {
     const uint8_t colorRed = ifd->fCFAPlaneColor[0];
     const uint8_t colorGreen = ifd->fCFAPlaneColor[1];
@@ -59,12 +114,12 @@ static PixelType cfaPatternToPixelType(const dng_ifd *ifd) {
                           std::to_string(ifd->fCFAPattern[0][1]));
 }
 
-DngReader::DngReader(const std::string &path, const Options &options)
-    : ImageReader(path, options),
-      mStream(std::make_unique<dng_file_stream>(path.c_str())),
-      mHost(std::make_unique<dng_host>()),
-      mInfo(std::make_unique<dng_info>()),
-      mNegative(mHost->Make_dng_negative()) {
+void DngReader::readHeader() {
+    mStream = std::make_unique<DngReadStream>(ImageReader::mStream);
+    mHost = std::make_unique<dng_host>();
+    mInfo = std::make_unique<dng_info>();
+    mNegative.reset(mHost->Make_dng_negative());
+
     try {
         // Parse top-level info structure from stream.
         mInfo->Parse(*mHost, *mStream);
@@ -121,10 +176,8 @@ DngReader::DngReader(const std::string &path, const Options &options)
         throw IOError(MODULE, "Unsupported sample format " + std::to_string(ifd->fSampleFormat[0]));
     }
 
-    setDescriptor({builder.build(), pixelRepresentation});
+    mDescriptor = {builder.build(), pixelRepresentation};
 }
-
-DngReader::~DngReader() = default;
 
 Image16u DngReader::read16u() {
     LOG_SCOPE_F(INFO, "Read DNG (16 bits)");
@@ -436,8 +489,12 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
 
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
+    }
+
     try {
-        dng_file_stream stream(path().c_str(), true);
         dng_host host;
 
         const uint32 pixelType = std::is_floating_point_v<T> ? ttFloat : ttShort;
@@ -531,8 +588,9 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
+        DngWriteStream writeStream(&stream);
         dng_image_writer writer;
-        writer.WriteDNG(host, stream, *negative.Get());
+        writer.WriteDNG(host, writeStream, *negative.Get());
     } catch (const dng_exception &except) {
         throw IOError(MODULE, "Writing failed with error code " + std::to_string(except.ErrorCode()));
     }

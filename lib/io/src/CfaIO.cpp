@@ -56,45 +56,54 @@ static uint8_t pixelTypeToPhase(PixelType pixelType) {
     }
 }
 
-CfaReader::CfaReader(const std::string &path, const Options &options) : ImageReader(path, options) {
-    std::vector<uint8_t> data = file::readBinary(path, sizeof(CfaHeader));
-    const auto *header = reinterpret_cast<CfaHeader *>(data.data());
+void CfaReader::readHeader() {
+    CfaHeader header = {};
+    mStream->read(reinterpret_cast<char *>(&header), sizeof(header));
 
-    const int width = 2 * static_cast<int>(header->uCFABlockWidth);
-    const int height = 2 * static_cast<int>(header->uCFABlockHeight);
+    if (mStream->fail()) {
+        throw IOError(MODULE, "Failed to read header");
+    }
 
-    setDescriptor({LayoutDescriptor::Builder(width, height)
-                           .pixelType(phaseToPixelType(header->phase))
-                           .pixelPrecision(header->precision)
+    const int width = 2 * static_cast<int>(header.uCFABlockWidth);
+    const int height = 2 * static_cast<int>(header.uCFABlockHeight);
+
+    mDescriptor = {LayoutDescriptor::Builder(width, height)
+                           .pixelType(phaseToPixelType(header.phase))
+                           .pixelPrecision(header.precision)
                            .build(),
-                   PixelRepresentation::UINT16});
+                   PixelRepresentation::UINT16};
 }
 
 Image16u CfaReader::read16u() {
     LOG_SCOPE_F(INFO, "Read CFA");
     LOG_S(INFO) << "Path: " << path();
 
-    std::vector<uint8_t> data = file::readBinary(path());
-    const auto *pixelArray = reinterpret_cast<uint16_t *>(data.data() + sizeof(CfaHeader));
+    Image16u image(layoutDescriptor());
 
-    LayoutDescriptor descriptor = layoutDescriptor();
-    if (data.size() != sizeof(CfaHeader) + descriptor.requiredBufferSize() * sizeof(uint16_t)) {
+    int64_t curPos = mStream->tellg();
+    mStream->seekg(0, std::istream::end);
+    int64_t endPos = mStream->tellg();
+
+    if (static_cast<uint64_t>(endPos - curPos) != image.size() * sizeof(uint16_t)) {
         throw IOError(MODULE,
                       "File size does not match expected buffer size (expected " +
-                              std::to_string(sizeof(CfaHeader) + descriptor.requiredBufferSize() * sizeof(uint16_t)) +
-                              ", got " + std::to_string(data.size()) + ")");
+                              std::to_string(image.size() * sizeof(uint16_t)) + ", got " +
+                              std::to_string(endPos - curPos) + ")");
     }
 
-    return {descriptor, pixelArray};
+    mStream->seekg(curPos);
+    mStream->read(reinterpret_cast<char *>(image.data()), image.size());
+
+    return image;
 }
 
 void CfaWriter::write(const Image16u &image) const {
     LOG_SCOPE_F(INFO, "Write CFA");
     LOG_S(INFO) << "Path: " << path();
 
-    std::ofstream file(path(), std::ios::binary);
-    if (!file) {
-        throw IOError(MODULE, "Cannot open output file for writing");
+    std::ofstream stream(path(), std::ios::binary);
+    if (!stream) {
+        throw IOError("Cannot open file for writing: " + path());
     }
 
     CfaHeader header = {.cfaID = 1128677664, // CFA magic number
@@ -105,8 +114,8 @@ void CfaWriter::write(const Image16u &image) const {
                         .precision = static_cast<uint8_t>(image.pixelPrecision() > 0 ? image.pixelPrecision() : 16),
                         .padding = {0}};
 
-    file.write(reinterpret_cast<const char *>(&header), sizeof(header));
-    file.write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(uint16_t));
+    stream.write(reinterpret_cast<const char *>(&header), sizeof(header));
+    stream.write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(uint16_t));
 }
 
 } // namespace cxximg

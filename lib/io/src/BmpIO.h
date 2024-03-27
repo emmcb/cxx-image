@@ -49,21 +49,27 @@ static_assert(sizeof(BmpHeader) == 54, "BmpHeader must by 54 bytes");
 
 class BmpReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
-        std::vector<uint8_t> header = file::readBinary(path, 2);
-        return header[0] == 0x42 && header[1] == 0x4d;
+    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+        if (!signatureValid) {
+            return file::extension(path) == "bmp";
+        }
+        return signature[0] == 'B' && signature[1] == 'M';
     }
 
-    BmpReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
 
+    void readHeader() override;
     Image8u read8u() override;
+
+private:
+    bool mUpsideDown = false;
 };
 
 class BmpWriter final : public ImageWriter {
 public:
     static bool accept(const std::string &path) { return file::extension(path) == "bmp"; }
 
-    BmpWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||

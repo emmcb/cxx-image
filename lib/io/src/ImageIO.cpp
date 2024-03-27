@@ -35,76 +35,115 @@
 #include "TiffIO.h"
 #endif
 
+#include <fstream>
+
 namespace cxximg {
 
 namespace io {
 
 std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageReader::Options &options) {
-    // First: formats that need an extension to be identified
-    if (MipiRaw10Reader::accept(path)) {
-        return std::make_unique<MipiRaw10Reader>(path, options);
-    }
+    return makeReader(path, nullptr, options);
+}
 
-    if (MipiRaw12Reader::accept(path)) {
-        return std::make_unique<MipiRaw12Reader>(path, options);
-    }
+std::unique_ptr<ImageReader> makeReader(std::istream *stream, const ImageReader::Options &options) {
+    return makeReader("<data>", stream, options);
+}
 
-    if (PlainReader::accept(path)) {
-        return std::make_unique<PlainReader>(path, options);
-    }
+std::unique_ptr<ImageReader> makeReader(const std::string &path,
+                                        std::istream *stream,
+                                        const ImageReader::Options &options) {
+    auto reader = [&]() -> std::unique_ptr<ImageReader> {
+        // First: formats that need an extension to be identified
+        if (MipiRaw10Reader::accept(path)) {
+            return std::make_unique<MipiRaw10Reader>(path, stream, options);
+        }
 
-    // Second: formats that have a magic number
-    if (BmpReader::accept(path)) {
-        return std::make_unique<BmpReader>(path, options);
-    }
+        if (MipiRaw12Reader::accept(path)) {
+            return std::make_unique<MipiRaw12Reader>(path, stream, options);
+        }
 
-    if (CfaReader::accept(path)) {
-        return std::make_unique<CfaReader>(path, options);
-    }
+        if (PlainReader::accept(path)) {
+            return std::make_unique<PlainReader>(path, stream, options);
+        }
+
+        // Read file signature
+        uint8_t signature[8] = {0};
+        bool signatureValid = false;
+
+        const auto readSignature = [&signature, &signatureValid](std::istream *stream) {
+            stream->read(reinterpret_cast<char *>(signature), sizeof(signature));
+            signatureValid = !stream->fail();
+            stream->seekg(0);
+        };
+
+        if (stream) {
+            readSignature(stream);
+        } else {
+            std::ifstream ifs(path, std::ios::binary);
+            if (ifs) {
+                readSignature(&ifs);
+            }
+        }
 
 #ifdef HAVE_DNG
-    if (DngReader::accept(path)) {
-        return std::make_unique<DngReader>(path, options);
-    }
+        // Special case: DNG check requires tiff magic number along with dng extension
+        if (DngReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<DngReader>(path, stream, options);
+        }
 #endif
 
+        // Second: formats that have a magic number
+        if (BmpReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<BmpReader>(path, stream, options);
+        }
+
+        if (CfaReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<CfaReader>(path, stream, options);
+        }
+
 #ifdef HAVE_JPEG
-    if (JpegReader::accept(path)) {
-        return std::make_unique<JpegReader>(path, options);
-    }
+        if (JpegReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<JpegReader>(path, stream, options);
+        }
 #endif
 
 #ifdef HAVE_PNG
-    if (PngReader::accept(path)) {
-        return std::make_unique<PngReader>(path, options);
-    }
+        if (PngReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<PngReader>(path, stream, options);
+        }
 #endif
 
 #ifdef HAVE_TIFF
-    if (TiffReader::accept(path)) {
-        return std::make_unique<TiffReader>(path, options);
-    }
+        if (TiffReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<TiffReader>(path, stream, options);
+        }
 #endif
 
-    // Third: formats that can be identified by format options
-    if (options.fileInfo.fileFormat == FileFormat::PLAIN) {
-        return std::make_unique<PlainReader>(path, options);
-    }
+        // Third: formats that can be identified by format options
+        if (options.fileInfo.fileFormat == FileFormat::PLAIN) {
+            return std::make_unique<PlainReader>(path, stream, options);
+        }
 
-    if (options.fileInfo.fileFormat == FileFormat::RAW10) {
-        return std::make_unique<MipiRaw10Reader>(path, options);
-    }
+        if (options.fileInfo.fileFormat == FileFormat::RAW10) {
+            return std::make_unique<MipiRaw10Reader>(path, stream, options);
+        }
 
-    if (options.fileInfo.fileFormat == FileFormat::RAW12) {
-        return std::make_unique<MipiRaw12Reader>(path, options);
-    }
+        if (options.fileInfo.fileFormat == FileFormat::RAW12) {
+            return std::make_unique<MipiRaw12Reader>(path, stream, options);
+        }
 
-    // Fourth: plain formats handled with imageLayout and pixelType
-    if (options.fileInfo.imageLayout || options.fileInfo.pixelType) {
-        return std::make_unique<PlainReader>(path, options);
-    }
+        // Fourth: plain formats handled with imageLayout and pixelType
+        if (options.fileInfo.imageLayout || options.fileInfo.pixelType) {
+            return std::make_unique<PlainReader>(path, stream, options);
+        }
 
-    throw IOError("No reader available for " + path);
+        throw IOError("No reader available for " + path);
+    }();
+
+    // Read image header now
+    reader->readHeader();
+
+    return reader;
 }
 
 std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWriter::Options &options) {

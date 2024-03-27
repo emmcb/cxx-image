@@ -36,13 +36,16 @@ static_assert(sizeof(CfaHeader) == 128, "CfaHeader must by 128 bytes");
 
 class CfaReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
-        std::vector<uint8_t> header = file::readBinary(path, 4);
-        return header[0] == ' ' && header[1] == 'A' && header[2] == 'F' && header[3] == 'C';
+    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+        if (!signatureValid) {
+            return file::extension(path) == "cfa";
+        }
+        return signature[0] == ' ' && signature[1] == 'A' && signature[2] == 'F' && signature[3] == 'C';
     }
 
-    CfaReader(const std::string &path, const Options &options);
+    using ImageReader::ImageReader;
 
+    void readHeader() override;
     Image16u read16u() override;
 };
 
@@ -50,7 +53,7 @@ class CfaWriter final : public ImageWriter {
 public:
     static bool accept(const std::string &path) { return file::extension(path) == "cfa"; }
 
-    CfaWriter(const std::string &path, const Options &options) : ImageWriter(path, options) {}
+    using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return image::isBayerPixelType(descriptor.pixelType) || image::isQuadBayerPixelType(descriptor.pixelType);

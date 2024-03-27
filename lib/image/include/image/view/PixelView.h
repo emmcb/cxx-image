@@ -60,14 +60,14 @@ public:
     /// Expression assignment.
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(const PixelView<T, N> &other) noexcept {
         if (this != &other) {
-            operator=<PixelView<T, N>>(other);
+            operator= <PixelView<T, N>>(other);
         }
         return *this;
     }
 
     /// Expression assignment.
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(PixelView<T, N> &&other) noexcept {
-        operator=<PixelView<T, N>>(other);
+        operator= <PixelView<T, N>>(other);
         return *this;
     }
 
