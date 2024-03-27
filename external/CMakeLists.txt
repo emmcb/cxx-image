@@ -57,7 +57,7 @@ if(CXXIMG_BUILD_TOOLS)
     FetchContent_Declare(
         cxxopts
         GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
-        GIT_TAG "c8c932f891a559a099198ec4a1fccf6110d6463a"
+        GIT_TAG "3bf268481da8208d171d8908e6491459de3651d7"
     )
     FetchContent_MakeAvailable(cxxopts)
 
