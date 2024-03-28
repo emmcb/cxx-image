@@ -89,7 +89,7 @@ boolean fillInputBuffer(j_decompress_ptr dinfo) {
     return TRUE;
 }
 
-void skipInputData(j_decompress_ptr dinfo, int64_t numBytes) {
+void skipInputData(j_decompress_ptr dinfo, long numBytes) { // NOLINT(google-runtime-int)
     if (numBytes <= 0) {
         return;
     }
