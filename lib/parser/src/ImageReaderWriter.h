@@ -33,9 +33,9 @@ struct ImageLoader final {
                 case PixelRepresentation::FLOAT:
                     return image::convertLayout(reader->readf(), ImageLayout::PLANAR);
                 case PixelRepresentation::UINT8:
-                    return image::convertLayoutAndPixelPrecision<float>(reader->read8u(), ImageLayout::PLANAR);
+                    return image::convertPixelPrecision<float>(reader->read8u(), ImageLayout::PLANAR);
                 case PixelRepresentation::UINT16:
-                    return image::convertLayoutAndPixelPrecision<float>(reader->read16u(), ImageLayout::PLANAR);
+                    return image::convertPixelPrecision<float>(reader->read16u(), ImageLayout::PLANAR);
                 default:
                     throw json_dto::ex_t("Unsupported pixel representation "s +
                                          toString(reader->pixelRepresentation()));
