@@ -16,6 +16,8 @@
 
 namespace cxximg {
 
+LayoutDescriptor const LayoutDescriptor::EMPTY{};
+
 template class Image<int8_t>;
 template class Image<int16_t>;
 template class Image<int32_t>;

@@ -45,6 +45,9 @@ public:
     using ImageView<T>::operator();
     using ImageView<T>::operator=;
 
+    /// Constructs an empty image.
+    Image() : ImageView<T>(LayoutDescriptor::EMPTY){};
+
     /// Constructs from descriptor.
     explicit Image(const ImageDescriptor<T> &imageDescriptor)
         : ImageView<T>(imageDescriptor), mSize(imageDescriptor.requiredBufferSize()), mData(new T[mSize]) {
@@ -107,6 +110,9 @@ public:
     /// Returns image size, that is the number of values that can be stored.
     int64_t size() const noexcept { return mSize; }
 
+    /// Returns whether the image is empty.
+    bool empty() const noexcept { return mSize == 0; }
+
     /// Re-assign image ROI.
     void setRoi(const Roi &roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
 
@@ -120,6 +126,14 @@ public:
     template <typename U = T>
     Image<U> clone() const {
         return image::clone<U>(*this);
+    }
+
+    /// Returns an image instance that references an already allocated image, without owning any data.
+    static Image<T> borrowed(const ImageView<T> &imageView) {
+        Image<T> unallocated;
+        unallocated.setDescriptor(imageView.descriptor());
+
+        return unallocated;
     }
 
 private:

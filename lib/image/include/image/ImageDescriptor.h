@@ -21,10 +21,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+
+#ifdef HAVE_HALIDE
 #include <memory>
 #include <type_traits>
 
-#ifdef HAVE_HALIDE
 #include <HalideRuntime.h>
 #endif
 
@@ -92,17 +93,6 @@ private:
     T *mBuffer;
     int64_t mOffset = 0;
 };
-
-using PlaneDescriptor8i = PlaneDescriptor<int8_t>;
-using PlaneDescriptor16i = PlaneDescriptor<int16_t>;
-using PlaneDescriptor32i = PlaneDescriptor<int32_t>;
-
-using PlaneDescriptor8u = PlaneDescriptor<uint8_t>;
-using PlaneDescriptor16u = PlaneDescriptor<uint16_t>;
-using PlaneDescriptor32u = PlaneDescriptor<uint32_t>;
-
-using PlaneDescriptorf = PlaneDescriptor<float>;
-using PlaneDescriptord = PlaneDescriptor<double>;
 
 template <typename T>
 using PlaneDescriptorArray = std::array<PlaneDescriptor<T>, image::detail::MAX_NUM_PLANES>;
@@ -398,17 +388,6 @@ private:
 #endif
 };
 
-using ImageDescriptor8i = ImageDescriptor<int8_t>;
-using ImageDescriptor16i = ImageDescriptor<int16_t>;
-using ImageDescriptor32i = ImageDescriptor<int32_t>;
-
-using ImageDescriptor8u = ImageDescriptor<uint8_t>;
-using ImageDescriptor16u = ImageDescriptor<uint16_t>;
-using ImageDescriptor32u = ImageDescriptor<uint32_t>;
-
-using ImageDescriptorf = ImageDescriptor<float>;
-using ImageDescriptord = ImageDescriptor<double>;
-
 namespace image {
 
 /// Computes a four planes (R, Gr, Gb, B) descriptor from a one plane bayer layout.
@@ -464,5 +443,27 @@ ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, co
 }
 
 } // namespace image
+
+using PlaneDescriptor8i = PlaneDescriptor<int8_t>;
+using PlaneDescriptor16i = PlaneDescriptor<int16_t>;
+using PlaneDescriptor32i = PlaneDescriptor<int32_t>;
+
+using PlaneDescriptor8u = PlaneDescriptor<uint8_t>;
+using PlaneDescriptor16u = PlaneDescriptor<uint16_t>;
+using PlaneDescriptor32u = PlaneDescriptor<uint32_t>;
+
+using PlaneDescriptorf = PlaneDescriptor<float>;
+using PlaneDescriptord = PlaneDescriptor<double>;
+
+using ImageDescriptor8i = ImageDescriptor<int8_t>;
+using ImageDescriptor16i = ImageDescriptor<int16_t>;
+using ImageDescriptor32i = ImageDescriptor<int32_t>;
+
+using ImageDescriptor8u = ImageDescriptor<uint8_t>;
+using ImageDescriptor16u = ImageDescriptor<uint16_t>;
+using ImageDescriptor32u = ImageDescriptor<uint32_t>;
+
+using ImageDescriptorf = ImageDescriptor<float>;
+using ImageDescriptord = ImageDescriptor<double>;
 
 } // namespace cxximg

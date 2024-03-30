@@ -42,6 +42,8 @@ constexpr int MAX_NUM_PLANES = 4;
 struct LayoutDescriptor final {
     class Builder;
 
+    static const LayoutDescriptor EMPTY;
+
     ImageLayout imageLayout = ImageLayout::PLANAR; ///< Image layout.
     PixelType pixelType = PixelType::CUSTOM;       ///< Pixel type.
     int pixelPrecision = 0;                        ///< Pixel precision.
