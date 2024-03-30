@@ -79,6 +79,12 @@ public:
         return planeDescriptor.buffer[y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
+#ifdef HAVE_HALIDE
+    operator halide_buffer_t *() const { // NOLINT(google-explicit-constructor)
+        return &mDescriptor.halide->buffer;
+    }
+#endif
+
     /// Expression assignment.
     UTIL_ALWAYS_INLINE ImageView<T> &operator=(const ImageView<T> &other) noexcept {
         if (this != &other) {

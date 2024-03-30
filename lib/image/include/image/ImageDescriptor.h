@@ -21,8 +21,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <limits>
+#include <memory>
 #include <type_traits>
+
+#ifdef HAVE_HALIDE
+#include <HalideRuntime.h>
+#endif
 
 namespace cxximg {
 
@@ -103,6 +107,15 @@ using PlaneDescriptord = PlaneDescriptor<double>;
 template <typename T>
 using PlaneDescriptorArray = std::array<PlaneDescriptor<T>, image::detail::MAX_NUM_PLANES>;
 
+#ifdef HAVE_HALIDE
+struct HalideDescriptor final {
+    halide_buffer_t buffer;
+    std::array<halide_dimension_t, 3> dim;
+
+    HalideDescriptor() { buffer.dim = dim.data(); }
+};
+#endif
+
 /// Structure describing generic image layout.
 /// @ingroup image
 template <typename T>
@@ -110,11 +123,19 @@ struct ImageDescriptor final {
     LayoutDescriptor layout;        ///< Image layout descriptor;
     PlaneDescriptorArray<T> planes; ///< Image planes.
 
+#ifdef HAVE_HALIDE
+    std::shared_ptr<HalideDescriptor> halide = std::make_shared<HalideDescriptor>(); ///< Halide descriptor.
+#endif
+
     template <typename U>
     explicit ImageDescriptor(const ImageDescriptor<U> &descriptor) : layout(descriptor.layout) {
         for (size_t i = 0; i < descriptor.planes.size(); ++i) {
             planes[i] = PlaneDescriptor<T>(descriptor.planes[i]);
         }
+
+#ifdef HAVE_HALIDE
+        updateHalideDescriptor();
+#endif
     }
 
     ImageDescriptor(const LayoutDescriptor &layout_, // NOLINT(google-explicit-constructor)
@@ -154,6 +175,10 @@ struct ImageDescriptor final {
             default:
                 throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
         }
+
+#ifdef HAVE_HALIDE
+        updateHalideDescriptor();
+#endif
     }
 
     /// Compute the maximum value that can be represented by the image pixel precision.
@@ -328,6 +353,10 @@ struct ImageDescriptor final {
                 throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
         }
 
+#ifdef HAVE_HALIDE
+        updateHalideDescriptor();
+#endif
+
         return *this;
     }
 
@@ -339,6 +368,34 @@ private:
 
         return plane->subsample;
     }
+
+#ifdef HAVE_HALIDE
+    template <typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, bool> = true>
+    void updateHalideDescriptor() {
+        halide->dim[0].min = 0;
+        halide->dim[0].extent = layout.width;
+        halide->dim[0].stride = planes[0].pixelStride;
+
+        halide->dim[1].min = 0;
+        halide->dim[1].extent = layout.height;
+        halide->dim[1].stride = planes[0].rowStride;
+
+        halide->dim[2].min = 0;
+        halide->dim[2].extent = layout.numPlanes;
+        halide->dim[2].stride = planes[1].buffer - planes[0].buffer;
+
+        halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
+        halide->buffer.host = reinterpret_cast<uint8_t *>(planes[0].buffer);
+        halide->buffer.type = halide_type_of<T>();
+
+        halide->buffer.device = 0;
+        halide->buffer.device_interface = nullptr;
+        halide->buffer.flags = 0;
+    }
+
+    template <typename U = T, std::enable_if_t<!std::is_arithmetic_v<U>, bool> = true>
+    void updateHalideDescriptor() {}
+#endif
 };
 
 using ImageDescriptor8i = ImageDescriptor<int8_t>;

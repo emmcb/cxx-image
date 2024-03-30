@@ -24,6 +24,13 @@ target_include_directories(
 )
 target_link_libraries(${TARGET} PUBLIC math util)
 
+# Compiler flags
+
+if(HAVE_HALIDE)
+    target_link_libraries(${TARGET} PUBLIC Halide::Runtime)
+    target_compile_definitions(${TARGET} PUBLIC HAVE_HALIDE)
+endif()
+
 # Installation
 
 if(CXXIMG_ENABLE_INSTALL)
