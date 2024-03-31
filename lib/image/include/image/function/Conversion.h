@@ -22,16 +22,28 @@ namespace cxximg {
 
 namespace image {
 
+/// Allocates an uninitialized image that has the same layout than the input image.
+template <typename T>
+Image<T> like(const ImageView<T> &img) {
+    return Image<T>(img.layoutDescriptor());
+}
+
+/// Allocates an uninitialized image that has the same layout than the input image, but with different data type.
+template <typename U, typename T, typename = std::enable_if_t<!std::is_same_v<T, U>>>
+Image<U> like(const ImageView<T> &img) {
+    return Image<U>(img.layoutDescriptor());
+}
+
 /// Allocates a new image that is identical to the input image.
 template <typename T>
 Image<T> clone(const ImageView<T> &img) {
-    return Image<T>(img.descriptor(), img);
+    return Image<T>(img.layoutDescriptor(), img);
 }
 
 /// Allocates a new image that is identical to the input image, but with different data type.
 template <typename U, typename T, typename = std::enable_if_t<!std::is_same_v<T, U>>>
 Image<U> clone(const ImageView<T> &img) {
-    return Image<U>(img.descriptor(), img);
+    return Image<U>(img.layoutDescriptor(), img);
 }
 
 /// Allocates a new image and copy data with image layout conversion.
@@ -60,28 +72,28 @@ Image<U> convertPixelPrecision(const ImageView<T> &img,
         builder.widthAlignment(widthAlignment);
     }
 
-    ImageDescriptor<U> descriptor(ImageDescriptor<T>(builder.build(), img.descriptor().planes));
+    LayoutDescriptor descriptor = builder.build();
 
     // int -> int conversion
     if constexpr (std::is_integral_v<T> && std::is_integral_v<U>) {
-        if (descriptor.saturationValue() % img.saturationValue() == 0) {
-            U scale = descriptor.saturationValue() / img.saturationValue();
+        if (descriptor.saturationValue<U>() % img.saturationValue() == 0) {
+            U scale = descriptor.saturationValue<U>() / img.saturationValue();
             return Image<U>(descriptor, img * scale);
         }
 
-        float scale = static_cast<float>(descriptor.saturationValue()) / img.saturationValue();
+        float scale = static_cast<float>(descriptor.saturationValue<U>()) / img.saturationValue();
         return Image<U>(descriptor, expr::lround(img * scale));
     }
 
     // float -> int conversion
     else if constexpr (std::is_floating_point_v<T> && std::is_integral_v<U>) {
-        auto scale = descriptor.saturationValue() / img.saturationValue();
+        auto scale = descriptor.saturationValue<U>() / img.saturationValue();
         return Image<U>(descriptor, expr::lround(img * scale));
     }
 
     // int -> float conversion
     else if constexpr (std::is_integral_v<T> && std::is_floating_point_v<U>) {
-        auto scale = descriptor.saturationValue() / img.saturationValue();
+        auto scale = descriptor.saturationValue<U>() / img.saturationValue();
         return Image<U>(descriptor, img * scale);
     }
 

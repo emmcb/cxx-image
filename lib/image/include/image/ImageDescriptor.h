@@ -18,7 +18,6 @@
 #include "image/Roi.h"
 #include "image/detail/Alignment.h"
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 
@@ -31,72 +30,6 @@
 
 namespace cxximg {
 
-/// Structure describing generic plane layout.
-/// @ingroup image
-template <typename T>
-struct PlaneDescriptor final {
-    class Builder;
-
-    int index = 0;           ///< Plane index in image
-    int subsample = 0;       ///< Plane subsample comparing to image size, in power of two.
-    T *buffer = nullptr;     ///< Pointer to buffer containing plane pixels.
-    int64_t rowStride = 0;   ///< Distance between adjacent plane rows, in pixels.
-    int64_t pixelStride = 1; ///< Distance between adjacent plane pixels, in pixels.
-
-    PlaneDescriptor() = default;
-
-    template <typename U>
-    explicit PlaneDescriptor(const PlaneDescriptor<U> &descriptor)
-        : index(descriptor.index),
-          subsample(descriptor.subsample),
-          buffer(reinterpret_cast<T *>(descriptor.buffer)),
-          rowStride(descriptor.rowStride),
-          pixelStride(descriptor.pixelStride) {}
-};
-
-template <typename T>
-class PlaneDescriptor<T>::Builder final {
-public:
-    explicit Builder(T *buffer = nullptr) : mBuffer(buffer) {}
-
-    Builder &offset(int64_t offset) {
-        mOffset = offset;
-        return *this;
-    }
-
-    Builder &rowStride(int rowStride) {
-        mDescriptor.rowStride = rowStride;
-        return *this;
-    }
-
-    Builder &pixelStride(int pixelStride) {
-        mDescriptor.pixelStride = pixelStride;
-        return *this;
-    }
-
-    Builder &subsample(int subsample) {
-        mDescriptor.subsample = subsample;
-        return *this;
-    }
-
-    PlaneDescriptor<T> build() const noexcept {
-        PlaneDescriptor<T> descriptor(mDescriptor);
-        if (mBuffer != nullptr) {
-            descriptor.buffer = mBuffer + mOffset;
-        }
-
-        return descriptor;
-    }
-
-private:
-    PlaneDescriptor<T> mDescriptor;
-    T *mBuffer;
-    int64_t mOffset = 0;
-};
-
-template <typename T>
-using PlaneDescriptorArray = std::array<PlaneDescriptor<T>, image::detail::MAX_NUM_PLANES>;
-
 #ifdef HAVE_HALIDE
 struct HalideDescriptor final {
     halide_buffer_t buffer;
@@ -106,235 +39,87 @@ struct HalideDescriptor final {
 };
 #endif
 
+template <typename T>
+using BufferArray = std::array<T *, image::detail::MAX_NUM_PLANES>;
+
 /// Structure describing generic image layout.
 /// @ingroup image
 template <typename T>
 struct ImageDescriptor final {
-    LayoutDescriptor layout;        ///< Image layout descriptor;
-    PlaneDescriptorArray<T> planes; ///< Image planes.
+    LayoutDescriptor layout; ///< Image layout descriptor;
+    BufferArray<T> buffers;  ///< Image plane buffers.
 
 #ifdef HAVE_HALIDE
     std::shared_ptr<HalideDescriptor> halide = std::make_shared<HalideDescriptor>(); ///< Halide descriptor.
 #endif
 
-    template <typename U>
-    explicit ImageDescriptor(const ImageDescriptor<U> &descriptor) : layout(descriptor.layout) {
-        for (size_t i = 0; i < descriptor.planes.size(); ++i) {
-            planes[i] = PlaneDescriptor<T>(descriptor.planes[i]);
-        }
-
-#ifdef HAVE_HALIDE
-        updateHalideDescriptor();
-#endif
-    }
-
     ImageDescriptor(const LayoutDescriptor &layout_, // NOLINT(google-explicit-constructor)
-                    const PlaneDescriptorArray<T> &planes_ = {})
-        : layout(layout_), planes(planes_) {
-        using namespace std::string_literals;
-
-        // Set plane indices
-        for (size_t i = 0; i < planes.size(); ++i) {
-            planes[i].index = i;
-        }
-
-        // Set plane subsample from layout
-        switch (layout.imageLayout) {
-            case ImageLayout::PLANAR:
-            case ImageLayout::INTERLEAVED:
-                for (size_t i = 0; i < planes.size(); ++i) {
-                    planes[i].subsample = 0;
-                }
-                break;
-
-            case ImageLayout::YUV_420:
-            case ImageLayout::NV12:
-                if (layout.numPlanes != 3) {
-                    throw std::invalid_argument("YUV image number of planes must be 3.");
-                }
-
-                planes[0].subsample = 0;
-                planes[1].subsample = 1;
-                planes[2].subsample = 1;
-                break;
-
-            case ImageLayout::CUSTOM:
-                // Nothing to do
-                break;
-
-            default:
-                throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
-        }
-
-#ifdef HAVE_HALIDE
-        updateHalideDescriptor();
-#endif
-    }
+                    const BufferArray<T> &buffers_ = {})
+        : layout(layout_), buffers(buffers_) {}
 
     /// Compute the maximum value that can be represented by the image pixel precision.
     T saturationValue() const noexcept { return layout.saturationValue<T>(); }
-
-    /// Compute required buffer size in order to store pixels.
-    int64_t requiredBufferSize() const {
-        if (layout.imageLayout != ImageLayout::CUSTOM) {
-            return layout.requiredBufferSize();
-        }
-
-        const int maxSubsample = computeMaxSubsample();
-
-        // Compute the amount of contiguous memory we need, taking into account planes subsample
-        int64_t bufferSize = 0;
-        for (int i = 0; i < layout.numPlanes; ++i) {
-            const int alignedWidth = detail::alignDimension(
-                    layout.width, layout.widthAlignment, planes[i].subsample, maxSubsample);
-            const int alignedHeight = detail::alignDimension(layout.height, 1, planes[i].subsample, maxSubsample);
-
-            bufferSize += static_cast<int64_t>(alignedWidth) * alignedHeight;
-        }
-
-        return bufferSize;
-    }
-
-    /// Compute plane strides from layout descriptor.
-    void computeStrides() {
-        using namespace std::string_literals;
-
-        switch (layout.imageLayout) {
-            case ImageLayout::PLANAR: {
-                const int alignedWidth = detail::alignDimension(layout.width, layout.widthAlignment);
-                for (size_t i = 0; i < planes.size(); ++i) {
-                    planes[i].rowStride = alignedWidth;
-                    planes[i].pixelStride = 1;
-                }
-                break;
-            }
-
-            case ImageLayout::INTERLEAVED: {
-                const int alignedWidth = detail::alignDimension(layout.numPlanes * layout.width, layout.widthAlignment);
-                for (size_t i = 0; i < planes.size(); ++i) {
-                    planes[i].rowStride = alignedWidth;
-                    planes[i].pixelStride = layout.numPlanes;
-                }
-                break;
-            }
-
-            case ImageLayout::YUV_420: {
-                if (layout.numPlanes != 3) {
-                    throw std::invalid_argument("YUV image number of planes must be 3.");
-                }
-
-                const int alignedLumaWidth = detail::alignDimension(layout.width, layout.widthAlignment, 0, 1);
-                const int alignedChromaWidth = detail::alignDimension(layout.width, layout.widthAlignment, 1, 1);
-
-                planes[0].rowStride = alignedLumaWidth;
-                planes[0].pixelStride = 1;
-
-                planes[1].rowStride = alignedChromaWidth;
-                planes[1].pixelStride = 1;
-
-                planes[2].rowStride = alignedChromaWidth;
-                planes[2].pixelStride = 1;
-                break;
-            }
-
-            case ImageLayout::NV12: {
-                if (layout.numPlanes != 3) {
-                    throw std::invalid_argument("NV12 image number of planes must be 3.");
-                }
-
-                const int alignedWidth = detail::alignDimension(layout.width, layout.widthAlignment, 0, 1);
-
-                planes[0].rowStride = alignedWidth;
-                planes[0].pixelStride = 1;
-
-                planes[1].rowStride = alignedWidth;
-                planes[1].pixelStride = 2;
-
-                planes[2].rowStride = alignedWidth;
-                planes[2].pixelStride = 2;
-
-                break;
-            }
-
-            case ImageLayout::CUSTOM: {
-                const int maxSubsample = computeMaxSubsample();
-
-                for (int i = 0; i < layout.numPlanes; ++i) {
-                    planes[i].rowStride = detail::alignDimension(
-                            layout.width, layout.widthAlignment, planes[i].subsample, maxSubsample);
-                    planes[i].pixelStride = 1;
-                }
-                break;
-            }
-
-            default:
-                throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
-        }
-    }
 
     /// Map this descriptor to the given buffer.
     ImageDescriptor<T> &map(T *buffer) {
         using namespace std::string_literals;
 
         if (buffer == nullptr) {
-            for (size_t i = 0; i < planes.size(); ++i) {
-                planes[i].buffer = nullptr;
+            for (auto &buffer : buffers) {
+                buffer = nullptr;
             }
             return *this;
         }
 
-        // Ensure we have valid strides
-        if (!planes[0].rowStride) {
-            computeStrides();
-        }
-
         switch (layout.imageLayout) {
             case ImageLayout::PLANAR: {
-                const int64_t numPixelsPerPlane = planes[0].rowStride * layout.height;
+                const int64_t numPixelsPerPlane = layout.planes[0].rowStride * layout.height;
 
-                for (size_t i = 0; i < planes.size(); ++i) {
-                    planes[i].buffer = buffer + i * numPixelsPerPlane;
+                for (unsigned i = 0; i < layout.planes.size(); ++i) {
+                    buffers[i] = buffer + i * numPixelsPerPlane;
                 }
                 break;
             }
 
             case ImageLayout::INTERLEAVED:
-                for (size_t i = 0; i < planes.size(); ++i) {
-                    planes[i].buffer = buffer + i;
+                for (unsigned i = 0; i < layout.planes.size(); ++i) {
+                    buffers[i] = buffer + i;
                 }
                 break;
 
             case ImageLayout::YUV_420: {
-                const int64_t numPixelLumaPlane = planes[0].rowStride * detail::alignDimension(layout.height, 1, 0, 1);
-                const int64_t numPixelChromaPlane = planes[1].rowStride *
+                const int64_t numPixelLumaPlane = layout.planes[0].rowStride *
+                                                  detail::alignDimension(layout.height, 1, 0, 1);
+                const int64_t numPixelChromaPlane = layout.planes[1].rowStride *
                                                     detail::alignDimension(layout.height, 1, 1, 1);
 
-                planes[0].buffer = buffer;
-                planes[1].buffer = buffer + numPixelLumaPlane;
-                planes[2].buffer = buffer + numPixelLumaPlane + numPixelChromaPlane;
+                buffers[0] = buffer;
+                buffers[1] = buffer + numPixelLumaPlane;
+                buffers[2] = buffer + numPixelLumaPlane + numPixelChromaPlane;
                 break;
             }
 
             case ImageLayout::NV12: {
-                const int64_t numPixelLumaPlane = planes[0].rowStride * detail::alignDimension(layout.height, 1, 0, 1);
+                const int64_t numPixelLumaPlane = layout.planes[0].rowStride *
+                                                  detail::alignDimension(layout.height, 1, 0, 1);
 
-                planes[0].buffer = buffer;
-                planes[1].buffer = buffer + numPixelLumaPlane;
-                planes[2].buffer = buffer + numPixelLumaPlane + 1;
+                buffers[0] = buffer;
+                buffers[1] = buffer + numPixelLumaPlane;
+                buffers[2] = buffer + numPixelLumaPlane + 1;
                 break;
             }
 
             case ImageLayout::CUSTOM: {
-                const int maxSubsample = computeMaxSubsample();
+                const int maxSubsample = layout.maxSubsampleValue();
 
                 int64_t offset = 0;
                 for (int i = 0; i < layout.numPlanes; ++i) {
-                    planes[i].buffer = buffer + offset;
+                    buffers[i] = buffer + offset;
 
                     const int alignedHeight = detail::alignDimension(
-                            layout.height, 1, planes[i].subsample, maxSubsample);
+                            layout.height, 1, layout.planes[i].subsample, maxSubsample);
 
-                    offset += planes[i].rowStride * alignedHeight;
+                    offset += layout.planes[i].rowStride * alignedHeight;
                 }
                 break;
             }
@@ -351,31 +136,23 @@ struct ImageDescriptor final {
     }
 
 private:
-    int computeMaxSubsample() const {
-        const auto &plane = std::max_element(planes.begin(),
-                                             planes.begin() + layout.numPlanes,
-                                             [](const auto &r, const auto &l) { return r.subsample < l.subsample; });
-
-        return plane->subsample;
-    }
-
 #ifdef HAVE_HALIDE
     template <typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, bool> = true>
     void updateHalideDescriptor() {
         halide->dim[0].min = 0;
         halide->dim[0].extent = layout.width;
-        halide->dim[0].stride = planes[0].pixelStride;
+        halide->dim[0].stride = layout.planes[0].pixelStride;
 
         halide->dim[1].min = 0;
         halide->dim[1].extent = layout.height;
-        halide->dim[1].stride = planes[0].rowStride;
+        halide->dim[1].stride = layout.planes[0].rowStride;
 
         halide->dim[2].min = 0;
         halide->dim[2].extent = layout.numPlanes;
-        halide->dim[2].stride = planes[1].buffer - planes[0].buffer;
+        halide->dim[2].stride = buffers[1] - buffers[0];
 
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
-        halide->buffer.host = reinterpret_cast<uint8_t *>(planes[0].buffer);
+        halide->buffer.host = reinterpret_cast<uint8_t *>(buffers[0]);
         halide->buffer.type = halide_type_of<T>();
 
         halide->buffer.device = 0;
@@ -394,66 +171,54 @@ namespace image {
 template <typename T>
 ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &rawDescriptor) {
     const LayoutDescriptor &rawLayout = rawDescriptor.layout;
-    const int alignedWidth = cxximg::detail::alignDimension(rawLayout.width, rawLayout.widthAlignment);
-    T *buffer = rawDescriptor.planes[0].buffer;
+    T *buffer = rawDescriptor.buffers[0];
 
-    return {LayoutDescriptor::Builder(rawLayout.width / 2, rawLayout.height / 2)
-                    .numPlanes(4)
-                    .imageLayout(ImageLayout::CUSTOM)
-                    .pixelPrecision(rawLayout.pixelPrecision)
-                    .build(),
-            {{typename PlaneDescriptor<T>::Builder(buffer)
-                      .offset(bayerYOffset(rawLayout.pixelType, Bayer::R) * alignedWidth +
-                              bayerXOffset(rawLayout.pixelType, Bayer::R))
-                      .rowStride(2 * alignedWidth)
-                      .pixelStride(2)
-                      .build(),
-              typename PlaneDescriptor<T>::Builder(buffer)
-                      .offset(bayerYOffset(rawLayout.pixelType, Bayer::GR) * alignedWidth +
-                              bayerXOffset(rawLayout.pixelType, Bayer::GR))
-                      .rowStride(2 * alignedWidth)
-                      .pixelStride(2)
-                      .build(),
-              typename PlaneDescriptor<T>::Builder(buffer)
-                      .offset(bayerYOffset(rawLayout.pixelType, Bayer::GB) * alignedWidth +
-                              bayerXOffset(rawLayout.pixelType, Bayer::GB))
-                      .rowStride(2 * alignedWidth)
-                      .pixelStride(2)
-                      .build(),
-              typename PlaneDescriptor<T>::Builder(buffer)
-                      .offset(bayerYOffset(rawLayout.pixelType, Bayer::B) * alignedWidth +
-                              bayerXOffset(rawLayout.pixelType, Bayer::B))
-                      .rowStride(2 * alignedWidth)
-                      .pixelStride(2)
-                      .build()}}};
+    const int alignedWidth = cxximg::detail::alignDimension(rawLayout.width, rawLayout.widthAlignment);
+
+    const int rOffset = bayerYOffset(rawLayout.pixelType, Bayer::R) * alignedWidth +
+                        bayerXOffset(rawLayout.pixelType, Bayer::R);
+    const int grOffset = bayerYOffset(rawLayout.pixelType, Bayer::GR) * alignedWidth +
+                         bayerXOffset(rawLayout.pixelType, Bayer::GR);
+    const int gbOffset = bayerYOffset(rawLayout.pixelType, Bayer::GB) * alignedWidth +
+                         bayerXOffset(rawLayout.pixelType, Bayer::GB);
+    const int bOffset = bayerYOffset(rawLayout.pixelType, Bayer::B) * alignedWidth +
+                        bayerXOffset(rawLayout.pixelType, Bayer::B);
+
+    return ImageDescriptor<T>(LayoutDescriptor::Builder(rawLayout.width / 2, rawLayout.height / 2)
+                                      .numPlanes(4)
+                                      .imageLayout(ImageLayout::CUSTOM)
+                                      .pixelPrecision(rawLayout.pixelPrecision)
+                                      .planeStrides(0, 2 * alignedWidth, 2)
+                                      .planeStrides(1, 2 * alignedWidth, 2)
+                                      .planeStrides(2, 2 * alignedWidth, 2)
+                                      .planeStrides(3, 2 * alignedWidth, 2)
+                                      .build(),
+                              {buffer + rOffset, buffer + grOffset, buffer + gbOffset, buffer + bOffset});
 }
 
 /// Computes the subset of the input descriptor given the ROI coordinates.
 template <typename T>
 ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, const Roi &roi) {
-    PlaneDescriptorArray<T> planes(descriptor.planes);
+    BufferArray<T> buffers(descriptor.buffers);
     for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
-        const int x = roi.x >> planes[i].subsample;
-        const int y = roi.y >> planes[i].subsample;
-        const int64_t offset = y * planes[i].rowStride + x * planes[i].pixelStride;
-        planes[i].buffer += offset;
+        const int x = roi.x >> descriptor.layout.planes[i].subsample;
+        const int y = roi.y >> descriptor.layout.planes[i].subsample;
+        const int64_t offset = y * descriptor.layout.planes[i].rowStride + x * descriptor.layout.planes[i].pixelStride;
+        buffers[i] += offset;
     }
 
-    return {LayoutDescriptor::Builder(descriptor.layout).width(roi.width).height(roi.height).build(), planes};
+    LayoutDescriptor::Builder builder(descriptor.layout);
+    builder.width(roi.width).height(roi.height);
+
+    for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
+        builder.planeSubsample(i, descriptor.layout.planes[i].subsample);
+        builder.planeStrides(i, descriptor.layout.planes[i].rowStride, descriptor.layout.planes[i].pixelStride);
+    }
+
+    return ImageDescriptor<T>(builder.build(), buffers);
 }
 
 } // namespace image
-
-using PlaneDescriptor8i = PlaneDescriptor<int8_t>;
-using PlaneDescriptor16i = PlaneDescriptor<int16_t>;
-using PlaneDescriptor32i = PlaneDescriptor<int32_t>;
-
-using PlaneDescriptor8u = PlaneDescriptor<uint8_t>;
-using PlaneDescriptor16u = PlaneDescriptor<uint16_t>;
-using PlaneDescriptor32u = PlaneDescriptor<uint32_t>;
-
-using PlaneDescriptorf = PlaneDescriptor<float>;
-using PlaneDescriptord = PlaneDescriptor<double>;
 
 using ImageDescriptor8i = ImageDescriptor<int8_t>;
 using ImageDescriptor16i = ImageDescriptor<int16_t>;

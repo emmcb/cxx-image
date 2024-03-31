@@ -41,11 +41,13 @@ public:
 
     /// Constructs one-plane image view from plane view.
     ImageView(const PlaneView<T> &planeView) // NOLINT(google-explicit-constructor)
-        : ImageView({LayoutDescriptor::Builder(planeView.width(), planeView.height())
-                             .numPlanes(1)
-                             .imageLayout(ImageLayout::CUSTOM)
-                             .build(),
-                     {{planeView.descriptor()}}}) {}
+        : ImageView(ImageDescriptor<T>(
+                  LayoutDescriptor::Builder(planeView.width(), planeView.height())
+                          .numPlanes(1)
+                          .imageLayout(ImageLayout::CUSTOM)
+                          .planeStrides(0, planeView.descriptor().rowStride, planeView.descriptor().pixelStride)
+                          .build(),
+                  {planeView.buffer()})) {}
 
     ~ImageView() = default;
     ImageView(const ImageView<T> &) noexcept = default;
@@ -67,16 +69,16 @@ public:
     UTIL_ALWAYS_INLINE T operator()(int x, int y, int n) const noexcept {
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
-        const auto &planeDescriptor = mDescriptor.planes[n];
-        return planeDescriptor.buffer[y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+        const auto &planeDescriptor = mDescriptor.layout.planes[n];
+        return mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
     /// Returns reference at position (x, y, n).
     UTIL_ALWAYS_INLINE T &operator()(int x, int y, int n) noexcept {
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
-        const auto &planeDescriptor = mDescriptor.planes[n];
-        return planeDescriptor.buffer[y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+        const auto &planeDescriptor = mDescriptor.layout.planes[n];
+        return mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
 #ifdef HAVE_HALIDE
@@ -140,7 +142,7 @@ public:
         const int dim = numPlanes();
 
         for (int n = 0; n < dim; ++n) {
-            const int subsample = mDescriptor.planes[n].subsample;
+            const int subsample = mDescriptor.layout.planes[n].subsample;
             const int w = (width() + subsample) >> subsample;
             const int h = (height() + subsample) >> subsample;
 
@@ -226,10 +228,7 @@ protected:
     void setDescriptor(const ImageDescriptor<T> &descriptor) noexcept { mDescriptor = descriptor; }
 
     /// Map view descriptor to another buffer.
-    void mapBuffer(T *buffer) {
-        mDescriptor.computeStrides(); // update strides to match the internally managed buffer layout
-        mDescriptor.map(buffer);
-    }
+    void mapBuffer(T *buffer) { mDescriptor.map(buffer); }
 
 private:
     ImageDescriptor<T> mDescriptor;

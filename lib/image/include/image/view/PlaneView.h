@@ -37,7 +37,8 @@ public:
     /// Constructs plane view from specified image plane.
     PlaneView(const ImageDescriptor<T> &imageDescriptor, int index)
         : mLayoutDescriptor(imageDescriptor.layout),
-          mPlaneDescriptor(imageDescriptor.planes[index]),
+          mPlaneDescriptor(imageDescriptor.layout.planes[index]),
+          mBuffer(imageDescriptor.buffers[index]),
           mWidth((imageDescriptor.layout.width + mPlaneDescriptor.subsample) >> mPlaneDescriptor.subsample),
           mHeight((imageDescriptor.layout.height + mPlaneDescriptor.subsample) >> mPlaneDescriptor.subsample) {}
 
@@ -48,13 +49,13 @@ public:
     /// Returns value at position (x, y).
     UTIL_ALWAYS_INLINE T operator()(int x, int y) const noexcept {
         assert(x >= 0 && x < width() && y >= 0 && y < height());
-        return mPlaneDescriptor.buffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
+        return mBuffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
     }
 
     /// Returns reference at position (x, y).
     UTIL_ALWAYS_INLINE T &operator()(int x, int y) noexcept {
         assert(x >= 0 && x < width() && y >= 0 && y < height());
-        return mPlaneDescriptor.buffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
+        return mBuffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
     }
 
     /// Expression assignment.
@@ -120,7 +121,7 @@ public:
     }
 
     /// Returns plane descriptor.
-    const PlaneDescriptor<T> &descriptor() const noexcept { return mPlaneDescriptor; }
+    const PlaneDescriptor &descriptor() const noexcept { return mPlaneDescriptor; }
 
     /// Returns layout descriptor.
     const LayoutDescriptor &layoutDescriptor() const noexcept { return mLayoutDescriptor; }
@@ -129,10 +130,7 @@ public:
     int index() const noexcept { return mPlaneDescriptor.index; }
 
     /// Returns pointer to first plane element.
-    T *buffer() { return mPlaneDescriptor.buffer; }
-
-    /// Returns pointer to first plane element.
-    const T *buffer() const { return mPlaneDescriptor.buffer; }
+    T *buffer() const { return mBuffer; }
 
     /// Returns pixel type.
     PixelType pixelType() const noexcept { return mLayoutDescriptor.pixelType; }
@@ -215,7 +213,8 @@ public:
 
 private:
     LayoutDescriptor mLayoutDescriptor;
-    PlaneDescriptor<T> mPlaneDescriptor;
+    PlaneDescriptor mPlaneDescriptor;
+    T *mBuffer;
     int mWidth;
     int mHeight;
 };

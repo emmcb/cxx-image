@@ -48,31 +48,22 @@ public:
     /// Constructs an empty image.
     Image() : ImageView<T>(LayoutDescriptor::EMPTY){};
 
-    /// Constructs from descriptor.
-    explicit Image(const ImageDescriptor<T> &imageDescriptor)
-        : ImageView<T>(imageDescriptor), mSize(imageDescriptor.requiredBufferSize()), mData(new T[mSize]) {
+    /// Constructs from layout descriptor.
+    explicit Image(const LayoutDescriptor &layout)
+        : ImageView<T>(layout), mSize(layout.requiredBufferSize()), mData(new T[mSize]) {
         this->mapBuffer(mData.get());
     }
 
-    /// Constructs from descriptor.
-    template <typename U>
-    explicit Image(const ImageDescriptor<U> &imageDescriptor) : Image<T>(ImageDescriptor<T>(imageDescriptor)) {}
-
     /// Constructs by copying an existing buffer.
-    Image(const ImageDescriptor<T> &imageDescriptor, const T *buffer) : Image<T>(imageDescriptor) {
+    Image(const LayoutDescriptor &layout, const T *buffer) : Image<T>(layout) {
         memcpy(mData.get(), buffer, mSize * sizeof(T));
     }
 
     /// Constructs by evaluating an expression.
     template <typename Expr, typename = std::enable_if_t<!std::is_pointer_v<std::decay_t<Expr>>>>
-    Image(const ImageDescriptor<T> &imageDescriptor, const Expr &expr) : Image<T>(imageDescriptor) {
+    Image(const LayoutDescriptor &layout, const Expr &expr) : Image<T>(layout) {
         static_cast<ImageView<T> &>(*this) = expr;
     }
-
-    /// Constructs by evaluating an expression.
-    template <typename U, typename Expr, typename = std::enable_if_t<!std::is_pointer_v<std::decay_t<Expr>>>>
-    Image(const ImageDescriptor<U> &imageDescriptor, const Expr &expr)
-        : Image<T>(ImageDescriptor<T>(imageDescriptor), expr) {}
 
     Image(Image<T> &&) noexcept = default;
 
