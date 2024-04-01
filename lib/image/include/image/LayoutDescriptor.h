@@ -153,8 +153,36 @@ private:
             planes[i].index = i;
         }
 
+        // Compute plane subsample factors
+        switch (imageLayout) {
+            case ImageLayout::PLANAR:
+            case ImageLayout::INTERLEAVED:
+                for (auto &plane : planes) {
+                    plane.subsample = 0;
+                }
+                break;
+
+            case ImageLayout::YUV_420:
+            case ImageLayout::NV12:
+                if (numPlanes != 3) {
+                    throw std::invalid_argument("YUV image number of planes must be 3.");
+                }
+
+                planes[0].subsample = 0;
+                planes[1].subsample = 1;
+                planes[2].subsample = 1;
+                break;
+
+            case ImageLayout::CUSTOM:
+                // Keep user values
+                break;
+
+            default:
+                throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
+        }
+
         if (planes[0].rowStride != 0) {
-            // Do no update already initialized strides, as user may have set its custom values
+            // Do no update already initialized strides, as user may have set its own values
             return;
         }
 
@@ -163,7 +191,6 @@ private:
             case ImageLayout::PLANAR: {
                 const int alignedWidth = detail::alignDimension(width, widthAlignment);
                 for (auto &plane : planes) {
-                    plane.subsample = 0;
                     plane.rowStride = alignedWidth;
                     plane.pixelStride = 1;
                 }
@@ -173,7 +200,6 @@ private:
             case ImageLayout::INTERLEAVED: {
                 const int alignedWidth = detail::alignDimension(numPlanes * width, widthAlignment);
                 for (auto &plane : planes) {
-                    plane.subsample = 0;
                     plane.rowStride = alignedWidth;
                     plane.pixelStride = numPlanes;
                 }
@@ -181,43 +207,29 @@ private:
             }
 
             case ImageLayout::YUV_420: {
-                if (numPlanes != 3) {
-                    throw std::invalid_argument("YUV image number of planes must be 3.");
-                }
-
                 const int alignedLumaWidth = detail::alignDimension(width, widthAlignment, 0, 1);
                 const int alignedChromaWidth = detail::alignDimension(width, widthAlignment, 1, 1);
 
-                planes[0].subsample = 0;
                 planes[0].rowStride = alignedLumaWidth;
                 planes[0].pixelStride = 1;
 
-                planes[1].subsample = 1;
                 planes[1].rowStride = alignedChromaWidth;
                 planes[1].pixelStride = 1;
 
-                planes[2].subsample = 1;
                 planes[2].rowStride = alignedChromaWidth;
                 planes[2].pixelStride = 1;
                 break;
             }
 
             case ImageLayout::NV12: {
-                if (numPlanes != 3) {
-                    throw std::invalid_argument("NV12 image number of planes must be 3.");
-                }
-
                 const int alignedWidth = detail::alignDimension(width, widthAlignment, 0, 1);
 
-                planes[0].subsample = 0;
                 planes[0].rowStride = alignedWidth;
                 planes[0].pixelStride = 1;
 
-                planes[1].subsample = 1;
                 planes[1].rowStride = alignedWidth;
                 planes[1].pixelStride = 2;
 
-                planes[2].subsample = 1;
                 planes[2].rowStride = alignedWidth;
                 planes[2].pixelStride = 2;
 
