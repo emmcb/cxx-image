@@ -169,29 +169,28 @@ namespace image {
 
 /// Computes a four planes (R, Gr, Gb, B) descriptor from a one plane bayer layout.
 template <typename T>
-ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &rawDescriptor) {
-    const LayoutDescriptor &rawLayout = rawDescriptor.layout;
-    T *buffer = rawDescriptor.buffers[0];
+ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerDescriptor) {
+    const LayoutDescriptor &bayerLayout = bayerDescriptor.layout;
+    const int64_t rowStride = bayerLayout.planes[0].rowStride;
+    T *buffer = bayerDescriptor.buffers[0];
 
-    const int alignedWidth = cxximg::detail::alignDimension(rawLayout.width, rawLayout.widthAlignment);
+    const int rOffset = bayerYOffset(bayerLayout.pixelType, Bayer::R) * rowStride +
+                        bayerXOffset(bayerLayout.pixelType, Bayer::R);
+    const int grOffset = bayerYOffset(bayerLayout.pixelType, Bayer::GR) * rowStride +
+                         bayerXOffset(bayerLayout.pixelType, Bayer::GR);
+    const int gbOffset = bayerYOffset(bayerLayout.pixelType, Bayer::GB) * rowStride +
+                         bayerXOffset(bayerLayout.pixelType, Bayer::GB);
+    const int bOffset = bayerYOffset(bayerLayout.pixelType, Bayer::B) * rowStride +
+                        bayerXOffset(bayerLayout.pixelType, Bayer::B);
 
-    const int rOffset = bayerYOffset(rawLayout.pixelType, Bayer::R) * alignedWidth +
-                        bayerXOffset(rawLayout.pixelType, Bayer::R);
-    const int grOffset = bayerYOffset(rawLayout.pixelType, Bayer::GR) * alignedWidth +
-                         bayerXOffset(rawLayout.pixelType, Bayer::GR);
-    const int gbOffset = bayerYOffset(rawLayout.pixelType, Bayer::GB) * alignedWidth +
-                         bayerXOffset(rawLayout.pixelType, Bayer::GB);
-    const int bOffset = bayerYOffset(rawLayout.pixelType, Bayer::B) * alignedWidth +
-                        bayerXOffset(rawLayout.pixelType, Bayer::B);
-
-    return ImageDescriptor<T>(LayoutDescriptor::Builder(rawLayout.width / 2, rawLayout.height / 2)
+    return ImageDescriptor<T>(LayoutDescriptor::Builder(bayerLayout.width / 2, bayerLayout.height / 2)
                                       .numPlanes(4)
                                       .imageLayout(ImageLayout::CUSTOM)
-                                      .pixelPrecision(rawLayout.pixelPrecision)
-                                      .planeStrides(0, 2 * alignedWidth, 2)
-                                      .planeStrides(1, 2 * alignedWidth, 2)
-                                      .planeStrides(2, 2 * alignedWidth, 2)
-                                      .planeStrides(3, 2 * alignedWidth, 2)
+                                      .pixelPrecision(bayerLayout.pixelPrecision)
+                                      .planeStrides(0, 2 * rowStride, 2)
+                                      .planeStrides(1, 2 * rowStride, 2)
+                                      .planeStrides(2, 2 * rowStride, 2)
+                                      .planeStrides(3, 2 * rowStride, 2)
                                       .build(),
                               {buffer + rOffset, buffer + grOffset, buffer + gbOffset, buffer + bOffset});
 }
