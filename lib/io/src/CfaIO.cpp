@@ -92,7 +92,7 @@ Image16u CfaReader::read16u() {
     }
 
     mStream->seekg(curPos);
-    mStream->read(reinterpret_cast<char *>(image.data()), image.size());
+    mStream->read(reinterpret_cast<char *>(image.data()), image.size() * sizeof(uint16_t));
 
     return image;
 }

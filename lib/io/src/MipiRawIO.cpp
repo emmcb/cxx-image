@@ -84,7 +84,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
     LOG_S(INFO) << "Path: " << path();
 
     mStream->seekg(0, std::istream::end);
-    int64_t fileSize = mStream->tellg();
+    const int64_t fileSize = mStream->tellg();
     mStream->seekg(0);
 
     std::vector<uint8_t> data(fileSize);

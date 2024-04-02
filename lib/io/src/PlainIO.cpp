@@ -43,7 +43,7 @@ static decltype(auto) guessPixelFromExtension(const std::string &path) {
 
 void PlainReader::readHeader() {
     mStream->seekg(0, std::istream::end);
-    int64_t fileSize = mStream->tellg();
+    const int64_t fileSize = mStream->tellg();
     mStream->seekg(0);
 
     const auto &fileInfo = options().fileInfo;
@@ -139,7 +139,7 @@ Image<T> PlainReader::read() {
     Image<T> image(layoutDescriptor());
 
     mStream->seekg(0, std::istream::end);
-    int64_t fileSize = mStream->tellg();
+    const int64_t fileSize = mStream->tellg();
     mStream->seekg(0);
 
     if (static_cast<uint64_t>(fileSize) != image.size() * sizeof(T)) {
@@ -148,7 +148,7 @@ Image<T> PlainReader::read() {
                               std::to_string(image.size() * sizeof(T)) + ", got " + std::to_string(fileSize) + ")");
     }
 
-    mStream->read(reinterpret_cast<char *>(image.data()), image.size());
+    mStream->read(reinterpret_cast<char *>(image.data()), fileSize);
 
     return image;
 }
