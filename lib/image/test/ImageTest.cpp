@@ -123,11 +123,11 @@ TYPED_TEST(ImageTest, TestAssignRoi) {
 }
 
 TYPED_TEST(ImageTest, TestClone) {
-    // When I set (0, 0, 0) to 1
-    this->image(0, 0, 0) = TypeParam(1);
-
     // When I clone the image
     Image<TypeParam> clone = this->image.clone();
+
+    // When I set (0, 0, 0) to 1
+    clone(0, 0, 0) = TypeParam(1);
 
     // Then the dimensions of the clone are (W, H, N)
     ASSERT_EQ(clone.width(), W);
@@ -135,11 +135,39 @@ TYPED_TEST(ImageTest, TestClone) {
     ASSERT_EQ(clone.numPlanes(), N);
 
     // Then (0, 0, 0) value of the clone is 1 and other values are 0
-    this->image.forEach([&](int x, int y, int n) {
+    clone.forEach([&](int x, int y, int n) {
         if (x == 0 && y == 0 && n == 0) {
             ASSERT_EQ(clone(x, y, n), TypeParam(1));
         } else {
             ASSERT_EQ(clone(x, y, n), TypeParam(0));
         }
     });
+
+    // Then all original image values are 0
+    this->image.forEach([&](int x, int y, int n) { ASSERT_EQ(this->image(x, y, n), TypeParam(0)); });
+}
+
+TYPED_TEST(ImageTest, TestCloneRoi) {
+    // When I clone an image ROI
+    Image<TypeParam> clone = image::clone(this->image[{0, 0, 1, 1}]);
+
+    // When I set (0, 0, 0) to 1
+    clone(0, 0, 0) = TypeParam(1);
+
+    // Then the dimensions of the clone are (W, 1, N)
+    ASSERT_EQ(clone.width(), 1);
+    ASSERT_EQ(clone.height(), 1);
+    ASSERT_EQ(clone.numPlanes(), N);
+
+    // Then all original image values are 0
+    clone.forEach([&](int x, int y, int n) {
+        if (n == 0) {
+            ASSERT_EQ(clone(x, y, n), TypeParam(1));
+        } else {
+            ASSERT_EQ(clone(x, y, n), TypeParam(0));
+        }
+    });
+
+    // Then all original image values are 0
+    this->image.forEach([&](int x, int y, int n) { ASSERT_EQ(this->image(x, y, n), TypeParam(0)); });
 }

@@ -50,7 +50,9 @@ public:
 
     /// Constructs from layout descriptor.
     explicit Image(const LayoutDescriptor &layout)
-        : ImageView<T>(layout), mSize(layout.requiredBufferSize()), mData(new T[mSize]) {
+        : ImageView<T>(LayoutDescriptor::Builder(layout).build()),
+          mSize(this->layoutDescriptor().requiredBufferSize()),
+          mData(new T[mSize]) {
         this->mapBuffer(mData.get());
     }
 
