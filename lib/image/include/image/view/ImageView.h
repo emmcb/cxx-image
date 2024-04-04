@@ -35,9 +35,11 @@ class ImageView : public expr::BaseExpression {
 public:
     class PlaneIterable;
 
-    /// Constructs image from a given descriptor.
-    ImageView(const ImageDescriptor<T> &imageDescriptor) // NOLINT(google-explicit-constructor)
-        : mDescriptor(imageDescriptor) {}
+    /// Constructs image view from image descriptor.
+    explicit ImageView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
+
+    /// Constructs image view from layout descriptor and buffer.
+    ImageView(const LayoutDescriptor &layout, T *buffer) : mDescriptor(ImageDescriptor<T>(layout).map(buffer)) {}
 
     /// Constructs one-plane image view from plane view.
     ImageView(const PlaneView<T> &planeView) // NOLINT(google-explicit-constructor)
