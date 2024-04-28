@@ -87,7 +87,8 @@ struct ImageMetadata final {
     struct ShootingParams final {
         std::optional<float> aperture;     ///< Aperture
         std::optional<float> exposureTime; ///< Exposure time
-        std::optional<float> totalGain;    ///< Total gain
+        std::optional<float> sensitivity;  ///< Standard ISO sensitivity
+        std::optional<float> totalGain;    ///< Total applied gain (= sensorGain * ispgain)
         std::optional<float> sensorGain;   ///< Sensor gain
         std::optional<float> ispGain;      ///< ISP gain
         std::optional<ROI> zoom;           ///< Zoom ROI
@@ -109,6 +110,22 @@ struct ImageMetadata final {
     CalibrationData calibrationData; ///< Calibration data
     CameraControls cameraControls;   ///< Camera controls
     SemanticMasks semanticMasks;     ///< Semantic masks
+
+    void synchronize() {
+        // Initialize shooting params from EXIF
+
+        if (!shootingParams.aperture && exifMetadata.fNumber) {
+            shootingParams.aperture = exifMetadata.fNumber->asFloat();
+        }
+        if (!shootingParams.exposureTime && exifMetadata.exposureTime) {
+            shootingParams.exposureTime = exifMetadata.exposureTime->asFloat();
+        }
+        if (!shootingParams.sensitivity && exifMetadata.isoSpeedRatings) {
+            shootingParams.sensitivity = *exifMetadata.isoSpeedRatings;
+        }
+
+        // TODO: initialize EXIF from shooting params
+    }
 };
 
 inline const char *toString(FileFormat fileFormat) {
