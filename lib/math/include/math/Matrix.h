@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -96,6 +97,12 @@ public:
 
     /// Returns raw pointer to matrix data.
     const float *data() const noexcept { return mData.data(); }
+
+    /// Computes the minimum matrix value.
+    float minimum() const { return *std::min_element(mData.begin(), mData.end()); }
+
+    /// Computes the maximum matrix value.
+    float maximum() const { return *std::max_element(mData.begin(), mData.end()); }
 
     /// Computes the inverse of the matrix.
     Matrix<M, N> inverse() const {
