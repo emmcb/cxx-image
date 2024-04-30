@@ -149,7 +149,6 @@ using Matrix3 = Matrix<3, 3>;
 template <int M, int N, int O>
 Matrix<M, O> operator*(const Matrix<M, N> &lhs, const Matrix<N, O> &rhs) {
     Matrix<M, O> result(0);
-
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < O; ++j) {
             for (int k = 0; k < N; ++k) {
@@ -157,7 +156,6 @@ Matrix<M, O> operator*(const Matrix<M, N> &lhs, const Matrix<N, O> &rhs) {
             }
         }
     }
-
     return result;
 }
 
@@ -171,8 +169,21 @@ Pixel<float, M> operator*(const Matrix<M, N> &lhs, const Pixel<T, N> &rhs) {
             pixel[i] += lhs(i, j) * rhs[j];
         }
     }
-
     return pixel;
+}
+
+/// Multiplication with scalar.
+/// @relates Matrix
+template <int M, int N>
+Matrix<M, N> operator*(float lhs, const Matrix<M, N> &rhs) {
+    Matrix<M, N> result;
+    for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < N; ++j) {
+            result(i, j) = lhs * rhs(i, j);
+        }
+    }
+
+    return result;
 }
 
 } // namespace cxximg
