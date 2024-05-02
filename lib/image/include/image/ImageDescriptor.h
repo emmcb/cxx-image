@@ -55,7 +55,13 @@ struct ImageDescriptor final {
 
     ImageDescriptor(const LayoutDescriptor &layout_, // NOLINT(google-explicit-constructor)
                     const BufferArray<T> &buffers_ = {})
-        : layout(layout_), buffers(buffers_) {}
+        : layout(layout_), buffers(buffers_) {
+#ifdef HAVE_HALIDE
+        if (!buffers.empty()) {
+            updateHalideDescriptor();
+        }
+#endif
+    }
 
     /// Compute the maximum value that can be represented by the image pixel precision.
     T saturationValue() const noexcept { return layout.saturationValue<T>(); }
