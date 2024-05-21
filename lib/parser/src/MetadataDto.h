@@ -370,6 +370,7 @@ template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata::ShootingParams& shootingParams) {
     io& json_dto::optional("aperture", shootingParams.aperture, std::nullopt) &
             json_dto::optional("exposureTime", shootingParams.exposureTime, std::nullopt) &
+            json_dto::optional("sensitivity", shootingParams.sensitivity, std::nullopt) &
             json_dto::optional("totalGain", shootingParams.totalGain, std::nullopt) &
             json_dto::optional("sensorGain", shootingParams.sensorGain, std::nullopt) &
             json_dto::optional("ispGain", shootingParams.ispGain, std::nullopt) &

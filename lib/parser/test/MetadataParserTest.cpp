@@ -46,6 +46,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .focalLengthIn35mmFilm = 50},
             .shootingParams = {.aperture = 5.6f,
                                .exposureTime = 0.01f,
+                               .sensitivity = 100.0f,
                                .totalGain = 1.0f,
                                .sensorGain = 1.0f,
                                .ispGain = 1.0f,
@@ -115,6 +116,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
     "shootingParams": {
         "aperture": 5.599999904632568,
         "exposureTime": 0.009999999776482582,
+        "sensitivity": 100.0,
         "totalGain": 1.0,
         "sensorGain": 1.0,
         "ispGain": 1.0,
