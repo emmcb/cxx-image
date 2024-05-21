@@ -77,9 +77,11 @@ struct ImageDescriptor final {
             return *this;
         }
 
+        const int totalHeight = layout.height + 2 * layout.margin;
+
         switch (layout.imageLayout) {
             case ImageLayout::PLANAR: {
-                const int64_t numPixelsPerPlane = layout.planes[0].rowStride * layout.height;
+                const int64_t numPixelsPerPlane = layout.planes[0].rowStride * totalHeight;
 
                 for (unsigned i = 0; i < layout.planes.size(); ++i) {
                     buffers[i] = buffer + i * numPixelsPerPlane;
@@ -95,9 +97,9 @@ struct ImageDescriptor final {
 
             case ImageLayout::YUV_420: {
                 const int64_t numPixelLumaPlane = layout.planes[0].rowStride *
-                                                  detail::alignDimension(layout.height, 1, 0, 1);
+                                                  detail::alignDimension(totalHeight, 1, 0, 1);
                 const int64_t numPixelChromaPlane = layout.planes[1].rowStride *
-                                                    detail::alignDimension(layout.height, 1, 1, 1);
+                                                    detail::alignDimension(totalHeight, 1, 1, 1);
 
                 buffers[0] = buffer;
                 buffers[1] = buffer + numPixelLumaPlane;
@@ -107,7 +109,7 @@ struct ImageDescriptor final {
 
             case ImageLayout::NV12: {
                 const int64_t numPixelLumaPlane = layout.planes[0].rowStride *
-                                                  detail::alignDimension(layout.height, 1, 0, 1);
+                                                  detail::alignDimension(totalHeight, 1, 0, 1);
 
                 buffers[0] = buffer;
                 buffers[1] = buffer + numPixelLumaPlane;
@@ -123,7 +125,7 @@ struct ImageDescriptor final {
                     buffers[i] = buffer + offset;
 
                     const int alignedHeight = detail::alignDimension(
-                            layout.height, 1, layout.planes[i].subsample, maxSubsample);
+                            totalHeight, 1, layout.planes[i].subsample, maxSubsample);
 
                     offset += layout.planes[i].rowStride * alignedHeight;
                 }
@@ -132,6 +134,15 @@ struct ImageDescriptor final {
 
             default:
                 throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
+        }
+
+        if (layout.margin > 0) {
+            for (int i = 0; i < layout.numPlanes; ++i) {
+                const int x = layout.margin >> layout.planes[i].subsample;
+                const int y = layout.margin >> layout.planes[i].subsample;
+                const int64_t offset = y * layout.planes[i].rowStride + x * layout.planes[i].pixelStride;
+                buffers[i] += offset;
+            }
         }
 
 #ifdef HAVE_HALIDE
@@ -145,12 +156,12 @@ private:
 #ifdef HAVE_HALIDE
     template <typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, bool> = true>
     void updateHalideDescriptor() {
-        halide->dim[0].min = 0;
-        halide->dim[0].extent = layout.width;
+        halide->dim[0].min = -layout.margin;
+        halide->dim[0].extent = layout.width + 2 * layout.margin;
         halide->dim[0].stride = layout.planes[0].pixelStride;
 
-        halide->dim[1].min = 0;
-        halide->dim[1].extent = layout.height;
+        halide->dim[1].min = -layout.margin;
+        halide->dim[1].extent = layout.height + 2 * layout.margin;
         halide->dim[1].stride = layout.planes[0].rowStride;
 
         halide->dim[2].min = 0;
@@ -158,7 +169,8 @@ private:
         halide->dim[2].stride = buffers[1] - buffers[0];
 
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
-        halide->buffer.host = reinterpret_cast<uint8_t *>(buffers[0]);
+        halide->buffer.host = reinterpret_cast<uint8_t *>(
+                buffers[0] - layout.margin * (layout.planes[0].rowStride + layout.planes[0].pixelStride));
         halide->buffer.type = halide_type_of<T>();
 
         halide->buffer.device = 0;

@@ -157,35 +157,10 @@ void updateBorders(const ImageView<T> &img, int borderSize) {
     }
 }
 
-/// Allocates a new uninitialized image with borders.
-template <typename T>
-Image<T> makeBorders(const LayoutDescriptor &layoutDescriptor, int borderSize) {
-    LayoutDescriptor descriptor = LayoutDescriptor::Builder(layoutDescriptor)
-                                          .width(layoutDescriptor.width + 2 * borderSize)
-                                          .height(layoutDescriptor.height + 2 * borderSize)
-                                          .build();
-
-    Image<T> img(descriptor);
-
-    Roi roi = {borderSize, borderSize, layoutDescriptor.width, layoutDescriptor.height};
-    img.setRoi(roi);
-
-    return img;
-}
-
-/// Allocates a new image from an existing one, with uninitialized borders.
-template <typename T>
-Image<T> makeBorders(const ImageView<T> &img, int borderSize) {
-    Image<T> copy = makeBorders<T>(img.layoutDescriptor(), borderSize);
-    copy = img;
-
-    return copy;
-}
-
 /// Allocates a new image from an existing one, with borders initialized using the given border mode.
 template <BorderMode MODE, typename T>
 Image<T> makeBorders(const ImageView<T> &img, int borderSize) {
-    Image<T> copy = makeBorders<T>(img, borderSize);
+    Image<T> copy(LayoutDescriptor::Builder(img.layoutDescriptor()).margin(borderSize).build(), img);
     updateBorders<MODE>(copy, borderSize);
 
     return copy;
