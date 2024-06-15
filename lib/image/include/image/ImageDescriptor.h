@@ -36,6 +36,12 @@ struct HalideDescriptor final {
     std::array<halide_dimension_t, 3> dim;
 
     HalideDescriptor() { buffer.dim = dim.data(); }
+
+    ~HalideDescriptor() {
+        if (buffer.device != 0) {
+            halide_device_free(nullptr, &buffer);
+        }
+    }
 };
 #endif
 
