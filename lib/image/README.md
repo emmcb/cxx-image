@@ -76,7 +76,7 @@ uint16_t* buffer = new uint16_t[4000 * 3000 * 3];
 
 {
     // Constructs a 16 bits unsigned 4000x3000 RGB image view referencing an existing buffer.
-    ImageView16u rgb(ImageDescriptor16u(LayoutDescriptor::Builder(4000, 3000).pixelType(PixelType::RGB).build()).map(buffer));
+    ImageView16u rgb(LayoutDescriptor::Builder(4000, 3000).pixelType(PixelType::RGB).build(), buffer);
 
 } // Buffer is NOT freed when the ImageView instance is destructed at the end of the scope.
 
