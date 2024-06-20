@@ -63,7 +63,7 @@ struct LayoutDescriptor final {
     int height = 0;                                ///< Image height in pixels.
     int numPlanes = 0;                             ///< Image number of planes.
     int widthAlignment = 1;                        ///< Width alignement in power of 2.
-    int margin = 0;                                ///< Margin around image in pixels.
+    int border = 0;                                ///< Border around image in pixels.
 
     PlaneDescriptorArray planes; ///< Planes description.
 
@@ -86,8 +86,8 @@ struct LayoutDescriptor final {
     int64_t requiredBufferSize() const {
         using namespace std::string_literals;
 
-        const int totalWidth = width + 2 * margin;
-        const int totalHeight = height + 2 * margin;
+        const int totalWidth = width + 2 * border;
+        const int totalHeight = height + 2 * border;
 
         switch (imageLayout) {
             case ImageLayout::PLANAR:
@@ -192,7 +192,7 @@ private:
             return;
         }
 
-        const int totalWidth = width + 2 * margin;
+        const int totalWidth = width + 2 * border;
 
         // Compute plane strides
         switch (imageLayout) {
@@ -328,8 +328,8 @@ public:
         return *this;
     }
 
-    Builder &margin(int margin) noexcept {
-        mDescriptor.margin = margin;
+    Builder &border(int border) noexcept {
+        mDescriptor.border = border;
         return *this;
     }
 
@@ -351,8 +351,8 @@ public:
                                         ", numPlanes=" + std::to_string(mDescriptor.numPlanes) +
                                         ") must be strictly greater than zero.");
         }
-        if (mDescriptor.margin < 0) {
-            throw std::invalid_argument("margin (" + std::to_string(mDescriptor.margin) +
+        if (mDescriptor.border < 0) {
+            throw std::invalid_argument("border (" + std::to_string(mDescriptor.border) +
                                         ") must be equal or greater than zero.");
         }
         if (!math::isPowerOf2(mDescriptor.widthAlignment)) {

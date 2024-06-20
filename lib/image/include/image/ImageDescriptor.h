@@ -83,7 +83,7 @@ struct ImageDescriptor final {
             return *this;
         }
 
-        const int totalHeight = layout.height + 2 * layout.margin;
+        const int totalHeight = layout.height + 2 * layout.border;
 
         switch (layout.imageLayout) {
             case ImageLayout::PLANAR: {
@@ -142,10 +142,10 @@ struct ImageDescriptor final {
                 throw std::invalid_argument("Invalid image layout "s + toString(layout.imageLayout));
         }
 
-        if (layout.margin > 0) {
+        if (layout.border > 0) {
             for (int i = 0; i < layout.numPlanes; ++i) {
-                const int x = layout.margin >> layout.planes[i].subsample;
-                const int y = layout.margin >> layout.planes[i].subsample;
+                const int x = layout.border >> layout.planes[i].subsample;
+                const int y = layout.border >> layout.planes[i].subsample;
                 const int64_t offset = y * layout.planes[i].rowStride + x * layout.planes[i].pixelStride;
                 buffers[i] += offset;
             }
@@ -162,12 +162,12 @@ private:
 #ifdef HAVE_HALIDE
     template <typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, bool> = true>
     void updateHalideDescriptor() {
-        halide->dim[0].min = -layout.margin;
-        halide->dim[0].extent = layout.width + 2 * layout.margin;
+        halide->dim[0].min = -layout.border;
+        halide->dim[0].extent = layout.width + 2 * layout.border;
         halide->dim[0].stride = layout.planes[0].pixelStride;
 
-        halide->dim[1].min = -layout.margin;
-        halide->dim[1].extent = layout.height + 2 * layout.margin;
+        halide->dim[1].min = -layout.border;
+        halide->dim[1].extent = layout.height + 2 * layout.border;
         halide->dim[1].stride = layout.planes[0].rowStride;
 
         halide->dim[2].min = 0;
@@ -176,7 +176,7 @@ private:
 
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
         halide->buffer.host = reinterpret_cast<uint8_t *>(
-                buffers[0] - layout.margin * (layout.planes[0].rowStride + layout.planes[0].pixelStride));
+                buffers[0] - layout.border * (layout.planes[0].rowStride + layout.planes[0].pixelStride));
         halide->buffer.type = halide_type_of<T>();
 
         halide->buffer.device = 0;

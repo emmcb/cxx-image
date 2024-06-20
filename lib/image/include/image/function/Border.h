@@ -160,7 +160,7 @@ void updateBorders(const ImageView<T> &img, int borderSize) {
 /// Allocates a new image from an existing one, with borders initialized using the given border mode.
 template <BorderMode MODE, typename T>
 Image<T> makeBorders(const ImageView<T> &img, int borderSize) {
-    Image<T> copy(LayoutDescriptor::Builder(img.layoutDescriptor()).margin(borderSize).build(), img);
+    Image<T> copy(LayoutDescriptor::Builder(img.layoutDescriptor()).border(borderSize).build(), img);
     updateBorders<MODE>(copy, borderSize);
 
     return copy;
