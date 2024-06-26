@@ -34,12 +34,17 @@ namespace cxximg {
 struct HalideDescriptor final {
     halide_buffer_t buffer;
     std::array<halide_dimension_t, 3> dim;
+    bool isCrop = false;
 
     HalideDescriptor() { buffer.dim = dim.data(); }
 
     ~HalideDescriptor() {
         if (buffer.device != 0) {
-            halide_device_free(nullptr, &buffer);
+            if (isCrop) {
+                halide_device_release_crop(nullptr, &buffer);
+            } else {
+                halide_device_free(nullptr, &buffer);
+            }
         }
     }
 };
@@ -223,22 +228,40 @@ ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerD
 template <typename T>
 ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, const Roi &roi) {
     BufferArray<T> buffers(descriptor.buffers);
-    for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
-        const int x = roi.x >> descriptor.layout.planes[i].subsample;
-        const int y = roi.y >> descriptor.layout.planes[i].subsample;
-        const int64_t offset = y * descriptor.layout.planes[i].rowStride + x * descriptor.layout.planes[i].pixelStride;
-        buffers[i] += offset;
-    }
 
     LayoutDescriptor::Builder builder(descriptor.layout);
-    builder.width(roi.width).height(roi.height);
+    builder.width(roi.width).height(roi.height).border(0);
 
     for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
-        builder.planeSubsample(i, descriptor.layout.planes[i].subsample);
-        builder.planeStrides(i, descriptor.layout.planes[i].rowStride, descriptor.layout.planes[i].pixelStride);
+        const auto &plane = descriptor.layout.planes[i];
+
+        const int x = roi.x >> plane.subsample;
+        const int y = roi.y >> plane.subsample;
+        const int64_t offset = y * plane.rowStride + x * plane.pixelStride;
+        buffers[i] += offset;
+
+        builder.planeSubsample(i, plane.subsample);
+        builder.planeStrides(i, plane.rowStride, plane.pixelStride);
     }
 
-    return ImageDescriptor<T>(builder.build(), buffers);
+    ImageDescriptor<T> crop(builder.build(), buffers);
+
+#ifdef HAVE_HALIDE
+    if (descriptor.halide->buffer.device != 0) {
+        crop.halide->dim[0].min = roi.x;
+        crop.halide->dim[1].min = roi.y;
+
+        if (halide_device_crop(nullptr, &descriptor.halide->buffer, &crop.halide->buffer) ==
+            halide_error_code_success) {
+            crop.halide->isCrop = true;
+        }
+
+        crop.halide->dim[0].min = 0;
+        crop.halide->dim[1].min = 0;
+    }
+#endif
+
+    return crop;
 }
 
 } // namespace image
