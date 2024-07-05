@@ -68,9 +68,7 @@ struct ImageDescriptor final {
                     const BufferArray<T> &buffers_ = {})
         : layout(layout_), buffers(buffers_) {
 #ifdef HAVE_HALIDE
-        if (!buffers.empty()) {
-            updateHalideDescriptor();
-        }
+        updateHalideDescriptor();
 #endif
     }
 
@@ -180,9 +178,14 @@ private:
         halide->dim[2].stride = buffers[1] - buffers[0];
 
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
-        halide->buffer.host = reinterpret_cast<uint8_t *>(
-                buffers[0] - layout.border * (layout.planes[0].rowStride + layout.planes[0].pixelStride));
         halide->buffer.type = halide_type_of<T>();
+
+        if (buffers[0] != nullptr) {
+            halide->buffer.host = reinterpret_cast<uint8_t *>(
+                    buffers[0] - layout.border * (layout.planes[0].rowStride + layout.planes[0].pixelStride));
+        } else {
+            halide->buffer.host = nullptr;
+        }
 
         halide->buffer.device = 0;
         halide->buffer.device_interface = nullptr;
