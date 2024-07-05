@@ -24,6 +24,9 @@ template class ImageView<uint8_t>;
 template class ImageView<uint16_t>;
 template class ImageView<uint32_t>;
 
+#ifdef HAVE_FLOAT16
+template class ImageView<half_t>;
+#endif
 template class ImageView<float>;
 template class ImageView<double>;
 

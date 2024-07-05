@@ -25,6 +25,10 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     )
 endif()
 
+if(HAVE_FLOAT16)
+    target_compile_definitions(${TARGET} INTERFACE HAVE_FLOAT16)
+endif()
+
 # Installation
 
 if(CXXIMG_ENABLE_INSTALL)

@@ -227,6 +227,7 @@ using PlaneView8u = PlaneView<uint8_t>;
 using PlaneView16u = PlaneView<uint16_t>;
 using PlaneView32u = PlaneView<uint32_t>;
 
+using PlaneViewh = PlaneView<half_t>;
 using PlaneViewf = PlaneView<float>;
 using PlaneViewd = PlaneView<double>;
 
@@ -240,6 +241,9 @@ extern template class PlaneView<uint8_t>;
 extern template class PlaneView<uint16_t>;
 extern template class PlaneView<uint32_t>;
 
+#ifdef HAVE_FLOAT16
+extern template class PlaneView<half_t>;
+#endif
 extern template class PlaneView<float>;
 extern template class PlaneView<double>;
 

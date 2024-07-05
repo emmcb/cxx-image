@@ -142,6 +142,7 @@ using BayerView8u = BayerView<uint8_t>;
 using BayerView16u = BayerView<uint16_t>;
 using BayerView32u = BayerView<uint16_t>;
 
+using BayerViewh = BayerView<half_t>;
 using BayerViewf = BayerView<float>;
 using BayerViewd = BayerView<double>;
 

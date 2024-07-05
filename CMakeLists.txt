@@ -30,6 +30,7 @@ option(CXXIMG_BUILD_TOOLS "Build the project tools" ${PROJECT_IS_TOP_LEVEL})
 option(CXXIMG_ENABLE_INSTALL "Generate the install target" ${PROJECT_IS_TOP_LEVEL})
 
 option(CXXIMG_WITH_HALIDE "Enable Halide language support" OFF)
+option(CXXIMG_WITH_FLOAT16 "Enable float16 image support" OFF)
 
 option(CXXIMG_WITH_DNG "Enable DNG format IO" ON)
 option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
@@ -61,6 +62,12 @@ if (CXXIMG_WITH_HALIDE)
     else()
         message(WARNING "Disabling Halide language support because Halide library is not found")
     endif()
+endif()
+
+set(HAVE_FLOAT16 0)
+if (CXXIMG_WITH_FLOAT16)
+    # TODO check for compiler support
+    set(HAVE_FLOAT16 1)
 endif()
 
 set(HAVE_DNG 0)
