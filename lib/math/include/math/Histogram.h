@@ -281,7 +281,7 @@ public:
             const U &cur = this->at(i);
             if (count > prev && count <= cur) {
                 const float k = (count - prev) / (cur - prev);
-                return (1.0f - k) * axis.coord(i) + k * axis.coord(i + 1);
+                return axis.coord(i + k);
             }
         }
 
@@ -318,23 +318,37 @@ public:
         return sum / totalCount;
     }
 
-    /// Computes the distribution mean along the given axis, restrained to the
-    /// [from, to] interval.
+    /// Computes the distribution mean along the given axis, restrained to the [from, to] interval.
     template <std::size_t N = 0>
     float mean(T from, T to) const {
+        if (from >= to) {
+            return (static_cast<float>(from) + to) / 2.0f;
+        }
+
         float sum = 0.0f;
         float totalCount = 0.0f;
         for (const auto &bin : this->indexed()) {
             const T upperRange = bin.template interval<N>().upper();
             const T lowerRange = bin.template interval<N>().lower();
+
             if (upperRange <= from || lowerRange >= to) {
                 continue;
             }
 
             const T coord = bin.template interval<N>().center();
 
-            sum += static_cast<float>(coord) * (*bin);
-            totalCount += (*bin);
+            const float binWeight = [&]() {
+                if (lowerRange < from && upperRange < to) {
+                    return 1.0f - (static_cast<float>(from) - lowerRange) / (upperRange - lowerRange);
+                }
+                if (upperRange > to && lowerRange > from) {
+                    return (static_cast<float>(to) - lowerRange) / (upperRange - lowerRange);
+                }
+                return 1.0f;
+            }();
+
+            sum += static_cast<float>(coord) * binWeight * (*bin);
+            totalCount += binWeight * (*bin);
         }
 
         return sum / totalCount;

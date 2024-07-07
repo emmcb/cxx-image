@@ -46,7 +46,7 @@ public:
     using ImageView<T>::operator=;
 
     /// Constructs an empty image.
-    Image() : ImageView<T>(LayoutDescriptor::EMPTY){};
+    Image() : ImageView<T>(LayoutDescriptor::EMPTY) {};
 
     /// Constructs from layout descriptor.
     explicit Image(const LayoutDescriptor &layout)
