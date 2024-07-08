@@ -164,7 +164,7 @@ struct ImageDescriptor final {
 
 private:
 #ifdef HAVE_HALIDE
-    template <typename U = T, std::enable_if_t<std::is_arithmetic_v<U> || std::is_same_v<U, half_t>, bool> = true>
+    template <typename U = T, std::enable_if_t<math::is_arithmetic_v<U>, bool> = true>
     void updateHalideDescriptor() {
         halide->dim[0].min = -layout.border;
         halide->dim[0].extent = layout.width + 2 * layout.border;
@@ -193,7 +193,7 @@ private:
         halide->buffer.flags = 0;
     }
 
-    template <typename U = T, std::enable_if_t<!std::is_arithmetic_v<U> && !std::is_same_v<U, half_t>, bool> = true>
+    template <typename U = T, std::enable_if_t<!math::is_arithmetic_v<U>, bool> = true>
     void updateHalideDescriptor() {}
 #endif
 };

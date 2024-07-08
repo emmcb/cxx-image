@@ -17,6 +17,7 @@
 #include "image/detail/operator/UnaryOperators.h"
 #include "image/expression/BaseExpression.h"
 
+#include "math/half.h"
 #include "util/compiler.h"
 
 #include <vector>
@@ -63,7 +64,7 @@ decltype(auto) cast(Expr &&expr) {
 /// target type is float.
 template <typename T, typename Expr>
 decltype(auto) conditionalRound(Expr &&expr) {
-    if constexpr (std::is_floating_point_v<T>) {
+    if constexpr (math::is_floating_point_v<T>) {
         return std::forward<Expr>(expr);
     } else {
         return detail::UnaryExpression<Expr, detail::LRoundOperator>(std::forward<Expr>(expr));

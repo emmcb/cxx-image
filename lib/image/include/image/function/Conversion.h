@@ -95,13 +95,13 @@ Image<U> convertPixelPrecision(const ImageView<T> &img,
     }
 
     // float -> int conversion
-    else if constexpr (std::is_floating_point_v<T> && std::is_integral_v<U>) {
+    else if constexpr (math::is_floating_point_v<T> && std::is_integral_v<U>) {
         auto scale = descriptor.saturationValue<U>() / img.saturationValue();
         return Image<U>(descriptor, expr::lround(img * scale));
     }
 
     // int -> float conversion
-    else if constexpr (std::is_integral_v<T> && std::is_floating_point_v<U>) {
+    else if constexpr (std::is_integral_v<T> && math::is_floating_point_v<U>) {
         auto scale = descriptor.saturationValue<U>() / img.saturationValue();
         return Image<U>(descriptor, img * scale);
     }

@@ -114,7 +114,7 @@ struct LutOperator final {
 struct LRoundOperator final {
     template <typename T>
     UTIL_ALWAYS_INLINE int apply(T a) const noexcept {
-        return std::lround(a);
+        return std::lround(static_cast<float>(a));
     }
 
     template <typename T, int N>

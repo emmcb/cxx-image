@@ -18,6 +18,7 @@
 #include "image/PixelType.h"
 #include "image/detail/Alignment.h"
 
+#include "math/half.h"
 #include "math/math.h"
 
 #include <algorithm>
@@ -70,7 +71,7 @@ struct LayoutDescriptor final {
     /// Compute the maximum value that can be represented by the image pixel precision.
     template <typename T>
     T saturationValue() const noexcept {
-        if constexpr (std::is_floating_point_v<T>) {
+        if constexpr (math::is_floating_point_v<T>) {
             // Assumes normalized floating point images.
             return T(1);
         }

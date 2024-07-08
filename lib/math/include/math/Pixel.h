@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "math/half.h"
 #include "util/compiler.h"
 
 #include <array>
@@ -100,14 +101,17 @@ using Pixel4 = Pixel<T, 4>;
 
 using Pixel2u8 = Pixel<uint8_t, 2>;
 using Pixel2u16 = Pixel<uint16_t, 2>;
+using Pixel2h = Pixel<half_t, 2>;
 using Pixel2f = Pixel<float, 2>;
 
 using Pixel3u8 = Pixel<uint8_t, 3>;
 using Pixel3u16 = Pixel<uint16_t, 3>;
+using Pixel3h = Pixel<half_t, 3>;
 using Pixel3f = Pixel<float, 3>;
 
 using Pixel4u8 = Pixel<uint8_t, 4>;
 using Pixel4u16 = Pixel<uint16_t, 4>;
+using Pixel4h = Pixel<half_t, 4>;
 using Pixel4f = Pixel<float, 4>;
 
 /// @}
@@ -126,7 +130,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, const
 
 /// Addition with scalar (left side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator+(T lhs, const Pixel<U, N> &rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -138,7 +142,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator+(T lhs, const Pixel<U, N> &rhs
 
 /// Addition with scalar (right side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -162,7 +166,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, const
 
 /// Subtraction with scalar (left side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator-(T lhs, const Pixel<U, N> &rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -174,7 +178,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator-(T lhs, const Pixel<U, N> &rhs
 
 /// Subtraction with scalar (right side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -198,7 +202,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, const
 
 /// Multiplication with scalar (left side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator*(T lhs, const Pixel<U, N> &rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -210,7 +214,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator*(T lhs, const Pixel<U, N> &rhs
 
 /// Multiplication with scalar (right side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -234,7 +238,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N> &lhs, const
 
 /// Division with scalar (left side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator/(T lhs, const Pixel<U, N> &rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
@@ -246,7 +250,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator/(T lhs, const Pixel<U, N> &rhs
 
 /// Division with scalar (right side).
 /// @relates Pixel
-template <typename T, typename U, int N, typename = typename std::enable_if_t<std::is_arithmetic_v<U>>>
+template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
 UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N> &lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
