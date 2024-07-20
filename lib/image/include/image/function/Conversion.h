@@ -108,7 +108,7 @@ Image<U> convertPixelPrecision(const ImageView<T> &img,
 
     // float -> float conversion
     else {
-        return Image<U>(descriptor, img);
+        return Image<U>(descriptor, expr::cast<U>(img));
     }
 }
 
