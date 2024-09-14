@@ -35,10 +35,10 @@ For example, the PLAIN format is just a simple dump of a buffer into a file, thu
 
 ~~~~~~~~~~~~~~~{.cpp}
 ImageReader::Options options;
-options.imageFormat = ImageFormat::PLAIN;
-options.width = 4000;
-options.height = 3000;
-options.imageLayout = ImageLayout::NV12; // Semi planar YUV
+options.fileInfo.fileFormat = FileFormat::PLAIN;
+options.fileInfo.width = 4000;
+options.fileInfo.height = 3000;
+options.fileInfo.imageLayout = ImageLayout::NV12; // Semi planar YUV
 
 std::unique_ptr<ImageReader> imageReader = io::makeReader("/path/to/image.nv12", options);
 ~~~~~~~~~~~~~~~
@@ -47,8 +47,8 @@ We can also rely on the [parser library](@ref parser) in order to provide the in
 
 ~~~~~~~~~~~~~~~{.json}
 {
-    "file": {
-        "format": "plain",
+    "fileInfo": {
+        "fileFormat": "plain",
         "width": 4000,
         "height": 3000,
         "imageLayout": "nv12"
@@ -59,7 +59,7 @@ We can also rely on the [parser library](@ref parser) in order to provide the in
 ~~~~~~~~~~~~~~~{.cpp}
 #include "parser/MetadataParser.h"
 
-std::optional<ImageMetadata> metadata = parser::readMetadata("/path/to/image.nv12");
+std::optional<ImageMetadata> metadata = parser::readMetadata("/path/to/image.nv12", {});
 std::unique_ptr<ImageReader> imageReader = io::makeReader("/path/to/image.nv12", ImageReader::Options(metadata));
 ~~~~~~~~~~~~~~~
 
@@ -97,7 +97,7 @@ The correct image format is determined based on the file extension. However, som
 
 ~~~~~~~~~~~~~~~{.cpp}
 ImageWriter::Options options;
-options.imageFormat = ImageFormat::PLAIN;
+options.fileFormat = FileFormat::PLAIN;
 
 std::unique_ptr<ImageWriter> imageWriter = io::makeWriter("/path/to/image.bin", options);
 ~~~~~~~~~~~~~~~
