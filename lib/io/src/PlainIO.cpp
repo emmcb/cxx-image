@@ -66,6 +66,10 @@ void PlainReader::readHeader() {
         builder.pixelPrecision(*fileInfo.pixelPrecision);
     }
 
+    if (builder.build().pixelType == PixelType::CUSTOM) {
+        throw IOError(MODULE, "Unspecified pixel type");
+    }
+
     builder.widthAlignment([&]() -> int {
         if (fileInfo.widthAlignment) {
             return *fileInfo.widthAlignment;
@@ -84,10 +88,6 @@ void PlainReader::readHeader() {
     }());
 
     LayoutDescriptor layout = builder.build();
-    if (layout.pixelType == PixelType::CUSTOM) {
-        throw IOError(MODULE, "Unspecified pixel type");
-    }
-
     PixelRepresentation pixelRepresentation = [&]() {
         if (fileInfo.pixelRepresentation) {
             return *fileInfo.pixelRepresentation;
