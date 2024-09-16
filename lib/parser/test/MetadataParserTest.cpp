@@ -28,7 +28,9 @@ TEST(MetadataParserTest, TestSerializationFull) {
                          .pixelPrecision = 12,
                          .width = 4000,
                          .height = 3000,
-                         .widthAlignment = 1},
+                         .widthAlignment = 1,
+                         .heightAlignment = 1,
+                         .sizeAlignment = 1},
             .exifMetadata = {.imageWidth = 4000,
                              .imageHeight = 3000,
                              .imageDescription = "My description",
@@ -79,7 +81,9 @@ TEST(MetadataParserTest, TestSerializationFull) {
         "pixelPrecision": 12,
         "width": 4000,
         "height": 3000,
-        "widthAlignment": 1
+        "widthAlignment": 1,
+        "heightAlignment": 1,
+        "sizeAlignment": 1
     },
     "exifMetadata": {
         "imageWidth": 4000,

@@ -115,7 +115,9 @@ inline constexpr bool isPowerOf2(int value) {
 }
 
 /// Round a number 'numToRound' by the greater value being multiple of 'multiple' (where 'multiple' is power of 2)
-inline constexpr int roundUp(int numToRound, int multiple) {
+template <typename T>
+constexpr T roundUp(T numToRound, int multiple) {
+    static_assert(std::is_integral_v<T>);
     assert(isPowerOf2(multiple));
     return (numToRound + multiple - 1) & -multiple;
 }

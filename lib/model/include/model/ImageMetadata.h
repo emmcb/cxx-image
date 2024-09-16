@@ -75,7 +75,9 @@ struct ImageMetadata final {
         std::optional<uint8_t> pixelPrecision;                  ///< Bit precision of pixel
         std::optional<uint16_t> width;                          ///< Image width
         std::optional<uint16_t> height;                         ///< Image height
-        std::optional<uint8_t> widthAlignment;                  ///< Width alignment
+        std::optional<uint16_t> widthAlignment;                 ///< Width alignment (must be a power of 2).
+        std::optional<uint16_t> heightAlignment;                ///< Height alignment (must be a power of 2).
+        std::optional<uint16_t> sizeAlignment;                  ///< Buffer size alignment (must be a power of 2).
     };
 
     struct CameraControls final {

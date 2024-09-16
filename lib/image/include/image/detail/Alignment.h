@@ -24,7 +24,8 @@ namespace detail {
 /// @param size dimension to be aligned.
 /// @param sizeAlignment alignement value (shall be a power of 2).
 /// @return aligned size dimension.
-inline int alignDimension(int size, int sizeAlignment) {
+template <typename T>
+T alignDimension(T size, int sizeAlignment) {
     return math::roundUp(size, sizeAlignment);
 }
 

@@ -356,7 +356,9 @@ void json_io(JsonIo& io, ImageMetadata::FileInfo& fileInfo) {
             json_dto::optional("pixelPrecision", fileInfo.pixelPrecision, std::nullopt) &
             json_dto::optional("width", fileInfo.width, std::nullopt) &
             json_dto::optional("height", fileInfo.height, std::nullopt) &
-            json_dto::optional("widthAlignment", fileInfo.widthAlignment, std::nullopt);
+            json_dto::optional("widthAlignment", fileInfo.widthAlignment, std::nullopt) &
+            json_dto::optional("heightAlignment", fileInfo.heightAlignment, std::nullopt) &
+            json_dto::optional("sizeAlignment", fileInfo.sizeAlignment, std::nullopt);
 }
 
 template <typename JsonIo>

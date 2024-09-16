@@ -63,7 +63,9 @@ struct LayoutDescriptor final {
     int width = 0;                                 ///< Image width in pixels.
     int height = 0;                                ///< Image height in pixels.
     int numPlanes = 0;                             ///< Image number of planes.
-    int widthAlignment = 1;                        ///< Width alignement in power of 2.
+    int widthAlignment = 1;                        ///< Width alignment (must be a power of 2).
+    int heightAlignment = 1;                       ///< Height alignment (must be a power of 2).
+    int sizeAlignment = 1;                         ///< Buffer size alignment (must be a power of 2).
     int border = 0;                                ///< Border around image in pixels.
 
     PlaneDescriptorArray planes; ///< Planes description.
@@ -87,58 +89,67 @@ struct LayoutDescriptor final {
     int64_t requiredBufferSize() const {
         using namespace std::string_literals;
 
-        const int totalWidth = width + 2 * border;
-        const int totalHeight = height + 2 * border;
+        const int64_t bufferSize = [&] {
+            const int totalWidth = width + 2 * border;
+            const int totalHeight = height + 2 * border;
 
-        switch (imageLayout) {
-            case ImageLayout::PLANAR:
-                return static_cast<int64_t>(numPlanes) * detail::alignDimension(totalWidth, widthAlignment) *
-                       totalHeight;
-
-            case ImageLayout::INTERLEAVED:
-                return static_cast<int64_t>(detail::alignDimension(numPlanes * totalWidth, widthAlignment)) *
-                       totalHeight;
-
-            case ImageLayout::YUV_420: {
-                if (numPlanes != 3) {
-                    throw std::invalid_argument("YUV_420 image number of planes (" + std::to_string(numPlanes) +
-                                                ") must be 3.");
-                }
-                const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-                const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
-                const int alignedHeight = detail::alignDimension(totalHeight, 1, 0, 1);
-                return static_cast<int64_t>(alignedLumaWidth + alignedChromaWidth) * alignedHeight;
-            }
-
-            case ImageLayout::NV12: {
-                if (numPlanes != 3) {
-                    throw std::invalid_argument("NV12 image number of planes (" + std::to_string(numPlanes) +
-                                                ") must be 3.");
-                }
-                const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-                const int alignedHeight = detail::alignDimension(totalHeight, 1, 0, 1);
-                return static_cast<int64_t>(alignedWidth + (alignedWidth >> 1)) * alignedHeight;
-            }
-
-            case ImageLayout::CUSTOM: {
-                const int maxSubsample = maxSubsampleValue();
-
-                // Compute the amount of contiguous memory we need, taking into account planes subsample
-                int64_t bufferSize = 0;
-                for (int i = 0; i < numPlanes; ++i) {
-                    const int alignedWidth = detail::alignDimension(
-                            totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
-                    const int alignedHeight = detail::alignDimension(totalHeight, 1, planes[i].subsample, maxSubsample);
-
-                    bufferSize += static_cast<int64_t>(alignedWidth) * alignedHeight;
+            switch (imageLayout) {
+                case ImageLayout::PLANAR: {
+                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
+                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment);
+                    return static_cast<int64_t>(numPlanes) * alignedWidth * alignedHeight;
                 }
 
-                return bufferSize;
-            }
+                case ImageLayout::INTERLEAVED: {
+                    const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
+                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment);
+                    return static_cast<int64_t>(alignedWidth) * alignedHeight;
+                }
 
-            default:
-                throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
-        }
+                case ImageLayout::YUV_420: {
+                    if (numPlanes != 3) {
+                        throw std::invalid_argument("YUV_420 image number of planes (" + std::to_string(numPlanes) +
+                                                    ") must be 3.");
+                    }
+                    const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
+                    const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
+                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    return static_cast<int64_t>(alignedLumaWidth + alignedChromaWidth) * alignedHeight;
+                }
+
+                case ImageLayout::NV12: {
+                    if (numPlanes != 3) {
+                        throw std::invalid_argument("NV12 image number of planes (" + std::to_string(numPlanes) +
+                                                    ") must be 3.");
+                    }
+                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
+                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    return static_cast<int64_t>(alignedWidth + (alignedWidth >> 1)) * alignedHeight;
+                }
+
+                case ImageLayout::CUSTOM: {
+                    const int maxSubsample = maxSubsampleValue();
+
+                    // Compute the amount of contiguous memory we need, taking into account planes subsample
+                    int64_t bufferSize = 0;
+                    for (int i = 0; i < numPlanes; ++i) {
+                        const int alignedWidth = detail::alignDimension(
+                                totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
+                        const int alignedHeight = detail::alignDimension(
+                                totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
+
+                        bufferSize += static_cast<int64_t>(alignedWidth) * alignedHeight;
+                    }
+
+                    return bufferSize;
+                }
+
+                default:
+                    throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
+            }
+        }();
+
+        return detail::alignDimension(bufferSize, sizeAlignment);
     }
 
     int maxSubsampleValue() const {
@@ -329,6 +340,16 @@ public:
         return *this;
     }
 
+    Builder &heightAlignment(int heightAlignment) noexcept {
+        mDescriptor.heightAlignment = heightAlignment;
+        return *this;
+    }
+
+    Builder &sizeAlignment(int sizeAlignment) noexcept {
+        mDescriptor.sizeAlignment = sizeAlignment;
+        return *this;
+    }
+
     Builder &border(int border) noexcept {
         mDescriptor.border = border;
         return *this;
@@ -358,6 +379,14 @@ public:
         }
         if (!math::isPowerOf2(mDescriptor.widthAlignment)) {
             throw std::invalid_argument("widthAlignment (" + std::to_string(mDescriptor.widthAlignment) +
+                                        ") must be a power of 2.");
+        }
+        if (!math::isPowerOf2(mDescriptor.heightAlignment)) {
+            throw std::invalid_argument("heightAlignment (" + std::to_string(mDescriptor.heightAlignment) +
+                                        ") must be a power of 2.");
+        }
+        if (!math::isPowerOf2(mDescriptor.sizeAlignment)) {
+            throw std::invalid_argument("sizeAlignment (" + std::to_string(mDescriptor.sizeAlignment) +
                                         ") must be a power of 2.");
         }
         if (mDescriptor.numPlanes > image::detail::MAX_NUM_PLANES) {

@@ -65,6 +65,12 @@ void PlainReader::readHeader() {
     if (fileInfo.pixelPrecision) {
         builder.pixelPrecision(*fileInfo.pixelPrecision);
     }
+    if (fileInfo.heightAlignment) {
+        builder.heightAlignment(*fileInfo.heightAlignment);
+    }
+    if (fileInfo.sizeAlignment) {
+        builder.sizeAlignment(*fileInfo.sizeAlignment);
+    }
 
     if (builder.build().pixelType == PixelType::CUSTOM) {
         throw IOError(MODULE, "Unspecified pixel type");
