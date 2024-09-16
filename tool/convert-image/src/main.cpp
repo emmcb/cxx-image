@@ -145,10 +145,7 @@ int main(int argc, char* argv[]) {
     const auto& jpegQuality = args["jpeg-quality"].as<int>();
     const auto& tiffCompression = args["tiff-compression"].as<ImageWriter::TiffCompression>();
 
-    std::optional<std::string> metadataPath;
-    if (args.count("metadata") > 0) {
-        metadataPath = args["metadata"].as<std::string>();
-    }
+    auto metadataPath = args.as_optional<std::string>("metadata");
 
     try {
         run(inputPath, metadataPath, outputPath, jpegQuality, tiffCompression);
