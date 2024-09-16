@@ -459,6 +459,10 @@ void JpegWriter::write(const Image8u &image) const {
         // Planar to interleaved conversion
         return write(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
+    if (image.imageLayout() == ImageLayout::NV12) {
+        // NV12 to YUV_420 conversion
+        return write(image::convertLayout(image, ImageLayout::YUV_420));
+    }
 
     LOG_SCOPE_F(INFO, "Write JPEG");
     LOG_S(INFO) << "Path: " << path();
@@ -505,6 +509,10 @@ void JpegWriter::write(const Image8u &image) const {
     jpeg_set_defaults(&cinfo);
     jpeg_set_quality(&cinfo, options().jpegQuality, FALSE);
 
+    if (image.imageLayout() == ImageLayout::YUV_420) {
+        cinfo.raw_data_in = TRUE;
+    }
+
     jpeg_start_compress(&cinfo, TRUE);
 
 #ifdef HAVE_EXIF
@@ -528,12 +536,39 @@ void JpegWriter::write(const Image8u &image) const {
     }
 #endif
 
-    const int64_t rowStride = image.width() * image.numPlanes();
-    auto *imageData = const_cast<uint8_t *>(image.data());
+    if (image.imageLayout() == ImageLayout::YUV_420) {
+        const int64_t yStride = image.layoutDescriptor().planes[0].rowStride;
+        const int64_t uvStride = image.layoutDescriptor().planes[1].rowStride;
 
-    for (int y = 0; y < image.height(); ++y) {
-        auto *buffer = &imageData[y * rowStride];
-        jpeg_write_scanlines(&cinfo, &buffer, 1);
+        uint8_t *yPlane = image.descriptor().buffers[0];
+        uint8_t *uPlane = image.descriptor().buffers[1];
+        uint8_t *vPlane = image.descriptor().buffers[2];
+
+        uint8_t *yRows[16];
+        uint8_t *uRows[8];
+        uint8_t *vRows[8];
+
+        uint8_t **rows[3] = {yRows, uRows, vRows};
+        for (int y = 0; y < image.height(); y += 16) {
+            // Jpeg library ignores the rows whose indices are greater than height
+            for (int i = 0; i < 16; i++) {
+                yRows[i] = yPlane + (y + i) * yStride;
+            }
+            for (int i = 0; i < 8; i++) {
+                uRows[i] = uPlane + ((y >> 1) + i) * uvStride;
+                vRows[i] = vPlane + ((y >> 1) + i) * uvStride;
+            }
+
+            jpeg_write_raw_data(&cinfo, rows, 16);
+        }
+    } else {
+        const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
+        uint8_t *imageData = image.descriptor().buffers[0];
+
+        for (int y = 0; y < image.height(); ++y) {
+            uint8_t *row = imageData + y * rowStride;
+            jpeg_write_scanlines(&cinfo, &row, 1);
+        }
     }
 
     jpeg_finish_compress(&cinfo);

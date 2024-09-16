@@ -474,8 +474,8 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
     }
 
     // Write image data.
-    const T *pStrip = image.data();
-    const int64_t rowStride = image.width() * image.numPlanes();
+    T *pStrip = image.descriptor().buffers[0];
+    const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
     tmsize_t stripSize = TIFFStripSize(tif);
 
     tstrip_t strip = 0;
@@ -483,7 +483,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
         if (row + static_cast<int>(rowsPerStrip) > image.height()) {
             stripSize = TIFFVStripSize(tif, image.height() - row);
         }
-        if (TIFFWriteEncodedStrip(tif, strip, const_cast<T *>(pStrip + row * rowStride), stripSize) < 0) {
+        if (TIFFWriteEncodedStrip(tif, strip, pStrip + row * rowStride, stripSize) < 0) {
             throw IOError(MODULE, "An error occured while writing");
         }
         ++strip;
