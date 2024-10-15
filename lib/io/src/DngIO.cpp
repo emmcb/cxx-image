@@ -18,11 +18,16 @@
 
 #include <dng_color_space.h>
 #include <dng_color_spec.h>
+#include <dng_date_time.h>
 #include <dng_file_stream.h>
 #include <dng_gain_map.h>
 #include <dng_host.h>
 #include <dng_image_writer.h>
 #include <dng_info.h>
+#include <dng_preview.h>
+#include <dng_render.h>
+#include <dng_tag_types.h>
+#include <dng_tag_values.h>
 #include <loguru.hpp>
 
 #include <unordered_map>
@@ -468,6 +473,63 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
     }
 }
 
+static void buildDngPreview(int imageWidth,
+                            int imageHeight,
+                            dng_preview_list &previewList,
+                            dng_negative &negative,
+                            dng_host &host) {
+    // Build Stage2 and Stage3 images.
+    negative.BuildStage2Image(host);
+    int mosaicPlaneNum = -1;
+    negative.BuildStage3Image(host, mosaicPlaneNum);
+
+    dng_date_time_info dateTimeInfo;
+    CurrentDateTimeAndZone(dateTimeInfo);
+    for (int previewIndex = 0; previewIndex < 2; previewIndex++) {
+        // Skip preview if writing a compresssed main image to save space
+        if (negative.RawJPEGImage() != NULL && previewIndex > 0) {
+            break;
+        }
+        // Render a preview sized image.
+        negative.SetDefaultCropOrigin(0, 0);
+        negative.SetDefaultCropSize(imageWidth, imageHeight);
+        negative.SetRawToFullScale(1, 1);
+        AutoPtr<dng_image> previewImage;
+        dng_render render(host, negative);
+        render.SetFinalSpace(dng_space_sRGB::Get());
+        render.SetFinalPixelType(ttByte);
+        render.SetMaximumSize(previewIndex == 0 ? 256 : 1024);
+        previewImage.Reset(render.Render());
+
+        // Don't write the preview if it is same size as thumbnail.
+        if (previewIndex > 0 && Max_uint32(previewImage->Bounds().W(), previewImage->Bounds().H()) <= 256) {
+            break;
+        }
+
+        // If we have compressed JPEG data, create a compressed thumbnail. Otherwise save a uncompressed thumbnail.
+        bool useCompressedPreview = (negative.RawJPEGImage() != NULL || (previewIndex > 0));
+        AutoPtr<dng_preview> preview(useCompressedPreview ? (dng_preview *)new dng_jpeg_preview
+                                                          : (dng_preview *)new dng_image_preview);
+        // Setup up preview info.
+        preview->fInfo.fApplicationName.Set("cxx-image");
+        preview->fInfo.fSettingsName.Set("Default");
+        preview->fInfo.fColorSpace = previewImage->Planes() == 1 ? PreviewColorSpaceEnum::previewColorSpace_GrayGamma22
+                                                                 : PreviewColorSpaceEnum::previewColorSpace_sRGB;
+        preview->fInfo.fDateTime = dateTimeInfo.Encode_ISO_8601();
+
+        if (!useCompressedPreview) {
+            auto imagePreview = dynamic_cast<dng_image_preview *>(preview.Get());
+            imagePreview->SetImage(previewImage.Release());
+        } else {
+            auto jpegPreview = dynamic_cast<dng_jpeg_preview *>(preview.Get());
+            int quality = (previewIndex == 0 ? 8 : 5);
+            dng_image_writer writer;
+            writer.EncodeJPEGPreview(host, *previewImage, *jpegPreview, quality);
+        }
+        previewList.Append(preview);
+    }
+}
+
 void DngWriter::write(const Image16u &image) const {
     LOG_SCOPE_F(INFO, "Write DNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
@@ -650,9 +712,12 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
+        dng_preview_list previewList;
+        buildDngPreview(image.width(), image.height(), previewList, *negative.Get(), host);
+
         DngWriteStream writeStream(&stream);
         dng_image_writer writer;
-        writer.WriteDNG(host, writeStream, *negative.Get());
+        writer.WriteDNG(host, writeStream, *negative.Get(), &previewList);
     } catch (const dng_exception &except) {
         throw IOError(MODULE, "Writing failed with error code " + std::to_string(except.ErrorCode()));
     }
