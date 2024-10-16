@@ -580,6 +580,68 @@ void DngWriter::writeImpl(const Image<T> &image) const {
                 }
                 profile->SetColorMatrix1(colorMatrix);
             }
+            if (metadata.calibrationData.vignetting || metadata.cameraControls.colorShading) {
+                int numRows = 0;
+                int numCols = 0;
+                bool valid = true;
+
+                const auto checkMatrix = [&](const DynamicMatrix &map) {
+                    if (numRows == 0 && numCols == 0) {
+                        numRows = map.numRows();
+                        numCols = map.numCols();
+                    } else if (numRows != map.numRows() || numCols != map.numCols()) {
+                        valid = false;
+                    }
+                };
+
+                if (metadata.calibrationData.vignetting) {
+                    checkMatrix(*metadata.calibrationData.vignetting);
+                }
+
+                if (metadata.cameraControls.colorShading) {
+                    checkMatrix(metadata.cameraControls.colorShading->gainR);
+                    checkMatrix(metadata.cameraControls.colorShading->gainB);
+                }
+
+                if (numRows > 0 && numCols > 0 && valid) {
+                    const Bayer bayers[] = {Bayer::R, Bayer::GR, Bayer::GB, Bayer::B};
+                    for (auto bayer : bayers) {
+                        AutoPtr<dng_gain_map> gainMap(new dng_gain_map(host.Allocator(),
+                                                                       {numRows, numCols},
+                                                                       {1.0 / (numRows - 1), 1.0 / (numCols - 1)},
+                                                                       {0.0, 0.0},
+                                                                       1));
+
+                        for (int y = 0; y < numRows; ++y) {
+                            for (int x = 0; x < numCols; ++x) {
+                                float gain = 1.0f;
+                                if (metadata.calibrationData.vignetting) {
+                                    gain = (*metadata.calibrationData.vignetting)(y, x);
+                                }
+                                if (bayer == Bayer::R && metadata.cameraControls.colorShading) {
+                                    gain *= metadata.cameraControls.colorShading->gainR(y, x);
+                                } else if (bayer == Bayer::B && metadata.cameraControls.colorShading) {
+                                    gain *= metadata.cameraControls.colorShading->gainB(y, x);
+                                }
+
+                                gainMap->Entry(y, x, 0) = gain;
+                            }
+                        }
+
+                        AutoPtr<dng_opcode> opcode(
+                                new dng_opcode_GainMap({{image::bayerYOffset(image.pixelType(), bayer),
+                                                         image::bayerXOffset(image.pixelType(), bayer),
+                                                         image.height(),
+                                                         image.width()},
+                                                        0,
+                                                        1,
+                                                        2,
+                                                        2},
+                                                       gainMap));
+                        negative->OpcodeList2().Append(opcode);
+                    }
+                }
+            }
 
             populateExif(negative->GetExif(), metadata.exifMetadata);
         }
