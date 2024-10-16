@@ -480,8 +480,8 @@ static void buildDngPreview(int imageWidth,
                             dng_host &host) {
     // Build Stage2 and Stage3 images.
     negative.BuildStage2Image(host);
-    int mosaicPlaneNum = -1;
-    negative.BuildStage3Image(host, mosaicPlaneNum);
+    int mosaicPlane = -1;
+    negative.BuildStage3Image(host, mosaicPlane);
 
     dng_date_time_info dateTimeInfo;
     CurrentDateTimeAndZone(dateTimeInfo);
@@ -712,12 +712,19 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
-        dng_preview_list previewList;
-        buildDngPreview(image.width(), image.height(), previewList, *negative.Get(), host);
-
         DngWriteStream writeStream(&stream);
         dng_image_writer writer;
-        writer.WriteDNG(host, writeStream, *negative.Get(), &previewList);
+        // metadata must contain white balance and color matrix to build preview.
+        const ImageMetadata &metadata = *options.metadata;
+        if(metadata.calibrationData.colorMatrix && metadata.cameraControls.whiteBalance){
+            dng_preview_list previewList;
+            buildDngPreview(image.width(), image.height(), previewList, *negative.Get(), host);
+            writer.WriteDNG(host, writeStream, *negative.Get(), &previewList);
+        } else {
+        // Otherwise can only write raw image in dng.
+            LOG_S(WARNING) << "whiteBalance or colorMatrix missed in metadata, writing dng without preview" ;
+            writer.WriteDNG(host, writeStream, *negative.Get());
+        }
     } catch (const dng_exception &except) {
         throw IOError(MODULE, "Writing failed with error code " + std::to_string(except.ErrorCode()));
     }
