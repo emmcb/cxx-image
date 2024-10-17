@@ -28,7 +28,7 @@ endif()
 
 if(CXXIMG_WITH_DNG)
     set(DNG_THREAD_SAFE 0)
-    set(DNG_WITH_JPEG 0)
+    set(DNG_WITH_JPEG 1)
     set(DNG_WITH_XMP 0)
 
     FetchContent_Declare(
