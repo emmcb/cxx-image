@@ -17,6 +17,7 @@
 #include "math/half.h"
 #include "util/compiler.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -85,6 +86,12 @@ public:
     UTIL_ALWAYS_INLINE T &get() {
         return mPixel[I];
     }
+
+    /// Computes the minimum matrix value.
+    float minimum() const { return *std::min_element(mPixel.begin(), mPixel.end()); }
+
+    /// Computes the maximum matrix value.
+    float maximum() const { return *std::max_element(mPixel.begin(), mPixel.end()); }
 
 private:
     std::array<T, N> mPixel = {};
