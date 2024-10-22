@@ -166,7 +166,7 @@ void DngReader::readHeader() {
     if (ifd->fSampleFormat[0] == sfFloatingPoint) {
         pixelRepresentation = PixelRepresentation::FLOAT;
     } else if (ifd->fSampleFormat[0] == sfUnsignedInteger) {
-        if (ifd->fBitsPerSample[0] <= 8 || ifd->fBitsPerSample[0] > 16) {
+        if (ifd->fBitsPerSample[0] > 16) {
             throw IOError(MODULE, "Unsupported bits per sample " + std::to_string(ifd->fBitsPerSample[0]));
         }
         pixelRepresentation = PixelRepresentation::UINT16;
@@ -198,26 +198,58 @@ Image<T> DngReader::read() {
     validateType<T>();
 
     try {
-        const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
-
         // Read stage 1 image from negative
         mNegative->ReadStage1Image(*mHost, *mStream, *mInfo);
 
+        const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
+        const dng_linearization_info *linearizationInfo = mNegative->GetLinearizationInfo();
+        const bool hasLinearizationTable = !std::is_floating_point_v<T> && linearizationInfo &&
+                                           linearizationInfo->fLinearizationTable.Get();
+
         Image<T> image(layoutDescriptor());
-        const auto copyBuffer = [&](const dng_image *src, const dng_rect &bounds) {
-            dng_pixel_buffer buffer(
-                    bounds, 0, src->Planes(), src->PixelType(), ifd->fPlanarConfiguration, image.data());
-            src->Get(buffer);
-        };
 
-        if (mNegative->GetLinearizationInfo() && mNegative->GetLinearizationInfo()->fLinearizationTable.Get() &&
-            ifd->fPhotometricInterpretation == piLinearRaw) {
-            LOG_S(INFO) << "Apply linearization table";
+        if (!hasLinearizationTable) {
+            const dng_image *stage1 = mNegative->Stage1Image();
+            if (stage1->PixelType() != ttShort && stage1->PixelType() != ttFloat) {
+                throw IOError(MODULE, "Unsupported pixel type " + std::to_string(stage1->PixelType()));
+            }
 
-            mNegative->BuildStage2Image(*mHost);
-            copyBuffer(mNegative->Stage2Image(), ifd->fActiveArea.Size());
+            dng_pixel_buffer buffer(ifd->fActiveArea,
+                                    0,
+                                    stage1->Planes(),
+                                    stage1->PixelType(),
+                                    ifd->fPlanarConfiguration,
+                                    image.data());
+            stage1->Get(buffer);
         } else {
-            copyBuffer(mNegative->Stage1Image(), ifd->fActiveArea);
+            LOG_S(INFO) << "Found DNG linearization table";
+
+            const dng_image *stage1 = mNegative->Stage1Image();
+            dng_const_tile_buffer srcBuffer(*stage1, stage1->Bounds());
+            void *srcData = const_cast<void *>(srcBuffer.ConstPixel(0, 0, 0));
+
+            std::vector<uint16_t> lut(linearizationInfo->fLinearizationTable->Buffer_uint16(),
+                                      linearizationInfo->fLinearizationTable->Buffer_uint16() +
+                                              (linearizationInfo->fLinearizationTable->LogicalSize() >> 1));
+
+            LayoutDescriptor srcDescriptor = LayoutDescriptor::Builder(layoutDescriptor())
+                                                     .width(stage1->Width())
+                                                     .height(stage1->Height())
+                                                     .build();
+            Roi crop{ifd->fActiveArea.l, ifd->fActiveArea.t, image.width(), image.height()};
+
+            switch (stage1->PixelType()) {
+                case ttByte: {
+                    ImageView8u srcImage(srcDescriptor, reinterpret_cast<uint8_t *>(srcData));
+                    image = expr::lut(expr::min(srcImage[crop], lut.size() - 1), lut);
+                } break;
+                case ttShort: {
+                    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t *>(srcData));
+                    image = expr::lut(expr::min(srcImage[crop], lut.size() - 1), lut);
+                } break;
+                default:
+                    throw IOError(MODULE, "Unsupported pixel type " + std::to_string(stage1->PixelType()));
+            }
         }
 
         return image;
