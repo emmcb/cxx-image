@@ -207,11 +207,6 @@ void PngWriter::writeImpl(const Image<T> &image) const {
         return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
 
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop info = png_create_info_struct(png);
 
@@ -221,7 +216,7 @@ void PngWriter::writeImpl(const Image<T> &image) const {
         throw IOError(MODULE, "Writing failed");
     }
 
-    png_set_write_fn(png, static_cast<png_voidp>(&stream), pngWriteData, pngFlushData);
+    png_set_write_fn(png, static_cast<png_voidp>(mStream), pngWriteData, pngFlushData);
 
     // set the compression levels
     png_set_compression_level(png, 3);

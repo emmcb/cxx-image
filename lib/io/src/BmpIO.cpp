@@ -113,11 +113,6 @@ void BmpWriter::write(const Image8u &image) const {
     LOG_SCOPE_F(INFO, "Write BMP");
     LOG_S(INFO) << "Path: " << path();
 
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
     BmpHeader header = {.signature = 0x4D42, // BMP magic number
                         .fileSize = 0,
                         .reserved1 = 0,
@@ -144,8 +139,8 @@ void BmpWriter::write(const Image8u &image) const {
         plane = image.plane(image.numPlanes() - plane.index() - 1);
     }
 
-    stream.write(reinterpret_cast<const char *>(&header), sizeof(header));
-    stream.write(reinterpret_cast<const char *>(alignedImage.data()), alignedImage.size());
+    mStream->write(reinterpret_cast<const char *>(&header), sizeof(header));
+    mStream->write(reinterpret_cast<const char *>(alignedImage.data()), alignedImage.size());
 }
 
 } // namespace cxximg

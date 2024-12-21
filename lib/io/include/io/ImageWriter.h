@@ -20,6 +20,7 @@
 #include "model/ExifMetadata.h"
 #include "model/ImageMetadata.h"
 
+#include <fstream>
 #include <optional>
 #include <string>
 
@@ -58,7 +59,17 @@ public:
     }
 
     /// Constructs with stream and options.
-    ImageWriter(std::string path, Options options) : mPath(std::move(path)), mOptions(std::move(options)) {}
+    ImageWriter(std::string path, std::ostream *stream, Options options)
+        : mStream(stream), mPath(std::move(path)), mOptions(std::move(options)) {
+        if (!stream) {
+            mOwnStream = std::make_unique<std::ofstream>(mPath, std::ios::binary);
+            mStream = mOwnStream.get();
+
+            if (!*mStream) {
+                throw IOError("Cannot open file for writing: " + mPath);
+            }
+        }
+    }
 
     /// Destructor.
     virtual ~ImageWriter() = default;
@@ -96,9 +107,13 @@ protected:
     const std::string &path() const { return mPath; }
     const Options &options() const { return mOptions; }
 
+    std::ostream *mStream;
+
 private:
     std::string mPath;
     Options mOptions;
+
+    std::unique_ptr<std::ostream> mOwnStream;
 };
 
 } // namespace cxximg

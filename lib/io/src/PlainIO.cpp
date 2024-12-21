@@ -182,12 +182,7 @@ void PlainWriter::write(const Imagef &image) const {
 
 template <typename T>
 void PlainWriter::writeImpl(const Image<T> &image) const {
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
-    stream.write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
+    mStream->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
 }
 
 } // namespace cxximg

@@ -51,8 +51,8 @@ public:
     ImageReader(std::string path, std::istream* stream, Options options)
         : mStream(stream), mPath(std::move(path)), mOptions(options) {
         if (!stream) {
-            mOwnedStream = std::make_unique<std::ifstream>(mPath, std::ios::binary);
-            mStream = mOwnedStream.get();
+            mOwnStream = std::make_unique<std::ifstream>(mPath, std::ios::binary);
+            mStream = mOwnStream.get();
 
             if (!*mStream) {
                 throw IOError("Cannot open file for reading: " + mPath);
@@ -149,7 +149,7 @@ private:
     std::string mPath;
     Options mOptions;
 
-    std::unique_ptr<std::istream> mOwnedStream;
+    std::unique_ptr<std::istream> mOwnStream;
 };
 
 } // namespace cxximg

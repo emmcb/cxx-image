@@ -467,11 +467,6 @@ void JpegWriter::write(const Image8u &image) const {
     LOG_SCOPE_F(INFO, "Write JPEG");
     LOG_S(INFO) << "Path: " << path();
 
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
     jpeg_compress_struct cinfo{};
 
     JpegErrorMgr jerr{};
@@ -486,7 +481,7 @@ void JpegWriter::write(const Image8u &image) const {
 
     jpeg_create_compress(&cinfo);
 
-    setupJpegDestinationStream(&cinfo, &stream);
+    setupJpegDestinationStream(&cinfo, mStream);
 
     cinfo.image_width = image.width();
     cinfo.image_height = image.height();

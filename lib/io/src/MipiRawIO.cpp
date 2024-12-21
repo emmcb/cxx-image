@@ -157,11 +157,6 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     LOG_SCOPE_F(INFO, "Write MIPIRAW%d", PIXEL_PRECISION);
     LOG_S(INFO) << "Path: " << path();
 
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
     if (image.pixelPrecision() != PIXEL_PRECISION) {
         throw IOError(MODULE,
                       "Invalid pixel precision for MIPIRAW" + std::to_string(PIXEL_PRECISION) +
@@ -188,7 +183,7 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     // Pack to MIPIRAW
     rawXImage = raw16Image;
 
-    stream.write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
+    mStream->write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
 }
 
 template class MipiRawReader<10, Raw10Pixel, Raw16From10Pixel>;

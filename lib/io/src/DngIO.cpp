@@ -521,11 +521,6 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
     }
 
-    std::ofstream stream(path(), std::ios::binary);
-    if (!stream) {
-        throw IOError("Cannot open file for writing: " + path());
-    }
-
     try {
         dng_host host;
 
@@ -682,7 +677,7 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
-        DngWriteStream writeStream(&stream);
+        DngWriteStream writeStream(mStream);
         dng_image_writer writer;
         writer.WriteDNG(host, writeStream, *negative.Get());
     } catch (const dng_exception &except) {

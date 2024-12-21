@@ -147,56 +147,66 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
 }
 
 std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWriter::Options &options) {
+    return makeWriter(path, nullptr, options);
+}
+
+std::unique_ptr<ImageWriter> makeWriter(std::ostream *stream, const ImageWriter::Options &options) {
+    return makeWriter("<data>", stream, options);
+}
+
+std::unique_ptr<ImageWriter> makeWriter(const std::string &path,
+                                        std::ostream *stream,
+                                        const ImageWriter::Options &options) {
     if (BmpWriter::accept(path)) {
-        return std::make_unique<BmpWriter>(path, options);
+        return std::make_unique<BmpWriter>(path, stream, options);
     }
 
     if (CfaWriter::accept(path)) {
-        return std::make_unique<CfaWriter>(path, options);
+        return std::make_unique<CfaWriter>(path, stream, options);
     }
 
 #ifdef HAVE_DNG
     if (DngWriter::accept(path)) {
-        return std::make_unique<DngWriter>(path, options);
+        return std::make_unique<DngWriter>(path, stream, options);
     }
 #endif
 
 #ifdef HAVE_JPEG
     if (JpegWriter::accept(path)) {
-        return std::make_unique<JpegWriter>(path, options);
+        return std::make_unique<JpegWriter>(path, stream, options);
     }
 #endif
 
     if (MipiRaw10Writer::accept(path)) {
-        return std::make_unique<MipiRaw10Writer>(path, options);
+        return std::make_unique<MipiRaw10Writer>(path, stream, options);
     }
 
     if (MipiRaw12Writer::accept(path)) {
-        return std::make_unique<MipiRaw12Writer>(path, options);
+        return std::make_unique<MipiRaw12Writer>(path, stream, options);
     }
 
 #ifdef HAVE_PNG
     if (PngWriter::accept(path)) {
-        return std::make_unique<PngWriter>(path, options);
+        return std::make_unique<PngWriter>(path, stream, options);
     }
 #endif
 
 #ifdef HAVE_TIFF
     if (TiffWriter::accept(path)) {
-        return std::make_unique<TiffWriter>(path, options);
+        return std::make_unique<TiffWriter>(path, stream, options);
     }
 #endif
 
     if (options.fileFormat == FileFormat::PLAIN || PlainWriter::accept(path)) {
-        return std::make_unique<PlainWriter>(path, options);
+        return std::make_unique<PlainWriter>(path, stream, options);
     }
 
     if (options.fileFormat == FileFormat::RAW10) {
-        return std::make_unique<MipiRaw10Writer>(path, options);
+        return std::make_unique<MipiRaw10Writer>(path, stream, options);
     }
 
     if (options.fileFormat == FileFormat::RAW12) {
-        return std::make_unique<MipiRaw12Writer>(path, options);
+        return std::make_unique<MipiRaw12Writer>(path, stream, options);
     }
 
     throw IOError("No writer available for " + path);
