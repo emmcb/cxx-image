@@ -118,6 +118,55 @@ Image<U> convertPixelPrecision(const ImageView<T> &img, int pixelPrecision = 0) 
     return convertPixelPrecision<U, T>(img, img.layoutDescriptor().imageLayout, pixelPrecision);
 }
 
+/// Allocates a new image and copy data with alignment conversion.
+/// If setting forceCopy to false and new alignment constraints were already respected, then no new allocation is made.
+template <typename T>
+Image<T> convertAlignment(const ImageView<T> &img,
+                          int widthAlignment = -1,
+                          int heightAlignment = -1,
+                          int sizeAlignment = -1,
+                          bool forceCopy = true) {
+    LayoutDescriptor::Builder builder(img.layoutDescriptor());
+    if (widthAlignment > 0) {
+        builder.widthAlignment(widthAlignment);
+    }
+    if (heightAlignment > 0) {
+        builder.heightAlignment(heightAlignment);
+    }
+    if (sizeAlignment > 0) {
+        builder.sizeAlignment(sizeAlignment);
+    }
+    LayoutDescriptor layoutDescriptor = builder.build();
+
+    if (!forceCopy && layoutDescriptor.requiredBufferSize() == img.layoutDescriptor().requiredBufferSize()) {
+        // Constructs a new descriptor with new alignments but existing buffers
+        ImageDescriptor<T> descriptor(layoutDescriptor, img.descriptor().buffers);
+
+        // TODO: we would want to also preserve Halide device allocation, but this is not possible currently as strides
+        // and device memory are in the same object
+
+        return Image<T>::borrowed(ImageView<T>(descriptor));
+    }
+
+    Image<T> aligned(layoutDescriptor);
+
+    int n = 0;
+    while (n < layoutDescriptor.numPlanes) {
+        const int64_t srcStride = img.layoutDescriptor().planes[n].rowStride;
+        const T *srcData = img.descriptor().buffers[n];
+
+        const int64_t pixelStride = layoutDescriptor.planes[n].pixelStride;
+
+        for (int y = 0; y < layoutDescriptor.height; ++y) {
+            memcpy(&aligned(0, y, n), srcData + y * srcStride, layoutDescriptor.width * pixelStride * sizeof(T));
+        }
+
+        n += pixelStride;
+    }
+
+    return aligned;
+}
+
 } // namespace image
 
 } // namespace cxximg

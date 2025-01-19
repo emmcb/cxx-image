@@ -227,9 +227,8 @@ Image8u JpegReader::read8u() {
 
     jpeg_start_decompress(dinfo);
 
-    const int64_t rowStride = image.width() * image.numPlanes();
     for (int y = 0; y < image.height(); ++y) {
-        auto *buffer = &image[y * rowStride];
+        auto *buffer = &image(0, y, 0);
         jpeg_read_scanlines(dinfo, &buffer, 1);
     }
 

@@ -26,6 +26,13 @@ target_link_libraries(${TARGET} PUBLIC math util)
 
 # Compiler flags
 
+target_compile_definitions(
+    ${TARGET}
+    PUBLIC DEFAULT_WIDTH_ALIGNMENT=${CXXIMG_DEFAULT_WIDTH_ALIGNMENT}
+           DEFAULT_HEIGHT_ALIGNMENT=${CXXIMG_DEFAULT_HEIGHT_ALIGNMENT}
+           DEFAULT_SIZE_ALIGNMENT=${CXXIMG_DEFAULT_SIZE_ALIGNMENT}
+)
+
 if(HAVE_HALIDE)
     target_link_libraries(${TARGET} PUBLIC Halide::Runtime)
     target_compile_definitions(${TARGET} PUBLIC HAVE_HALIDE)

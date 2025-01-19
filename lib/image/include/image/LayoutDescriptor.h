@@ -57,16 +57,16 @@ struct LayoutDescriptor final {
 
     static const LayoutDescriptor EMPTY;
 
-    ImageLayout imageLayout = ImageLayout::PLANAR; ///< Image layout.
-    PixelType pixelType = PixelType::CUSTOM;       ///< Pixel type.
-    int pixelPrecision = 0;                        ///< Pixel precision.
-    int width = 0;                                 ///< Image width in pixels.
-    int height = 0;                                ///< Image height in pixels.
-    int numPlanes = 0;                             ///< Image number of planes.
-    int widthAlignment = 1;                        ///< Width alignment (must be a power of 2).
-    int heightAlignment = 1;                       ///< Height alignment (must be a power of 2).
-    int sizeAlignment = 1;                         ///< Buffer size alignment (must be a power of 2).
-    int border = 0;                                ///< Border around image in pixels.
+    ImageLayout imageLayout = ImageLayout::PLANAR;  ///< Image layout.
+    PixelType pixelType = PixelType::CUSTOM;        ///< Pixel type.
+    int pixelPrecision = 0;                         ///< Pixel precision.
+    int width = 0;                                  ///< Image width in pixels.
+    int height = 0;                                 ///< Image height in pixels.
+    int numPlanes = 0;                              ///< Image number of planes.
+    int widthAlignment = DEFAULT_WIDTH_ALIGNMENT;   ///< Width alignment (must be a power of 2).
+    int heightAlignment = DEFAULT_HEIGHT_ALIGNMENT; ///< Height alignment (must be a power of 2).
+    int sizeAlignment = DEFAULT_SIZE_ALIGNMENT;     ///< Total size alignment (must be a power of 2).
+    int border = 0;                                 ///< Border around image in pixels.
 
     PlaneDescriptorArray planes; ///< Planes description.
 

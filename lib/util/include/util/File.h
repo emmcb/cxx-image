@@ -81,7 +81,7 @@ inline std::string readContent(const std::string &path) {
 
 /// Gets file size.
 inline int64_t fileSize(const std::string &path) {
-    struct stat sb {};
+    struct stat sb{};
     const int rc = stat(path.c_str(), &sb);
     if (rc != 0) {
         throw FileNotFoundError(path);

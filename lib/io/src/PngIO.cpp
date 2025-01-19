@@ -173,10 +173,9 @@ Image<T> PngReader::read() {
     Image<T> image(layoutDescriptor());
 
     std::vector<png_bytep> rowPointers(image.height());
-    const int64_t rowStride = image.width() * image.numPlanes();
 
     for (int y = 0; y < image.height(); ++y) {
-        rowPointers[y] = reinterpret_cast<png_bytep>(&image[y * rowStride]);
+        rowPointers[y] = reinterpret_cast<png_bytep>(&image(0, y, 0));
     }
 
     // now we can go ahead and just read the whole image

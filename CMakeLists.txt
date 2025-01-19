@@ -37,6 +37,19 @@ option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
 
+set(CXXIMG_DEFAULT_WIDTH_ALIGNMENT
+    "1"
+    CACHE STRING "Default width alignment of allocated images (must be a power of two)"
+)
+set(CXXIMG_DEFAULT_HEIGHT_ALIGNMENT
+    "1"
+    CACHE STRING "Default height alignment of allocated images (must be a power of two)"
+)
+set(CXXIMG_DEFAULT_SIZE_ALIGNMENT
+    "1"
+    CACHE STRING "Default total size alignment of allocated images (must be a power of two)"
+)
+
 set(HAVE_GTEST 0)
 if(CXXIMG_BUILD_TESTS)
     if(PROJECT_IS_TOP_LEVEL)
@@ -55,7 +68,7 @@ if(CXXIMG_BUILD_TESTS)
 endif()
 
 set(HAVE_HALIDE 0)
-if (CXXIMG_WITH_HALIDE)
+if(CXXIMG_WITH_HALIDE)
     find_package(HalideHelpers)
     if(HalideHelpers_FOUND)
         set(HAVE_HALIDE 1)
@@ -65,7 +78,7 @@ if (CXXIMG_WITH_HALIDE)
 endif()
 
 set(HAVE_FLOAT16 0)
-if (CXXIMG_WITH_FLOAT16)
+if(CXXIMG_WITH_FLOAT16)
     # TODO check for compiler support
     set(HAVE_FLOAT16 1)
 endif()
