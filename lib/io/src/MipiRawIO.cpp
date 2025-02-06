@@ -146,7 +146,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
     }
 
     // Source image has padding bytes at the end of each rows, remove them.
-    ImageView8u packedImage(ImageDescriptor8u(packedDescriptor).map(data.data()));
+    ImageView8u packedImage(packedDescriptor, data.data());
     Image8u unalignedImage(LayoutDescriptor::Builder(packedBuilder).widthAlignment(1).build(), packedImage);
 
     return unpack(unalignedImage.data());

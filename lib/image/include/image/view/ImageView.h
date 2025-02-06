@@ -39,17 +39,16 @@ public:
     explicit ImageView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
 
     /// Constructs image view from layout descriptor and buffer.
-    ImageView(const LayoutDescriptor &layout, T *buffer) : mDescriptor(ImageDescriptor<T>(layout).map(buffer)) {}
+    ImageView(const LayoutDescriptor &layout, T *buffer) : mDescriptor(layout, buffer) {}
 
     /// Constructs one-plane image view from plane view.
     ImageView(const PlaneView<T> &planeView) // NOLINT(google-explicit-constructor)
-        : ImageView(ImageDescriptor<T>(
-                  LayoutDescriptor::Builder(planeView.width(), planeView.height())
-                          .numPlanes(1)
-                          .imageLayout(ImageLayout::CUSTOM)
-                          .planeStrides(0, planeView.descriptor().rowStride, planeView.descriptor().pixelStride)
-                          .build(),
-                  {planeView.buffer()})) {}
+        : ImageView(LayoutDescriptor::Builder(planeView.width(), planeView.height())
+                            .numPlanes(1)
+                            .imageLayout(ImageLayout::CUSTOM)
+                            .planeStrides(0, planeView.descriptor().rowStride, planeView.descriptor().pixelStride)
+                            .build(),
+                    planeView.buffer()) {}
 
     ~ImageView() = default;
     ImageView(const ImageView<T> &) noexcept = default;
@@ -72,7 +71,8 @@ public:
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
         const auto &planeDescriptor = mDescriptor.layout.planes[n];
-        return mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+        return mDescriptor
+                .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
     /// Returns reference at position (x, y, n).
@@ -80,7 +80,8 @@ public:
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
         const auto &planeDescriptor = mDescriptor.layout.planes[n];
-        return mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+        return mDescriptor
+                .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
 #ifdef HAVE_HALIDE
@@ -187,6 +188,9 @@ public:
 
     /// Returns image number of planes.
     int numPlanes() const noexcept { return mDescriptor.layout.numPlanes; }
+
+    /// Returns raw pointer to image data.
+    T *buffer() const { return mDescriptor.buffer; }
 
     /// Returns an iterable object to image planes.
     PlaneIterable planes() const noexcept { return PlaneIterable(mDescriptor); }

@@ -38,7 +38,7 @@ public:
     PlaneView(const ImageDescriptor<T> &imageDescriptor, int index)
         : mLayoutDescriptor(imageDescriptor.layout),
           mPlaneDescriptor(imageDescriptor.layout.planes[index]),
-          mBuffer(imageDescriptor.buffers[index]),
+          mBuffer(imageDescriptor.buffer + mPlaneDescriptor.offset),
           mWidth((imageDescriptor.layout.width + mPlaneDescriptor.subsample) >> mPlaneDescriptor.subsample),
           mHeight((imageDescriptor.layout.height + mPlaneDescriptor.subsample) >> mPlaneDescriptor.subsample) {}
 

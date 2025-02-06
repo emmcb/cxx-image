@@ -534,9 +534,9 @@ void JpegWriter::write(const Image8u &image) const {
         const int64_t yStride = image.layoutDescriptor().planes[0].rowStride;
         const int64_t uvStride = image.layoutDescriptor().planes[1].rowStride;
 
-        uint8_t *yPlane = image.descriptor().buffers[0];
-        uint8_t *uPlane = image.descriptor().buffers[1];
-        uint8_t *vPlane = image.descriptor().buffers[2];
+        uint8_t *yPlane = image.plane(0).buffer();
+        uint8_t *uPlane = image.plane(1).buffer();
+        uint8_t *vPlane = image.plane(2).buffer();
 
         uint8_t *yRows[16];
         uint8_t *uRows[8];
@@ -557,7 +557,7 @@ void JpegWriter::write(const Image8u &image) const {
         }
     } else {
         const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
-        uint8_t *imageData = image.descriptor().buffers[0];
+        uint8_t *imageData = image.plane(0).buffer();
 
         for (int y = 0; y < image.height(); ++y) {
             uint8_t *row = imageData + y * rowStride;

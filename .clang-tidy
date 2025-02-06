@@ -37,6 +37,7 @@ hicpp-multiway-paths-covered,
 -readability-identifier-length,
 -readability-isolate-declaration,
 -readability-magic-numbers,
+-readability-math-missing-parentheses,
 -readability-uppercase-literal-suffix,
 '
 

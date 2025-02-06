@@ -42,8 +42,9 @@ constexpr int MAX_NUM_PLANES = 4;
 
 /// Structure describing plane layout.
 struct PlaneDescriptor final {
-    int index = 0;           ///< Plane index in image
-    int subsample = 0;       ///< Plane subsample comparing to image size, in power of two.
+    int index = 0;           ///< Plane index in image.
+    int subsample = 0;       ///< Plane subsample factor, in power of two.
+    int64_t offset = -1;     ///< Plane offset from start of image, in pixels.
     int64_t rowStride = 0;   ///< Distance between adjacent plane rows, in pixels.
     int64_t pixelStride = 1; ///< Distance between adjacent plane pixels, in pixels.
 };
@@ -90,41 +91,29 @@ struct LayoutDescriptor final {
         using namespace std::string_literals;
 
         const int64_t bufferSize = [&] {
-            const int totalWidth = width + 2 * border;
             const int totalHeight = height + 2 * border;
 
             switch (imageLayout) {
                 case ImageLayout::PLANAR: {
-                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
-                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment);
-                    return static_cast<int64_t>(numPlanes) * alignedWidth * alignedHeight;
+                    return planes[0].rowStride * detail::alignDimension(totalHeight, heightAlignment) * numPlanes;
                 }
 
                 case ImageLayout::INTERLEAVED: {
-                    const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
-                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment);
-                    return static_cast<int64_t>(alignedWidth) * alignedHeight;
+                    return planes[0].rowStride * detail::alignDimension(totalHeight, heightAlignment);
                 }
 
                 case ImageLayout::YUV_420: {
-                    if (numPlanes != 3) {
-                        throw std::invalid_argument("YUV_420 image number of planes (" + std::to_string(numPlanes) +
-                                                    ") must be 3.");
-                    }
-                    const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-                    const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
-                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
-                    return static_cast<int64_t>(alignedLumaWidth + alignedChromaWidth) * alignedHeight;
+                    const int64_t numPixelLumaPlane = planes[0].rowStride *
+                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    const int64_t numPixelChromaPlane = planes[1].rowStride *
+                                                        detail::alignDimension(totalHeight, heightAlignment, 1, 1);
+
+                    return numPixelLumaPlane + 2 * numPixelChromaPlane;
                 }
 
                 case ImageLayout::NV12: {
-                    if (numPlanes != 3) {
-                        throw std::invalid_argument("NV12 image number of planes (" + std::to_string(numPlanes) +
-                                                    ") must be 3.");
-                    }
-                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-                    const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
-                    return static_cast<int64_t>(alignedWidth + (alignedWidth >> 1)) * alignedHeight;
+                    const int64_t alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    return (planes[0].rowStride + (planes[0].rowStride >> 1)) * alignedHeight;
                 }
 
                 case ImageLayout::CUSTOM: {
@@ -133,12 +122,9 @@ struct LayoutDescriptor final {
                     // Compute the amount of contiguous memory we need, taking into account planes subsample
                     int64_t bufferSize = 0;
                     for (int i = 0; i < numPlanes; ++i) {
-                        const int alignedWidth = detail::alignDimension(
-                                totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
-                        const int alignedHeight = detail::alignDimension(
-                                totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
-
-                        bufferSize += static_cast<int64_t>(alignedWidth) * alignedHeight;
+                        bufferSize += planes[i].rowStride *
+                                      detail::alignDimension(
+                                              totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
                     }
 
                     return bufferSize;
@@ -192,83 +178,170 @@ private:
                 break;
 
             case ImageLayout::CUSTOM:
-                // Keep user values
+                // Keep user value
                 break;
 
             default:
                 throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
         }
-
-        if (planes[0].rowStride != 0) {
-            // Do no update already initialized strides, as user may have set its own values
-            return;
-        }
-
-        const int totalWidth = width + 2 * border;
 
         // Compute plane strides
-        switch (imageLayout) {
-            case ImageLayout::PLANAR: {
-                const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
-                for (auto &plane : planes) {
-                    plane.rowStride = alignedWidth;
-                    plane.pixelStride = 1;
+        const bool computeStrides = [&]() {
+            for (int i = 0; i < numPlanes; ++i) {
+                if (planes[0].rowStride <= 0) {
+                    return true;
                 }
-                break;
             }
+            return false; // we do not want to override user-provided strides
+        }();
 
-            case ImageLayout::INTERLEAVED: {
-                const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
-                for (auto &plane : planes) {
-                    plane.rowStride = alignedWidth;
-                    plane.pixelStride = numPlanes;
+        if (computeStrides) {
+            const int totalWidth = width + 2 * border;
+
+            switch (imageLayout) {
+                case ImageLayout::PLANAR: {
+                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
+                    for (auto &plane : planes) {
+                        plane.rowStride = alignedWidth;
+                        plane.pixelStride = 1;
+                    }
+                    break;
                 }
-                break;
+
+                case ImageLayout::INTERLEAVED: {
+                    const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
+                    for (auto &plane : planes) {
+                        plane.rowStride = alignedWidth;
+                        plane.pixelStride = numPlanes;
+                    }
+                    break;
+                }
+
+                case ImageLayout::YUV_420: {
+                    const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
+                    const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
+
+                    planes[0].rowStride = alignedLumaWidth;
+                    planes[0].pixelStride = 1;
+
+                    planes[1].rowStride = alignedChromaWidth;
+                    planes[1].pixelStride = 1;
+
+                    planes[2].rowStride = alignedChromaWidth;
+                    planes[2].pixelStride = 1;
+                    break;
+                }
+
+                case ImageLayout::NV12: {
+                    const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
+
+                    planes[0].rowStride = alignedWidth;
+                    planes[0].pixelStride = 1;
+
+                    planes[1].rowStride = alignedWidth;
+                    planes[1].pixelStride = 2;
+
+                    planes[2].rowStride = alignedWidth;
+                    planes[2].pixelStride = 2;
+                    break;
+                }
+
+                case ImageLayout::CUSTOM: {
+                    const int maxSubsample = maxSubsampleValue();
+
+                    for (int i = 0; i < numPlanes; ++i) {
+                        planes[i].rowStride = detail::alignDimension(
+                                totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
+                        planes[i].pixelStride = 1;
+                    }
+                    break;
+                }
+
+                default:
+                    throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
+            }
+        }
+
+        // Compute plane offsets
+        const bool computeOffsets = [&]() {
+            for (int i = 0; i < numPlanes; ++i) {
+                if (planes[0].offset < 0) {
+                    return true;
+                }
+            }
+            return false; // we do not want to override user-provided offsets
+        }();
+
+        if (computeOffsets) {
+            const int totalHeight = height + 2 * border;
+
+            switch (imageLayout) {
+                case ImageLayout::PLANAR: {
+                    const int64_t numPixelPerPlane = planes[0].rowStride *
+                                                     detail::alignDimension(totalHeight, heightAlignment);
+
+                    for (unsigned i = 0; i < planes.size(); ++i) {
+                        planes[i].offset = i * numPixelPerPlane;
+                    }
+                    break;
+                }
+
+                case ImageLayout::INTERLEAVED: {
+                    for (unsigned i = 0; i < planes.size(); ++i) {
+                        planes[i].offset = i;
+                    }
+                    break;
+                }
+
+                case ImageLayout::YUV_420: {
+                    const int64_t numPixelLumaPlane = planes[0].rowStride *
+                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    const int64_t numPixelChromaPlane = planes[1].rowStride *
+                                                        detail::alignDimension(totalHeight, heightAlignment, 1, 1);
+
+                    planes[0].offset = 0;
+                    planes[1].offset = numPixelLumaPlane;
+                    planes[2].offset = numPixelLumaPlane + numPixelChromaPlane;
+                    break;
+                }
+
+                case ImageLayout::NV12: {
+                    const int64_t numPixelLumaPlane = planes[0].rowStride *
+                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+
+                    planes[0].offset = 0;
+                    planes[1].offset = numPixelLumaPlane;
+                    planes[2].offset = numPixelLumaPlane + 1;
+                    break;
+                }
+
+                case ImageLayout::CUSTOM: {
+                    const int maxSubsample = maxSubsampleValue();
+
+                    int64_t offset = 0;
+                    for (int i = 0; i < numPlanes; ++i) {
+                        planes[i].offset = offset;
+
+                        offset += planes[i].rowStride *
+                                  detail::alignDimension(
+                                          totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
+                    }
+                    break;
+                }
+
+                default:
+                    throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
             }
 
-            case ImageLayout::YUV_420: {
-                const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-                const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
-
-                planes[0].rowStride = alignedLumaWidth;
-                planes[0].pixelStride = 1;
-
-                planes[1].rowStride = alignedChromaWidth;
-                planes[1].pixelStride = 1;
-
-                planes[2].rowStride = alignedChromaWidth;
-                planes[2].pixelStride = 1;
-                break;
-            }
-
-            case ImageLayout::NV12: {
-                const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
-
-                planes[0].rowStride = alignedWidth;
-                planes[0].pixelStride = 1;
-
-                planes[1].rowStride = alignedWidth;
-                planes[1].pixelStride = 2;
-
-                planes[2].rowStride = alignedWidth;
-                planes[2].pixelStride = 2;
-
-                break;
-            }
-
-            case ImageLayout::CUSTOM: {
-                const int maxSubsample = maxSubsampleValue();
-
+            // Add offset for image border
+            if (border > 0) {
                 for (int i = 0; i < numPlanes; ++i) {
-                    planes[i].rowStride = detail::alignDimension(
-                            totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
-                    planes[i].pixelStride = 1;
+                    const int x = border >> planes[i].subsample;
+                    const int y = border >> planes[i].subsample;
+                    const int64_t borderOffset = y * planes[i].rowStride + x * planes[i].pixelStride;
+                    planes[i].offset += borderOffset;
                 }
-                break;
             }
-
-            default:
-                throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
         }
     }
 };
@@ -277,7 +350,7 @@ class LayoutDescriptor::Builder final {
 public:
     explicit Builder(const LayoutDescriptor &descriptor) : mDescriptor(descriptor) {
         if (mDescriptor.imageLayout != ImageLayout::CUSTOM) {
-            invalideStrides();
+            invalidatePlanes();
         }
     }
 
@@ -288,29 +361,11 @@ public:
 
     Builder &imageLayout(ImageLayout imageLayout) noexcept {
         mDescriptor.imageLayout = imageLayout;
-
-        // Force YUV pixel type for YUV layouts
-        if (image::isYuvLayout(imageLayout)) {
-            pixelType(PixelType::YUV);
-        }
-
         return *this;
     }
 
     Builder &pixelType(PixelType pixelType) noexcept {
         mDescriptor.pixelType = pixelType;
-
-        // Force number of planes depending on pixel type
-        const int numPlanesForPixelType = image::pixelNumPlanes(pixelType);
-        if (numPlanesForPixelType > 0) {
-            numPlanes(numPlanesForPixelType);
-        }
-
-        // Force planar layout for grayscale and bayer pixels
-        if (pixelType == PixelType::GRAYSCALE || image::isBayerPixelType(pixelType)) {
-            imageLayout(ImageLayout::PLANAR);
-        }
-
         return *this;
     }
 
@@ -321,7 +376,7 @@ public:
 
     Builder &width(int width) noexcept {
         mDescriptor.width = width;
-        invalideStrides();
+        invalidatePlanes();
         return *this;
     }
 
@@ -360,6 +415,11 @@ public:
         return *this;
     }
 
+    Builder &planeOffset(int index, int offset) {
+        mDescriptor.planes[index].offset = offset;
+        return *this;
+    }
+
     Builder &planeStrides(int index, int rowStride, int pixelStride = 1) {
         mDescriptor.planes[index].rowStride = rowStride;
         mDescriptor.planes[index].pixelStride = pixelStride;
@@ -367,6 +427,23 @@ public:
     }
 
     LayoutDescriptor build() {
+        // Force YUV pixel type for YUV layouts
+        if (image::isYuvLayout(mDescriptor.imageLayout)) {
+            pixelType(PixelType::YUV);
+        }
+
+        // Force number of planes depending on pixel type
+        const int numPlanesForPixelType = image::pixelNumPlanes(mDescriptor.pixelType);
+        if (numPlanesForPixelType > 0) {
+            numPlanes(numPlanesForPixelType);
+        }
+
+        // Force planar layout for grayscale and bayer pixels
+        if (mDescriptor.pixelType == PixelType::GRAYSCALE || image::isBayerPixelType(mDescriptor.pixelType)) {
+            imageLayout(ImageLayout::PLANAR);
+        }
+
+        // Validity checks
         if (mDescriptor.width <= 0 || mDescriptor.height <= 0 || mDescriptor.numPlanes <= 0) {
             throw std::invalid_argument("Image dimension parameters (width=" + std::to_string(mDescriptor.width) +
                                         ", height=" + std::to_string(mDescriptor.height) +
@@ -394,14 +471,16 @@ public:
                                         ") exceeds limits (" + std::to_string(image::detail::MAX_NUM_PLANES) + ").");
         }
 
+        // Compute plane offsets and strides
         mDescriptor.updatePlanes();
 
         return mDescriptor;
     }
 
 private:
-    void invalideStrides() {
+    void invalidatePlanes() {
         for (unsigned i = 0; i < mDescriptor.planes.size(); ++i) {
+            planeOffset(i, -1);
             planeStrides(i, 0);
         }
     }

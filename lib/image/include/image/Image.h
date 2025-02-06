@@ -46,11 +46,11 @@ public:
     using ImageView<T>::operator=;
 
     /// Constructs an empty image.
-    Image() : ImageView<T>(LayoutDescriptor::EMPTY) {};
+    Image() : ImageView<T>(LayoutDescriptor::EMPTY, nullptr) {};
 
     /// Constructs from layout descriptor.
     explicit Image(const LayoutDescriptor &layout)
-        : ImageView<T>(LayoutDescriptor::Builder(layout).build()),
+        : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr),
           mSize(this->layoutDescriptor().requiredBufferSize()),
           mData(new T[mSize]) {
         this->mapBuffer(mData.get());

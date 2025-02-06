@@ -242,7 +242,7 @@ void PngWriter::writeImpl(const Image<T> &image) const {
 
     // and now we just write the whole image; libpng takes care of interlacing for us
     const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
-    T *imageData = image.descriptor().buffers[0];
+    T *imageData = image.plane(0).buffer();
 
     std::vector<png_bytep> rowPointers(image.height());
     for (int y = 0; y < image.height(); ++y) {

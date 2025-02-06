@@ -51,7 +51,8 @@ public:
         Pixel<T, N> pixel;
         for (int n = 0; n < N; ++n) {
             const auto &planeDescriptor = mDescriptor.layout.planes[n];
-            pixel[n] = mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+            pixel[n] = mDescriptor.buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                                          x * planeDescriptor.pixelStride];
         }
 
         return pixel;
@@ -76,9 +77,11 @@ public:
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(const Expr &expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
+            T *buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.layout.planes[n];
-                mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride] = pixel[n];
+                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                       x * planeDescriptor.pixelStride] = pixel[n];
             }
         });
         return *this;
@@ -89,9 +92,11 @@ public:
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator+=(const Expr &expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
+            T *buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.layout.planes[n];
-                mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride] += pixel[n];
+                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                       x * planeDescriptor.pixelStride] += pixel[n];
             }
         });
         return *this;
@@ -102,9 +107,11 @@ public:
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator-=(const Expr &expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
+            T *buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.layout.planes[n];
-                mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride] -= pixel[n];
+                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                       x * planeDescriptor.pixelStride] -= pixel[n];
             }
         });
         return *this;
@@ -115,9 +122,11 @@ public:
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator*=(const Expr &expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
+            T *buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.layout.planes[n];
-                mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride] *= pixel[n];
+                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                       x * planeDescriptor.pixelStride] *= pixel[n];
             }
         });
         return *this;
@@ -128,9 +137,11 @@ public:
     UTIL_ALWAYS_INLINE PixelView<T, N> &operator/=(const Expr &expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
+            T *buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
                 const auto &planeDescriptor = mDescriptor.layout.planes[n];
-                mDescriptor.buffers[n][y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride] /= pixel[n];
+                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
+                       x * planeDescriptor.pixelStride] /= pixel[n];
             }
         });
         return *this;

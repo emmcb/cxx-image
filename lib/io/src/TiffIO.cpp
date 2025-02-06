@@ -474,7 +474,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
     }
 
     // Write image data.
-    T *pStrip = image.descriptor().buffers[0];
+    T *pStrip = image.plane(0).buffer();
     const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
     tmsize_t stripSize = TIFFStripSize(tif);
 
