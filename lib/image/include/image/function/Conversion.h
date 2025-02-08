@@ -152,13 +152,10 @@ Image<T> convertAlignment(const ImageView<T> &img,
 
     int n = 0;
     while (n < layoutDescriptor.numPlanes) {
-        const int64_t srcStride = img.layoutDescriptor().planes[n].rowStride;
-        const T *srcData = img.descriptor().buffers[n];
-
         const int64_t pixelStride = layoutDescriptor.planes[n].pixelStride;
 
         for (int y = 0; y < layoutDescriptor.height; ++y) {
-            memcpy(&aligned(0, y, n), srcData + y * srcStride, layoutDescriptor.width * pixelStride * sizeof(T));
+            memcpy(aligned.buffer(n, y), img.buffer(n, y), layoutDescriptor.width * pixelStride * sizeof(T));
         }
 
         n += pixelStride;

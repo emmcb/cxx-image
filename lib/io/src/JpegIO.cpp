@@ -228,8 +228,8 @@ Image8u JpegReader::read8u() {
     jpeg_start_decompress(dinfo);
 
     for (int y = 0; y < image.height(); ++y) {
-        auto *buffer = &image(0, y, 0);
-        jpeg_read_scanlines(dinfo, &buffer, 1);
+        auto *row = image.buffer(0, y);
+        jpeg_read_scanlines(dinfo, &row, 1);
     }
 
     jpeg_finish_decompress(dinfo);
@@ -531,13 +531,6 @@ void JpegWriter::write(const Image8u &image) const {
 #endif
 
     if (image.imageLayout() == ImageLayout::YUV_420) {
-        const int64_t yStride = image.layoutDescriptor().planes[0].rowStride;
-        const int64_t uvStride = image.layoutDescriptor().planes[1].rowStride;
-
-        uint8_t *yPlane = image.plane(0).buffer();
-        uint8_t *uPlane = image.plane(1).buffer();
-        uint8_t *vPlane = image.plane(2).buffer();
-
         uint8_t *yRows[16];
         uint8_t *uRows[8];
         uint8_t *vRows[8];
@@ -546,21 +539,18 @@ void JpegWriter::write(const Image8u &image) const {
         for (int y = 0; y < image.height(); y += 16) {
             // Jpeg library ignores the rows whose indices are greater than height
             for (int i = 0; i < 16; i++) {
-                yRows[i] = yPlane + (y + i) * yStride;
+                yRows[i] = image.buffer(0, y + i);
             }
             for (int i = 0; i < 8; i++) {
-                uRows[i] = uPlane + ((y >> 1) + i) * uvStride;
-                vRows[i] = vPlane + ((y >> 1) + i) * uvStride;
+                uRows[i] = image.buffer(1, (y >> 1) + i);
+                vRows[i] = image.buffer(2, (y >> 1) + i);
             }
 
             jpeg_write_raw_data(&cinfo, rows, 16);
         }
     } else {
-        const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
-        uint8_t *imageData = image.plane(0).buffer();
-
         for (int y = 0; y < image.height(); ++y) {
-            uint8_t *row = imageData + y * rowStride;
+            auto *row = image.buffer(0, y);
             jpeg_write_scanlines(&cinfo, &row, 1);
         }
     }

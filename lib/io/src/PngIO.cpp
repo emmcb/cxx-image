@@ -173,9 +173,8 @@ Image<T> PngReader::read() {
     Image<T> image(layoutDescriptor());
 
     std::vector<png_bytep> rowPointers(image.height());
-
     for (int y = 0; y < image.height(); ++y) {
-        rowPointers[y] = reinterpret_cast<png_bytep>(&image(0, y, 0));
+        rowPointers[y] = reinterpret_cast<png_bytep>(image.buffer(0, y));
     }
 
     // now we can go ahead and just read the whole image
@@ -241,12 +240,9 @@ void PngWriter::writeImpl(const Image<T> &image) const {
     png_set_swap(png);
 
     // and now we just write the whole image; libpng takes care of interlacing for us
-    const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
-    T *imageData = image.plane(0).buffer();
-
     std::vector<png_bytep> rowPointers(image.height());
     for (int y = 0; y < image.height(); ++y) {
-        rowPointers[y] = reinterpret_cast<png_bytep>(imageData + y * rowStride);
+        rowPointers[y] = reinterpret_cast<png_bytep>(image.buffer(0, y));
     }
 
     png_write_image(png, rowPointers.data());

@@ -189,8 +189,16 @@ public:
     /// Returns image number of planes.
     int numPlanes() const noexcept { return mDescriptor.layout.numPlanes; }
 
-    /// Returns raw pointer to image data.
+    /// Returns raw pointer to begin of image data.
     T *buffer() const { return mDescriptor.buffer; }
+
+    /// Returns pointer to the first element of given plane.
+    T *buffer(int n) const { return mDescriptor.buffer + mDescriptor.layout.planes[n].offset; }
+
+    /// Returns pointer to the first element of given row.
+    T *buffer(int n, int y) const {
+        return mDescriptor.buffer + mDescriptor.layout.planes[n].offset + y * mDescriptor.layout.planes[n].rowStride;
+    }
 
     /// Returns an iterable object to image planes.
     PlaneIterable planes() const noexcept { return PlaneIterable(mDescriptor); }

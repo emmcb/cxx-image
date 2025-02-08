@@ -129,8 +129,11 @@ public:
     /// Returns plane index in the underlying image.
     int index() const noexcept { return mPlaneDescriptor.index; }
 
-    /// Returns pointer to first plane element.
+    /// Returns pointer to the first plane element.
     T *buffer() const { return mBuffer; }
+
+    /// Returns pointer to the first element of given row.
+    T *buffer(int y) const { return mBuffer + y * mPlaneDescriptor.rowStride; }
 
     /// Returns pixel type.
     PixelType pixelType() const noexcept { return mLayoutDescriptor.pixelType; }
