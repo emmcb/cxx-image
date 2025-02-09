@@ -139,8 +139,8 @@ Image<T> convertAlignment(const ImageView<T> &img,
     LayoutDescriptor layoutDescriptor = builder.build();
 
     if (!forceCopy && layoutDescriptor.requiredBufferSize() == img.layoutDescriptor().requiredBufferSize()) {
-        // Constructs a new descriptor with new alignments but existing buffers
-        ImageDescriptor<T> descriptor(layoutDescriptor, img.descriptor().buffers);
+        // Constructs a new descriptor with new alignments but existing buffer
+        ImageDescriptor<T> descriptor(layoutDescriptor, img.buffer());
 
         // TODO: we would want to also preserve Halide device allocation, but this is not possible currently as strides
         // and device memory are in the same object
