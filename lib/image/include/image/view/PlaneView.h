@@ -244,7 +244,7 @@ extern template class PlaneView<uint8_t>;
 extern template class PlaneView<uint16_t>;
 extern template class PlaneView<uint32_t>;
 
-#ifdef HAVE_FLOAT16
+#ifdef CXXIMG_HAVE_FLOAT16
 extern template class PlaneView<half_t>;
 #endif
 extern template class PlaneView<float>;

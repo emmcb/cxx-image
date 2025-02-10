@@ -24,7 +24,7 @@ template class PlaneView<uint8_t>;
 template class PlaneView<uint16_t>;
 template class PlaneView<uint32_t>;
 
-#ifdef HAVE_FLOAT16
+#ifdef CXXIMG_HAVE_FLOAT16
 template class PlaneView<half_t>;
 #endif
 template class PlaneView<float>;

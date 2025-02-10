@@ -85,7 +85,7 @@ public:
                 .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
     operator halide_buffer_t *() const { // NOLINT(google-explicit-constructor)
         // A same Halide descriptor may be shared by multiple Image descriptors with same strides, but different
         // extents. We must ensure that the two dimensions are synchronized. This is a workaround to the fact that some
@@ -230,7 +230,7 @@ public:
                     "or equal than layout widthAlignment.");
         }
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
         // As buffer requirements does not change we can also share the same Halide descriptor
         descriptor.halide = mDescriptor.halide;
 #endif
@@ -252,7 +252,7 @@ public:
                     "or equal than layout heightAlignment.");
         }
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
         // As buffer requirements does not change we can also share the same Halide descriptor
         descriptor.halide = mDescriptor.halide;
 #endif
@@ -369,7 +369,7 @@ extern template class ImageView<uint8_t>;
 extern template class ImageView<uint16_t>;
 extern template class ImageView<uint32_t>;
 
-#ifdef HAVE_FLOAT16
+#ifdef CXXIMG_HAVE_FLOAT16
 extern template class ImageView<half_t>;
 #endif
 extern template class ImageView<float>;

@@ -156,7 +156,7 @@ extern template class Image<uint8_t>;
 extern template class Image<uint16_t>;
 extern template class Image<uint32_t>;
 
-#ifdef HAVE_FLOAT16
+#ifdef CXXIMG_HAVE_FLOAT16
 extern template class Image<half_t>;
 #endif
 extern template class Image<float>;

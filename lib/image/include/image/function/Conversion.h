@@ -37,7 +37,7 @@ Image<U> like(const ImageView<T> &img) {
 /// Allocates a new image that is identical to the input image.
 template <typename T>
 Image<T> clone(const ImageView<T> &img) {
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
     // If we have device allocation, we must call Halide method for device to device copy
     if (static_cast<halide_buffer_t *>(img)->device != 0) {
         Image<T> copy = image::like(img);

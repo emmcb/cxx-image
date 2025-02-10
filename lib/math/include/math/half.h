@@ -4,7 +4,7 @@
 
 namespace cxximg {
 
-#if defined(HAVE_FLOAT16)
+#if defined(CXXIMG_HAVE_FLOAT16)
 
 using half_t = _Float16;
 

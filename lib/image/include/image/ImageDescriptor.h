@@ -21,7 +21,7 @@
 #include <array>
 #include <cstdint>
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
 #include <memory>
 #include <type_traits>
 
@@ -30,7 +30,7 @@
 
 namespace cxximg {
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
 struct HalideDescriptor final {
     halide_buffer_t buffer;
     std::array<halide_dimension_t, 3> dim;
@@ -71,12 +71,12 @@ struct ImageDescriptor final {
     LayoutDescriptor layout; ///< Image layout descriptor;
     T *buffer;               ///< Image buffer.
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
     std::shared_ptr<HalideDescriptor> halide = std::make_shared<HalideDescriptor>(); ///< Halide descriptor.
 #endif
 
     ImageDescriptor(const LayoutDescriptor &layout_, T *buffer_) : layout(layout_), buffer(buffer_) {
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
         resetHalideDescriptor();
 #endif
     }
@@ -85,7 +85,7 @@ struct ImageDescriptor final {
     ImageDescriptor<T> &map(T *buffer_) {
         buffer = buffer_;
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
         resetHalideDescriptor();
 #endif
 
@@ -96,7 +96,7 @@ struct ImageDescriptor final {
     T saturationValue() const noexcept { return layout.saturationValue<T>(); }
 
 private:
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
     template <typename U = T, std::enable_if_t<math::is_arithmetic_v<U>, bool> = true>
     void resetHalideDescriptor() {
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
@@ -161,7 +161,7 @@ ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, co
 
     ImageDescriptor<T> crop(builder.build(), descriptor.buffer);
 
-#ifdef HAVE_HALIDE
+#ifdef CXXIMG_HAVE_HALIDE
     if (descriptor.halide->buffer.device != 0) {
         crop.halide->dim[0].min = roi.x;
         crop.halide->dim[1].min = roi.y;
