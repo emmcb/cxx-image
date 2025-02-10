@@ -47,6 +47,20 @@ struct HalideDescriptor final {
             }
         }
     }
+
+    void syncDims(const LayoutDescriptor &layout) {
+        dim[0].min = -layout.border;
+        dim[0].extent = layout.width + 2 * layout.border;
+        dim[0].stride = layout.planes[0].pixelStride;
+
+        dim[1].min = -layout.border;
+        dim[1].extent = layout.height + 2 * layout.border;
+        dim[1].stride = layout.planes[0].rowStride;
+
+        dim[2].min = 0;
+        dim[2].extent = layout.numPlanes;
+        dim[2].stride = layout.planes[1].offset - layout.planes[0].offset;
+    }
 };
 #endif
 
@@ -63,7 +77,7 @@ struct ImageDescriptor final {
 
     ImageDescriptor(const LayoutDescriptor &layout_, T *buffer_) : layout(layout_), buffer(buffer_) {
 #ifdef HAVE_HALIDE
-        updateHalideDescriptor();
+        resetHalideDescriptor();
 #endif
     }
 
@@ -72,7 +86,7 @@ struct ImageDescriptor final {
         buffer = buffer_;
 
 #ifdef HAVE_HALIDE
-        updateHalideDescriptor();
+        resetHalideDescriptor();
 #endif
 
         return *this;
@@ -84,29 +98,18 @@ struct ImageDescriptor final {
 private:
 #ifdef HAVE_HALIDE
     template <typename U = T, std::enable_if_t<math::is_arithmetic_v<U>, bool> = true>
-    void updateHalideDescriptor() {
-        halide->dim[0].min = -layout.border;
-        halide->dim[0].extent = layout.width + 2 * layout.border;
-        halide->dim[0].stride = layout.planes[0].pixelStride;
-
-        halide->dim[1].min = -layout.border;
-        halide->dim[1].extent = layout.height + 2 * layout.border;
-        halide->dim[1].stride = layout.planes[0].rowStride;
-
-        halide->dim[2].min = 0;
-        halide->dim[2].extent = layout.numPlanes;
-        halide->dim[2].stride = layout.planes[1].offset - layout.planes[0].offset;
-
+    void resetHalideDescriptor() {
         halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
         halide->buffer.type = halide_type_of<T>();
         halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
         halide->buffer.device = 0;
         halide->buffer.device_interface = nullptr;
         halide->buffer.flags = 0;
+        halide->syncDims(layout);
     }
 
     template <typename U = T, std::enable_if_t<!math::is_arithmetic_v<U>, bool> = true>
-    void updateHalideDescriptor() {}
+    void resetHalideDescriptor() {}
 #endif
 };
 

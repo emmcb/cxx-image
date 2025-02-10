@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 
 namespace cxximg {
 
@@ -86,6 +87,13 @@ public:
 
 #ifdef HAVE_HALIDE
     operator halide_buffer_t *() const { // NOLINT(google-explicit-constructor)
+        // A same Halide descriptor may be shared by multiple Image descriptors with same strides, but different
+        // extents. We must ensure that the two dimensions are synchronized. This is a workaround to the fact that some
+        // fields like dirty flag or device ptr are internally managed by Halide, thus we cannot have two copies with
+        // different dimensions but pointing to the same buffer. The downside is that the caller has to take care to not
+        // use an image with same Halide buffer but different extents at the same time.
+        mDescriptor.halide->syncDims(layoutDescriptor());
+
         return &mDescriptor.halide->buffer;
     }
 #endif
@@ -173,8 +181,7 @@ public:
     int pixelPrecision() const noexcept { return mDescriptor.layout.pixelPrecision; }
 
     /// Sets descriptor pixel precision.
-    /// @warning This method does not rescale the data. See
-    /// image::convertPixelPrecision().
+    /// @warning This method does not rescale the data. See image::convertPixelPrecision() for data conversion.
     void setPixelPrecision(int pixelPrecision) noexcept { mDescriptor.layout.pixelPrecision = pixelPrecision; }
 
     /// Returns the maximum value that can be represented by the image pixel precision.
@@ -207,6 +214,50 @@ public:
     PlaneView<T> plane(int index) const {
         assert(index < numPlanes());
         return PlaneView<T>{mDescriptor, index};
+    }
+
+    /// Align image width to the given power-of-two alignment.
+    /// @warning This method does not allocate any new memory, thus it is only possible if the buffer already contains
+    /// some padding allowing to extend the width. See LayoutDecriptor::widthAlignment field.
+    ImageView<T> alignWidth(int widthAlignment) const {
+        ImageDescriptor<T> descriptor(
+                LayoutDescriptor::Builder(layoutDescriptor()).width(math::roundUp(width(), widthAlignment)).build(),
+                buffer());
+
+        if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
+            throw std::invalid_argument(
+                    "Buffer should not grow when aligning the width. Please check that given widthAlignment is lower "
+                    "or equal than layout widthAlignment.");
+        }
+
+#ifdef HAVE_HALIDE
+        // As buffer requirements does not change we can also share the same Halide descriptor
+        descriptor.halide = mDescriptor.halide;
+#endif
+
+        return ImageView<T>(descriptor);
+    }
+
+    /// Align image height to the given power-of-two alignment.
+    /// @warning This method does not allocate any new memory, thus it is only possible if the buffer already contains
+    /// some padding allowing to extend the height. See LayoutDecriptor::heightAlignment field.
+    ImageView<T> alignHeight(int heightAlignment) const {
+        ImageDescriptor<T> descriptor(
+                LayoutDescriptor::Builder(layoutDescriptor()).height(math::roundUp(height(), heightAlignment)).build(),
+                buffer());
+
+        if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
+            throw std::invalid_argument(
+                    "Buffer should not grow when aligning the height. Please check that given heightAlignment is lower "
+                    "or equal than layout heightAlignment.");
+        }
+
+#ifdef HAVE_HALIDE
+        // As buffer requirements does not change we can also share the same Halide descriptor
+        descriptor.halide = mDescriptor.halide;
+#endif
+
+        return ImageView<T>(descriptor);
     }
 
     /// Computes the image minimum.
