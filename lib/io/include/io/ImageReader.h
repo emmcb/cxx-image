@@ -110,7 +110,8 @@ public:
 
 protected:
     struct Descriptor final {
-        Descriptor() = delete;
+        Descriptor(const LayoutDescriptor& layout_, PixelRepresentation pixelRepresentation_)
+            : layout(layout_), pixelRepresentation(pixelRepresentation_) {}
 
         LayoutDescriptor layout;
         PixelRepresentation pixelRepresentation;
