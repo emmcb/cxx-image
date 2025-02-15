@@ -49,6 +49,14 @@ struct HalideDescriptor final {
     }
 
     void syncDims(const LayoutDescriptor &layout) {
+        if (layout.numPlanes > 1) {
+            buffer.dimensions = 3;
+        } else if (layout.height > 1) {
+            buffer.dimensions = 2;
+        } else {
+            buffer.dimensions = 1;
+        }
+
         dim[0].min = -layout.border;
         dim[0].extent = layout.width + 2 * layout.border;
         dim[0].stride = layout.planes[0].pixelStride;
@@ -99,7 +107,6 @@ private:
 #ifdef CXXIMG_HAVE_HALIDE
     template <typename U = T, std::enable_if_t<math::is_arithmetic_v<U>, bool> = true>
     void resetHalideDescriptor() {
-        halide->buffer.dimensions = (layout.numPlanes > 1) ? 3 : 2;
         halide->buffer.type = halide_type_of<T>();
         halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
         halide->buffer.device = 0;
