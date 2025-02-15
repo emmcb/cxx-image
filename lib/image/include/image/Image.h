@@ -52,7 +52,7 @@ public:
     explicit Image(const LayoutDescriptor &layout)
         : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr),
           mSize(this->layoutDescriptor().requiredBufferSize()),
-          mData(new T[mSize]) {
+          mData(static_cast<T *>(::operator new[](mSize * sizeof(T), std::align_val_t(CXXIMG_BASE_ALIGNMENT)))) {
         this->mapBuffer(mData.get());
     }
 
@@ -130,8 +130,12 @@ public:
     }
 
 private:
+    struct Deleter final {
+        void operator()(T *ptr) const { ::operator delete[](ptr, std::align_val_t(CXXIMG_BASE_ALIGNMENT)); }
+    };
+
     int64_t mSize = 0;
-    std::unique_ptr<T[]> mData;
+    std::unique_ptr<T[], Deleter> mData;
 };
 
 using Image8i = Image<int8_t>;

@@ -37,6 +37,10 @@ option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
 
+set(CXXIMG_BASE_ALIGNMENT
+    "32"
+    CACHE STRING "Default pointer alignment in bytes (must be a power of two)"
+)
 set(CXXIMG_DEFAULT_WIDTH_ALIGNMENT
     "1"
     CACHE STRING "Default width alignment of allocated images (must be a power of two)"
