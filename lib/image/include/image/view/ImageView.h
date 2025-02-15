@@ -226,8 +226,8 @@ public:
 
         if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
             throw std::invalid_argument(
-                    "Buffer should not grow when aligning the width. Please check that given widthAlignment is lower "
-                    "or equal than layout widthAlignment.");
+                    "Expected buffer size should not change when aligning width. Please check that given "
+                    "widthAlignment is lower or equal than layout widthAlignment.");
         }
 
 #ifdef CXXIMG_HAVE_HALIDE
@@ -248,8 +248,82 @@ public:
 
         if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
             throw std::invalid_argument(
-                    "Buffer should not grow when aligning the height. Please check that given heightAlignment is lower "
-                    "or equal than layout heightAlignment.");
+                    "Expected buffer size should not change when aligning height. Please check that given "
+                    "heightAlignment is lower or equal than layout heightAlignment.");
+        }
+
+#ifdef CXXIMG_HAVE_HALIDE
+        // As buffer requirements does not change we can also share the same Halide descriptor
+        descriptor.halide = mDescriptor.halide;
+#endif
+
+        return ImageView<T>(descriptor);
+    }
+
+    /// Flatten entire image to an one-dimensional image and align size to the given power-of-two alignment.
+    /// @warning This method does not allocate any new memory, thus aligning is only possible if the buffer already
+    /// contains some padding allowing to extend the size. See LayoutDecriptor::sizeAlignment field.
+    ImageView<T> flatten(int sizeAlignment = 1) const {
+        const int flattenedSize = LayoutDescriptor::Builder(layoutDescriptor())
+                                          .sizeAlignment(1)
+                                          .build()
+                                          .requiredBufferSize();
+
+        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(flattenedSize, 1)
+                                              .pixelType(PixelType::GRAYSCALE)
+                                              .widthAlignment(1)
+                                              .heightAlignment(1)
+                                              .sizeAlignment(sizeAlignment)
+                                              .build(),
+                                      buffer());
+
+        if (descriptor.layout.requiredBufferSize() > layoutDescriptor().requiredBufferSize()) {
+            throw std::invalid_argument(
+                    "Buffer should not grow when flattening. Please check that given sizeAlignment is lower "
+                    "or equal than layout sizeAlignment.");
+        }
+
+#ifdef CXXIMG_HAVE_HALIDE
+        // As buffer requirements does not change we can also share the same Halide descriptor
+        descriptor.halide = mDescriptor.halide;
+#endif
+
+        return ImageView<T>(descriptor);
+    }
+
+    /// Flatten each image plane to one-dimensional planes.
+    /// @warning This can only be done on planar images.
+    ImageView<T> flattenPlanes() const {
+        if (layoutDescriptor().imageLayout != ImageLayout::PLANAR) {
+            throw std::invalid_argument("Plane flattening is only valid for planar images.");
+        }
+
+        const int planeSize = LayoutDescriptor::Builder(layoutDescriptor())
+                                      .pixelType(PixelType::GRAYSCALE)
+                                      .heightAlignment(1)
+                                      .sizeAlignment(1)
+                                      .build()
+                                      .requiredBufferSize();
+        const int planeStride = LayoutDescriptor::Builder(layoutDescriptor())
+                                        .pixelType(PixelType::GRAYSCALE)
+                                        .sizeAlignment(1)
+                                        .build()
+                                        .requiredBufferSize();
+
+        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(layoutDescriptor())
+                                              .width(planeSize)
+                                              .height(1)
+                                              .widthAlignment(1)
+                                              .heightAlignment(1)
+                                              .planeStrides(0, planeStride)
+                                              .planeStrides(1, planeStride)
+                                              .planeStrides(2, planeStride)
+                                              .planeStrides(3, planeStride)
+                                              .build(),
+                                      buffer());
+
+        if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
+            throw std::runtime_error("Expected buffer size should not change when flattening planes.");
         }
 
 #ifdef CXXIMG_HAVE_HALIDE
