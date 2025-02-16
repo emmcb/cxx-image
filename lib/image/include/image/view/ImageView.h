@@ -269,18 +269,18 @@ public:
                                           .build()
                                           .requiredBufferSize();
 
-        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(flattenedSize, 1)
+        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(math::roundUp(flattenedSize, sizeAlignment), 1)
                                               .pixelType(PixelType::GRAYSCALE)
                                               .widthAlignment(1)
                                               .heightAlignment(1)
-                                              .sizeAlignment(sizeAlignment)
+                                              .sizeAlignment(layoutDescriptor().sizeAlignment)
                                               .build(),
                                       buffer());
 
-        if (descriptor.layout.requiredBufferSize() > layoutDescriptor().requiredBufferSize()) {
+        if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
             throw std::invalid_argument(
-                    "Buffer should not grow when flattening. Please check that given sizeAlignment is lower "
-                    "or equal than layout sizeAlignment.");
+                    "Expected buffer size should not change when aligning size. Please check that given "
+                    "sizeAlignment is lower or equal than layout sizeAlignment.");
         }
 
 #ifdef CXXIMG_HAVE_HALIDE
