@@ -310,11 +310,11 @@ public:
                                         .build()
                                         .requiredBufferSize();
 
-        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(layoutDescriptor())
-                                              .width(planeSize)
-                                              .height(1)
+        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(planeSize, numPlanes())
+                                              .pixelType(PixelType::GRAYSCALE)
                                               .widthAlignment(1)
                                               .heightAlignment(1)
+                                              .sizeAlignment(layoutDescriptor().sizeAlignment)
                                               .planeStrides(0, planeStride)
                                               .planeStrides(1, planeStride)
                                               .planeStrides(2, planeStride)
