@@ -46,7 +46,9 @@ private:
 /// Input stream using MemoryStreamBuf
 class MemoryInputStream : public std::istream {
 public:
-    MemoryInputStream(const char* buffer, std::size_t size) : std::istream(&mBuffer), mBuffer(buffer, size) {}
+    MemoryInputStream(const char* buffer, std::size_t size) : std::istream(nullptr), mBuffer(buffer, size) {
+        this->init(&mBuffer);
+    }
 
 private:
     MemoryStreamBuf mBuffer;
