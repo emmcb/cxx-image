@@ -17,6 +17,31 @@ public:
         setg(buffer, buffer, buffer + size);
         setp(buffer, buffer + size);
     }
+
+protected:
+    pos_type seekpos(pos_type pos, std::ios_base::openmode which) override {
+        return seekoff(pos, std::ios_base::beg, which);
+    }
+
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which) override {
+        if (which != std::ios_base::in) {
+            return -1;
+        }
+
+        if (dir == std::ios_base::beg) {
+            setg(eback(), eback() + off, egptr());
+        } else if (dir == std::ios_base::cur) {
+            setg(eback(), gptr() + off, egptr());
+        } else if (dir == std::ios_base::end) {
+            setg(eback(), egptr() + off, egptr());
+        }
+
+        if (gptr() < eback() || gptr() > egptr()) {
+            return -1; // invalid position
+        }
+
+        return gptr() - eback();
+    }
 };
 
 /// Custom stream buffer for writing to a dynamic vector
