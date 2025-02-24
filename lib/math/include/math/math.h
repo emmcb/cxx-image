@@ -104,14 +104,14 @@ inline constexpr void cubicFit2Points2Slopes(float x1,
 
 /// Division with rounding.
 template <typename T>
-constexpr T roundDivison(T q, T r) {
+constexpr T roundDivision(T q, T r) {
     static_assert(std::is_integral_v<T>);
     return (q + r / 2) / r;
 }
 
 /// Division with ceiling.
 template <typename T>
-constexpr T ceilDivison(T q, T r) {
+constexpr T ceilDivision(T q, T r) {
     static_assert(std::is_integral_v<T>);
     return (q + r - 1) / r;
 }
