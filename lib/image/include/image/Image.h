@@ -49,11 +49,8 @@ public:
     Image() : ImageView<T>(LayoutDescriptor::EMPTY, nullptr) {};
 
     /// Constructs from layout descriptor.
-    explicit Image(const LayoutDescriptor &layout)
-        : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr),
-          mSize(this->layoutDescriptor().requiredBufferSize()),
-          mData(static_cast<T *>(::operator new[](mSize * sizeof(T), std::align_val_t(CXXIMG_BASE_ALIGNMENT)))) {
-        this->mapBuffer(mData.get());
+    explicit Image(const LayoutDescriptor &layout) : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr) {
+        allocate();
     }
 
     /// Constructs by copying an existing buffer.
@@ -87,11 +84,22 @@ public:
         // will call ImageView<T>::operator=(ImageView<T>&&), that is already used
         // for expression assignment.
 
-        this->mSize = std::move(other.mSize);
+        this->mSize = other.mSize;
         this->mData = std::move(other.mData);
         this->setDescriptor(other.descriptor());
 
         return *this;
+    }
+
+    /// Allocates the buffer for the image. Should not be called unless the image has explicitely been constructed
+    /// using Image<T>::unallocated().
+    void allocate() {
+        if (allocated() || !defined()) {
+            return;
+        }
+        mSize = this->layoutDescriptor().requiredBufferSize();
+        mData.reset(static_cast<T *>(::operator new[](mSize * sizeof(T), std::align_val_t(CXXIMG_BASE_ALIGNMENT))));
+        this->mapBuffer(mData.get());
     }
 
     /// Returns raw pointer to image data.
@@ -103,8 +111,11 @@ public:
     /// Returns image size, that is the number of values that can be stored.
     int64_t size() const noexcept { return mSize; }
 
-    /// Returns whether the image is empty.
-    bool empty() const noexcept { return mSize == 0; }
+    /// Returns whether the image is defined.
+    bool defined() const noexcept { return this->width() > 0 && this->height() > 0 && this->numPlanes() > 0; }
+
+    /// Returns whether the image is allocated.
+    bool allocated() const noexcept { return mSize > 0; }
 
     /// Re-assign image ROI.
     void setRoi(const Roi &roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
@@ -121,10 +132,19 @@ public:
         return image::clone<U>(*this);
     }
 
-    /// Returns an image instance that references an already allocated image, without owning any data.
+    /// Constructs an image instance that references an already allocated image, without owning any data.
     static Image<T> borrowed(const ImageView<T> &imageView) {
         Image<T> unallocated;
         unallocated.setDescriptor(imageView.descriptor());
+
+        return unallocated;
+    }
+
+    /// Constructs an image instance but without allocating the data.
+    /// The user will be responsible for calling allocate() method before actually using the image.
+    static Image<T> unallocated(const LayoutDescriptor &layout) {
+        Image<T> unallocated;
+        unallocated.setDescriptor(ImageDescriptor<T>(layout, nullptr));
 
         return unallocated;
     }
