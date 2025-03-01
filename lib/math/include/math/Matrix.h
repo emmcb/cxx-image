@@ -34,14 +34,7 @@ template <int M, int N>
 class Matrix final {
 public:
     /// Identity matrix.
-    inline static const Matrix<M, N> IDENTITY = []() {
-        Matrix<M, N> id(0.0f);
-        for (int i = 0; i < std::min(M, N); ++i) {
-            id(i, i) = 1.0f;
-        }
-
-        return id;
-    }();
+    static const Matrix<M, N> IDENTITY;
 
     /// Constructs empty matrix.
     Matrix() = default;
@@ -143,6 +136,16 @@ private:
 using Matrix3 = Matrix<3, 3>;
 
 /// @}
+
+template <int M, int N>
+const Matrix<M, N> Matrix<M, N>::IDENTITY = []() {
+    Matrix<M, N> id(0.0f);
+    for (int i = 0; i < std::min(M, N); ++i) {
+        id(i, i) = 1.0f;
+    }
+
+    return id;
+}();
 
 /// Multiplication with other matrix.
 /// @relates Matrix

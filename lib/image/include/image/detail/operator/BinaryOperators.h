@@ -32,7 +32,7 @@ namespace detail {
 /// Addition operator.
 struct AddOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE decltype(auto) apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static decltype(auto) apply(T a, U b) noexcept {
         return a + b;
     }
 };
@@ -40,7 +40,7 @@ struct AddOperator final {
 /// Subtraction operator.
 struct SubtractOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE decltype(auto) apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static decltype(auto) apply(T a, U b) noexcept {
         return a - b;
     }
 };
@@ -48,7 +48,7 @@ struct SubtractOperator final {
 /// Multiplication operator.
 struct MultiplyOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE decltype(auto) apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static decltype(auto) apply(T a, U b) noexcept {
         return a * b;
     }
 };
@@ -56,7 +56,7 @@ struct MultiplyOperator final {
 /// Division operator.
 struct DivideOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE decltype(auto) apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static decltype(auto) apply(T a, U b) noexcept {
         return a / b;
     }
 };
@@ -64,7 +64,7 @@ struct DivideOperator final {
 /// Binary left shift operator.
 struct LeftShiftOperator final {
     template <typename T>
-    static UTIL_ALWAYS_INLINE T apply(T a, int b) noexcept {
+    UTIL_ALWAYS_INLINE static T apply(T a, int b) noexcept {
         return a << b;
     }
 };
@@ -72,7 +72,7 @@ struct LeftShiftOperator final {
 /// Binary right shift operator.
 struct RightShiftOperator final {
     template <typename T>
-    static UTIL_ALWAYS_INLINE T apply(T a, int b) noexcept {
+    UTIL_ALWAYS_INLINE static T apply(T a, int b) noexcept {
         return a >> b;
     }
 };
@@ -80,7 +80,7 @@ struct RightShiftOperator final {
 /// Equality operator.
 struct EqualToOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a == b;
     }
 };
@@ -88,7 +88,7 @@ struct EqualToOperator final {
 /// Less inequality operator.
 struct LessThanOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a < b;
     }
 };
@@ -96,7 +96,7 @@ struct LessThanOperator final {
 /// Less or equal inequality operator.
 struct LessOrEqualThanOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a <= b;
     }
 };
@@ -104,7 +104,7 @@ struct LessOrEqualThanOperator final {
 /// Greater inequality operator.
 struct GreaterThanOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a > b;
     }
 };
@@ -112,7 +112,7 @@ struct GreaterThanOperator final {
 /// Greater or equal inequality operator.
 struct GreaterOrEqualThanOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a >= b;
     }
 };
@@ -120,7 +120,7 @@ struct GreaterOrEqualThanOperator final {
 /// Logical AND operator.
 struct LogicalAndOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a && b;
     }
 };
@@ -128,7 +128,7 @@ struct LogicalAndOperator final {
 /// Logical OR operator.
 struct LogicalOrOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE bool apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static bool apply(T a, U b) noexcept {
         return a || b;
     }
 };
@@ -136,7 +136,7 @@ struct LogicalOrOperator final {
 /// Min operator.
 struct MinOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE std::common_type_t<T, U> apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static std::common_type_t<T, U> apply(T a, U b) noexcept {
         return std::min<std::common_type_t<T, U>>(a, b);
     }
 };
@@ -144,7 +144,7 @@ struct MinOperator final {
 /// Max operator.
 struct MaxOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE std::common_type_t<T, U> apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static std::common_type_t<T, U> apply(T a, U b) noexcept {
         return std::max<std::common_type_t<T, U>>(a, b);
     }
 };
@@ -152,7 +152,7 @@ struct MaxOperator final {
 /// Power operator.
 struct PowOperator final {
     template <typename T, typename U>
-    static UTIL_ALWAYS_INLINE float apply(T a, U b) noexcept {
+    UTIL_ALWAYS_INLINE static float apply(T a, U b) noexcept {
         return std::pow(static_cast<float>(a), b);
     }
 };
