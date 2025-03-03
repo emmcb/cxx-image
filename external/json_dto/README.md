@@ -4,6 +4,9 @@ Table of Contents
    * [Table of Contents](#table-of-contents)
    * [What Is json_dto?](#what-is-json_dto)
    * [What's new?](#whats-new)
+      * [v.0.3.4](#v034)
+      * [v.0.3.3](#v033)
+      * [v.0.3.2](#v032)
       * [v.0.3.1](#v031)
       * [v.0.3.0](#v030)
       * [v.0.2.14](#v0214)
@@ -47,6 +50,7 @@ Table of Contents
       * [Inheritance](#inheritance)
       * [Validators](#validators)
          * [Standard validators](#standard-validators)
+      * [Representing several fields inside an array](#representing-several-fields-inside-an-array)
       * [User defined IO](#user-defined-io)
          * [Overloading of read_json_value and write_json_value](#overloading-of-read_json_value-and-write_json_value)
          * [Usage of Reader_Writer](#usage-of-reader_writer)
@@ -68,6 +72,45 @@ And since Fall 2016 is ready for public. We are still using it for
 working with JSON in various projects.
 
 # What's new?
+
+## v.0.3.4
+
+Several new `to_json`, `from_json`, `to_stream` and `from_stream` functions
+that accept Reader-Writer parameter. For example:
+
+```cpp
+// Type to be serialized.
+class some_data {
+public:
+	...
+	template<typename Io> void json_io(Io & io) {...}
+};
+
+// Special Reader-Writer for packing/unpacking instances of some_data.
+struct some_data_reader_writer {
+	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+
+	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+};
+...
+// Object to be serialized.
+some_data data_to_pack{...};
+// Serialization by using custom Reader-Writer object.
+auto json_string = json_dto::to_json(some_data_reader_writer{}, data_to_pack);
+```
+
+See a new [deserialization example](./dev/sample/tutorial16.1/main.cpp) that shows how
+a new `from_json` function can be used.
+
+There is also [a new example](./dev/sample/tutorial18.1/main.cpp) that shows how a custom Reader-Writer may change representation of an item.
+
+## v.0.3.3
+
+Support for storing of several fields into an array added.
+
+## v.0.3.2
+
+It's a bug-fix release.
 
 ## v.0.3.1
 
@@ -1511,6 +1554,105 @@ auto one_of_constraint(std::initializer_list<Field_Type> values);
 
 [See full example with standard validators](./dev/sample/tutorial12/main.cpp)
 
+## Representing several fields inside an array
+
+Sometimes several values may be stored inside an array:
+
+```json
+{ "x": [1, "Hello!", 0.3] }
+```
+
+Since v.0.3.3 json_dto support such cases the following way:
+
+```cpp
+struct inner {
+	int a;
+	std::string b;
+	double c;
+
+	//NOTE: there is no json_io for `inner` type.
+};
+
+struct outer {
+	inner x;
+
+	template< typename Io > void json_io( Io & io ) {
+		io & json_dto::mandatory(
+				// The use of special reader-writer that will pack
+				// all described fields into one array value.
+				json_dto::inside_array::reader_writer(
+					// All fields to be (de)serialized must be enumerated here.
+					// The order of the enumeration is important: (de)serialization
+					// is performed in this order.
+					json_dto::inside_array::member( x.a ),
+					json_dto::inside_array::member( x.b ),
+					json_dto::inside_array::member( x.c ) ),
+				"x", x );
+	}
+};
+...
+auto obj = json_dto::from_json<outer>( R"({"x":[1, "Hello!", 0.3]})" );
+```
+
+By default `json_dto::inside_array::reader_writer` expects exact number of
+fields. For example, if three fields are described then an array with exactly tree
+values is expected during deserialization, otherwise an exception will be thrown.
+However, there may be cases when JSON contains less values. It means that N
+first members are mandatory, and all other are optional. This can be expressed
+that way:
+
+```cpp
+struct outer {
+	inner x;
+
+	template< typename Io > void json_io( Io & io ) {
+		io & json_dto::mandatory(
+				json_dto::inside_array::reader_writer<
+					// Specify that the first field is mandatory and all remaining
+					// are optional.
+					json_dto::inside_array::at_least<1>
+				>(
+					// This is mandatory field,
+					json_dto::inside_array::member( x.a ),
+					// This is optional field and we specify a default value for
+					// a case when it's missing.
+					json_dto::inside_array::member_with_default_value( x.b, std::string{ "Nothing" } ),
+					// This is optional field and we doesn't specify a default value
+					// for it. It it's missing than `double{}` will be used as a new
+					// value for `x.c`.
+					json_dto::inside_array::member( x.c ) ),
+				"x", x );
+	}
+};
+```
+
+There are a family of `json_dto::inside_array::member` and `json_dto::inside_array::member_with_default_value` functions that allow to specify a custom reader-writer and/or a validator:
+
+```cpp
+json_dto::inside_array::member( x.a, json_dto::min_max_constraint(-10, 10));
+json_dtp::inside_array::member( my_custom_reader_writer{}, x.b );
+json_dtp::inside_array::member( my_custom_reader_writer{}, x.c, json_dto::min_max_constraint(-1, 1) );
+```
+
+The inside_array functionality can be used for manual support of `std::tuple`:
+
+```cpp
+struct outer {
+	std::tuple<int, std::string, double> x;
+
+	template< typename Io > void json_io( Io & io ) {
+		io & json_dto::mandatory(
+				json_dto::inside_array::reader_writer(
+					json_dto::inside_array::member( std::get<0>(x) ),
+					json_dto::inside_array::member( std::get<1>(x) ),
+					json_dto::inside_array::member( std::get<2>(x) ) ),
+				"x", x );
+	}
+};
+...
+auto obj = json_dto::from_json<outer>( R"({"x":[1, "Hello!", 0.3]})" );
+```
+
 ## User defined IO
 
 ### Overloading of read_json_value and write_json_value
@@ -1676,8 +1818,7 @@ struct numeric_log_level
 		v = static_cast<log_level>(actual);
 	}
 
-	void
-	write(
+	void write(
 		const log_level & v,
 		rapidjson::Value & to,
 		rapidjson::MemoryPoolAllocator<> & allocator ) const
@@ -1717,8 +1858,7 @@ struct textual_log_level
 		else throw json_dto::ex_t{ "invalid value for log_level" };
 	}
 
-	void
-	write(
+	void write(
 		const log_level & v,
 		rapidjson::Value & to,
 		rapidjson::MemoryPoolAllocator<> & allocator ) const
@@ -1798,8 +1938,7 @@ struct custom_floating_point_reader_writer
 	}
 
 	template< typename T >
-	void
-	write(
+	void write(
 		T & v,
 		rapidjson::Value & to,
 		rapidjson::MemoryPoolAllocator<> & allocator ) const
@@ -1837,6 +1976,113 @@ struct struct_with_floats_t
 ```
 
 Note also that `read` and `write` methods of Reader_Writer class can be template methods.
+
+A custom Reader_Writer can also be used to change representation of a field. For example, let suppose that we have a `std::vector<some_struct>` field, but this field has to be represented as a single object if it holds just one value, and as an array otherwise. Something like:
+
+```
+{
+  "message": {
+    "from": "address-1",
+    "to": "address-2",
+    ...,
+    "extension": {...}
+  },
+  ...
+}
+```
+
+if we have only one extension in a message or:
+
+```
+{
+  "message": {
+    "from": "address-1",
+    "to": "address-2",
+    ...,
+    "extension": [
+      {...},
+      {...},
+      ...
+    ]
+  },
+  ...
+}
+```
+
+if there are several extensions.
+
+A solution with a custom Reader_Writer can looks like:
+
+```cpp
+struct extension
+{
+    ...
+
+    template< typename Json_Io >
+    void json_io( Json_Io & io )
+    {
+        ... // Ordinary serialization/deserialization code.
+    }
+};
+
+// Reader_Writer for vector of `extension` objects.
+struct extension_reader_writer
+{
+    void read( std::vector< extension > & to, const rapidjson::Value & from ) const
+    {
+        using json_dto::read_json_value;
+
+        to.clear();
+
+        if( from.IsObject() )
+        {
+            extension_t single_value;
+            read_json_value( single_value, from );
+            to.push_back( std::move(single_value) );
+        }
+        else if( from.IsArray() )
+        {
+            read_json_value( to, from );
+        }
+        else
+        {
+            throw std::runtime_error{ "Unexpected format of extension value" };
+        }
+    }
+
+    void write(
+        const std::vector< extension > & v,
+        rapidjson::Value & to,
+        rapidjson::MemoryPoolAllocator<> & allocator ) const
+    {
+        using json_dto::write_json_value;
+        if( 1u == v.size() )
+            write_json_value( v.front(), to, allocator );
+        else
+            write_json_value( v, to, allocator );
+    }
+};
+
+// Message.
+struct message
+{
+    // Fields of a message.
+    ...
+    // Extension(s) for a message.
+    std::vector< extension > m_extension;
+
+    template< typename Json_Io >
+    void json_io( Json_Io & io )
+    {
+        io & ...
+            & json_dto::mandatory( extension_reader_writer{},
+                    "extension", m_extension )
+            ;
+    }
+};
+```
+
+The full example of such an approach can be seen [here](./dev/sample/tutorial18.1/main.cpp)
 
 #### Custom Reader_Writer with containers and nullable_t, and std::optional
 

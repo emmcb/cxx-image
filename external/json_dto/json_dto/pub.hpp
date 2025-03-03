@@ -17,6 +17,7 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/istreamwrapper.h>
 
+#include <array>
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -50,6 +51,23 @@
 			#define JSON_DTO_SUPPORTS_STD_OPTIONAL
 		#endif
 	#endif
+#endif
+
+#if defined(__has_cpp_attribute)
+	#if __has_cpp_attribute(nodiscard)
+		#define JSON_DTO_NODISCARD [[nodiscard]]
+	#endif
+#endif
+
+#if !defined( JSON_DTO_NODISCARD )
+	#define JSON_DTO_NODISCARD
+#endif
+
+// Handle the presence of std::launder.
+#if __cpp_lib_launder >= 201606L
+	#define JSON_DTO_STD_LAUNDER(x) std::launder(x)
+#else
+	#define JSON_DTO_STD_LAUNDER(x) x
 #endif
 
 namespace json_dto
@@ -326,6 +344,37 @@ struct field_type_from_reference_impl<T&&>
 template< typename T >
 using field_type_from_reference_t =
 	typename field_type_from_reference_impl<T>::type;
+
+// Implementation of helper metafunction to get the first type from a type
+// list.
+//
+// Since v.0.3.2
+template<typename T, typename... Rest>
+struct head_of
+{
+	using type = T;
+};
+
+template<typename T>
+struct head_of<T>
+{
+	using type = T;
+};
+
+// Helper metafunction to get the first type from a type list.
+//
+// Usage example:
+//
+// 	template<typename... Args>
+// 	class my_template
+// 	{
+// 		using head_type = details::meta::head_of_t<Args...>;
+// 		...
+// 	};
+//
+// Since v.0.3.2
+template< typename... Args >
+using head_of_t = typename head_of<Args...>::type;
 
 } /* namespace meta */
 
@@ -923,12 +972,14 @@ struct nullable_t
 	{}
 
 	explicit nullable_t( Field_Type value )
+		noexcept( noexcept( Field_Type{std::move(value)} ) )
 		:	m_has_value{ true }
 	{
 		new( m_image_space ) Field_Type{ std::move( value ) };
 	}
 
 	nullable_t( const nullable_t & other )
+		noexcept( noexcept( Field_Type{other.field_ref()} ) )
 		:	m_has_value{ other.m_has_value }
 	{
 		if( has_value() )
@@ -936,14 +987,34 @@ struct nullable_t
 	}
 
 	nullable_t( nullable_t && other )
+		noexcept( noexcept( Field_Type{std::move(other.field_ref())} ) )
 		:	m_has_value{ other.m_has_value }
 	{
 		if( has_value() )
 			new( m_image_space ) Field_Type{ std::move( other.field_ref() ) };
 	}
 
-	template< typename... Args >
+	// Constructor to be used for initialization of the value.
+	//
+	// Usage example:
+	//
+	// 	const std::string base{ "0123456789xyz" };
+	// 	size_t pos = 5;
+	// 	size_t len = 4;
+	// 	json_dto::nullable_t< std::string > str{ base, pos, len };
+	//
+	template<
+		typename... Args,
+		// NOTE: to avoid calling of this constructor when Args is 'nullable_t &'.
+		typename T = std::enable_if_t<
+			!( 1u == sizeof...(Args) &&
+				std::is_same<
+					std::decay_t< details::meta::head_of_t<Args...> >,
+					nullable_t >::value )
+		>
+	>
 	explicit nullable_t( Args &&... args )
+		noexcept( noexcept( Field_Type{std::forward< Args >( args )...} ) )
 		:	m_has_value{ true }
 	{
 		new( m_image_space ) Field_Type{ std::forward< Args >( args )... };
@@ -967,6 +1038,7 @@ struct nullable_t
 
 	void
 	swap( nullable_t & other )
+		noexcept( noexcept( Field_Type{ std::move(other.field_ref()) } ) )
 	{
 		if( m_has_value && other.m_has_value )
 		{
@@ -996,6 +1068,9 @@ struct nullable_t
 
 	nullable_t &
 	operator = ( nullable_t && other )
+		noexcept(
+			noexcept( nullable_t{ std::move(other) } ) &&
+			noexcept( this->swap( other ) ) )
 	{
 		nullable_t temp{ std::move( other ) };
 		swap( temp );
@@ -1014,6 +1089,9 @@ struct nullable_t
 
 	nullable_t &
 	operator = ( Field_Type && value )
+		noexcept(
+			noexcept( nullable_t{ std::move(value) } ) &&
+			noexcept( this->swap( *this ) ) )
 	{
 		nullable_t temp{ std::move( value ) };
 		swap( temp );
@@ -1090,13 +1168,13 @@ struct nullable_t
 		Field_Type *
 		field_ptr() noexcept
 		{
-			return reinterpret_cast< Field_Type * >( m_image_space );
+			return JSON_DTO_STD_LAUNDER( reinterpret_cast< Field_Type * >( m_image_space ) );
 		}
 
 		const Field_Type *
 		field_ptr() const noexcept
 		{
-			return reinterpret_cast< const Field_Type * >( m_image_space );
+			return JSON_DTO_STD_LAUNDER( reinterpret_cast< const Field_Type * >( m_image_space ) );
 		}
 
 		Field_Type &
@@ -1170,9 +1248,14 @@ read_json_value(
 	const rapidjson::Value & object,
 	Reader_Writer reader_writer = Reader_Writer{} )
 {
-	Field_Type value;
-	reader_writer.read( value, object );
-	f = std::move( value );
+	if( !object.IsNull() )
+	{
+		Field_Type value;
+		reader_writer.read( value, object );
+		f = std::move( value );
+	}
+	else
+		f.reset();
 }
 
 template<
@@ -1186,9 +1269,13 @@ write_json_value(
 	Reader_Writer reader_writer = Reader_Writer{} )
 {
 	if( f )
+	{
 		reader_writer.write( *f, object, allocator );
+	}
 	else
+	{
 		object.SetNull();
+	}
 }
 
 #if defined( JSON_DTO_SUPPORTS_STD_OPTIONAL )
@@ -1526,7 +1613,7 @@ default_on_null( Field_Type & )
  *
  * Calls `reset` for @a f.
  *
- * Is has name `default_on_null` since v.0.3.0.
+ * It has name `default_on_null` since v.0.3.0.
  */
 template< typename Field_Type >
 void
@@ -1887,7 +1974,7 @@ default_reader_writer_t::write(
  * reader_writer type and applies it to every item of container.
  *
  * @note
- * The template `apply_to_content_t` should also be used will
+ * The template `apply_to_content_t` should also be used with
  * `nullable_t` and `std::optional` if an actual reader_writer has
  * to be applied to the content of `nullable_t`/`std::optional`:
  * @code
@@ -1966,6 +2053,1273 @@ struct apply_to_content_t
 		write_json_value( v, to, allocator, m_reader_writer );
 	}
 };
+
+//
+// start of inside_array related stuff
+//
+
+namespace inside_array
+{
+
+namespace details
+{
+
+/*!
+ * @brief Base class for all implementations of array member (de)serializers.
+ *
+ * It's necessary to have a possibility to build a vector of pointers to actual
+ * instances of (de)serializers. All those (de)serializers may have different
+ * types and we want a simple way to work with them without digging into
+ * complex template magic.
+ *
+ * @since v.0.3.3
+ */
+class member_processor_base_t
+{
+public:
+	/*!
+	 * Implementation should process an item with index @a index from array @a from.
+	 *
+	 * @note
+	 * It's guaranteed that @a from is an array.
+	 */
+	virtual void
+	read(
+		rapidjson::SizeType index,
+		const rapidjson::Value & from ) const = 0;
+
+	/*!
+	 * Implementation should assign a default value to the item.
+	 *
+	 * This method is called when actual array in JSON has less items than
+	 * described by a user. All missing items have to receive default values.
+	 */
+	virtual void
+	on_field_not_defined() const = 0;
+
+	/*!
+	 * Implementation should add the next value to arrat @a to.
+	 *
+	 * The implementation must use `to.PushBack` for adding a value.
+	 *
+	 * @note
+	 * It's guaranteed that @a from is an array.
+	 */
+	virtual void
+	write(
+		rapidjson::Value & to,
+		rapidjson::MemoryPoolAllocator<> & allocator ) const = 0;
+};
+
+/*!
+ * @brief A metafunction that specified that all members are mandatory.
+ *
+ * This metafunction will be used by json_dto::inside_array::reader_writer by
+ * default.
+ */
+struct all_members_required_t
+{
+	/*!
+	 * @brief Metafunction that detects if the specified number of fields is valid.
+	 *
+	 * This metafunction always returns true.
+	 *
+	 * @since v.0.3.3
+	 */
+	template< rapidjson::SizeType Members_Count >
+	struct is_valid_members_count
+	{
+		static constexpr bool value = true;
+	};
+
+	/*!
+	 * @brief Helper method that detect number of array members to be read.
+	 *
+	 * @return the value of @a expected_members.
+	 *
+	 * @throw ex_t if @a expected_members is not equal to @a actual_members.
+	 *
+	 * @since v.0.3.3
+	 */
+	JSON_DTO_NODISCARD
+	static rapidjson::SizeType
+	handle_actual_members_count(
+		rapidjson::SizeType expected_members,
+		rapidjson::SizeType actual_members )
+	{
+		if( expected_members != actual_members )
+			throw ex_t{ "inside_array: actual members count ("
+					+ std::to_string(actual_members)
+					+ ") missmatches expected members count ("
+					+ std::to_string(expected_members) + ")"
+				};
+
+		return expected_members;
+	}
+};
+
+/*!
+ * @brief Implementation of a reader-writer or a case when a bunch of fields
+ * has to be placed into an array.
+ *
+ * @note
+ * This implementation always serializes exactly @a Members_Count fields.
+ * Number of fields to be deserialized depends on @a At_Least_Limiter.
+ *
+ * @tparam Members_Count number of fields for (de)serialization.
+ * @tparam At_Least_Limiter a metafunction for work with number of fields.
+ * It's expected to be json_dto::inside_array::details::all_members_required_t,
+ * json_dto::inside_array::at_least or similar.
+ *
+ * @since v.0.3.3
+ */
+template<
+	rapidjson::SizeType Members_Count,
+	typename At_Least_Limiter >
+class reader_writer_t
+{
+	static_assert( 0u != Members_Count, "Members_Count can't be 0" );
+	static_assert(
+			At_Least_Limiter::template is_valid_members_count<Members_Count>::value,
+			"At_Least_Limiter has to allow at least Members_Count items in an array" );
+
+	//! Just a useful type alias.
+	using member_processor_ptr_t = const member_processor_base_t*;
+
+	//! Holder for pointers to actual members processor.
+	/*!
+	 * It's expected that all the pointers remain valid the whole lifetime
+	 * of reader_writer_t object.
+	 */
+	std::array< member_processor_ptr_t, Members_Count > m_member_processors;
+
+	//! Helper method for filling %m_member_processors.
+	template<
+		std::size_t Index,
+		typename Member_Processor >
+	static void
+	set_member_processor_pointer(
+		reader_writer_t & self,
+		Member_Processor && current_processor )
+	{
+		self.m_member_processors[ Index ] = std::addressof(current_processor);
+	}
+
+	//! Helper method for filling %m_member_processors.
+	template<
+		std::size_t Index,
+		typename Member_Processor,
+		typename... Tail >
+	static void
+	set_member_processor_pointer(
+		reader_writer_t & self,
+		Member_Processor && current_processor,
+		Tail && ...tail )
+	{
+		self.m_member_processors[ Index ] = std::addressof(current_processor);
+		set_member_processor_pointer<Index + 1u>( self, std::forward<Tail>(tail)... );
+	}
+
+public:
+	reader_writer_t(
+		const reader_writer_t & ) = default;
+	reader_writer_t(
+		reader_writer_t && ) = default;
+
+	reader_writer_t &
+	operator=( const reader_writer_t & ) = default;
+	reader_writer_t &
+	operator=( reader_writer_t && ) = default;
+
+	//! Initializing constructor.
+	template< typename... Member_Processors >
+	reader_writer_t( Member_Processors && ...processors )
+	{
+		static_assert( Members_Count == sizeof...(processors),
+				"Members_Count should be equal to sizeof...(processors)" );
+
+		set_member_processor_pointer< 0u >(
+				*this,
+				std::forward<Member_Processors>(processors)... );
+	}
+
+	//! Reads members from JSON value.
+	/*!
+	 * It may read less than @a Members_Count members if some are missing
+	 * during deserialization and @a At_Least_Limiter allows that.
+	 *
+	 * @note
+	 * It's expected that @a from is an array. An ex_t is thrown otherwise.
+	 */
+	template< typename Field_Type >
+	void
+	read( Field_Type & /*ignored*/, const rapidjson::Value & from ) const
+	{
+		if( from.IsArray() )
+		{
+			const auto members_to_read =
+					At_Least_Limiter::handle_actual_members_count( Members_Count, from.Size() );
+
+			rapidjson::SizeType i = 0u;
+			for( ; i != members_to_read; ++i )
+				m_member_processors[ i ]->read( i, from );
+
+			for( ; i != Members_Count; ++i )
+				m_member_processors[ i ]->on_field_not_defined();
+		}
+		else
+			throw ex_t{ "reader_writer_t: value is not an array" };
+	}
+
+	//! Writes members into JSON value.
+	/*!
+	 * Changes type of @a to to an array and then adds all members to it.
+	 */
+	template< typename Field_Type >
+	void
+	write(
+		const Field_Type & /*ignored*/,
+		rapidjson::Value & to,
+		rapidjson::MemoryPoolAllocator<> & allocator ) const
+	{
+		to.SetArray();
+		to.Reserve( Members_Count, allocator );
+		for( rapidjson::SizeType i = 0u; i != Members_Count; ++i )
+			m_member_processors[ i ]->write( to, allocator );
+	}
+};
+
+/*!
+ * @brief A mixin to be reused by actual implementations of
+ * member_processor_base.
+ *
+ * It holds:
+ *
+ * - a reference to the field to be (de)serialized,
+ * - a copy of Reader_Writer instance,
+ * - a copy of Validator instance.
+ *
+ * It provides implementations of read_impl() and write_impl() methods.
+ * It's assumed that read_impl() and write_impl() will be called in
+ * the derived classes.
+ *
+ * @tparam Field_Type type of field to be (de)serialized.
+ *
+ * @tparam Reader_Writer type of reader-writer for (de)serialization of
+ * field value.
+ *
+ * @tparam Validator type of validator for checking validity of the field value.
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Reader_Writer,
+	typename Validator >
+class member_processor_common_impl_t
+{
+protected:
+	//! Reference to a field to be (de)serialized.
+	/*!
+	 * @note
+	 * It's expected that this reference remains valid the whole lifetime
+	 * of member_processor_common_impl_t object.
+	 */
+	Field_Type & m_field;
+
+	//! An instance of reader-writer to be used for (de)serialization.
+	const Reader_Writer m_reader_writer;
+
+	//! An instance of validator to be used for checking field value validity.
+	const Validator m_validator;
+
+public:
+	member_processor_common_impl_t(
+		Field_Type & field,
+		Reader_Writer reader_writer,
+		Validator validator )
+		:	m_field{ field }
+		,	m_reader_writer{ std::move(reader_writer) }
+		,	m_validator{ std::move(validator) }
+	{}
+
+	void
+	read_impl(
+		rapidjson::SizeType index,
+		const rapidjson::Value & from ) const
+	{
+		m_reader_writer.read( m_field, from[ index ] );
+		m_validator( m_field );
+	}
+
+	void
+	write_impl(
+		rapidjson::Value & to,
+		rapidjson::MemoryPoolAllocator<> & allocator ) const
+	{
+		// The value has to be passed to the validator before serialization.
+		m_validator( m_field );
+
+		// Now the field can be serialized.
+		rapidjson::Value o;
+		m_reader_writer.write( m_field, o, allocator );
+		to.PushBack( o.Move(), allocator );
+	}
+};
+
+/*!
+ * @brief Simple implementation of member_processor_base.
+ *
+ * Uses a Field_Type{} in implementation of on_field_not_defined().
+ *
+ * @note
+ * The Field_Type has to be DefaultConstructible.
+ *
+ * @tparam Field_Type type of field to be (de)serialized.
+ *
+ * @tparam Reader_Writer type of reader-writer for (de)serialization of
+ * field value.
+ *
+ * @tparam Validator type of validator for checking validity of the field value.
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Reader_Writer,
+	typename Validator >
+class simplest_member_processor_t final
+	:	public member_processor_base_t
+	,	protected member_processor_common_impl_t<Field_Type, Reader_Writer, Validator>
+{
+	using common_impl_t =
+			member_processor_common_impl_t<Field_Type, Reader_Writer, Validator>;
+
+public:
+	simplest_member_processor_t(
+		Field_Type & field,
+		Reader_Writer reader_writer,
+		Validator validator )
+		:	common_impl_t{ field, std::move(reader_writer), std::move(validator) }
+	{}
+
+	void
+	read(
+		rapidjson::SizeType index,
+		const rapidjson::Value & from ) const override
+	{
+		this->read_impl( index, from );
+	}
+
+	void
+	on_field_not_defined() const override
+	{
+		this->m_field = Field_Type{};
+		// The default value has to be passed to the validator too.
+		this->m_validator( this->m_field );
+	}
+
+	void
+	write(
+		rapidjson::Value & to,
+		rapidjson::MemoryPoolAllocator<> & allocator ) const override
+	{
+		this->write_impl( to, allocator );
+	}
+};
+
+/*!
+ * @brief Implementation of member_processor_base that uses a default value
+ * specified by a user.
+ *
+ * Uses a default value specified by a user in implementation of
+ * on_field_not_defined().
+ *
+ * @tparam Field_Type type of field to be (de)serialized.
+ *
+ * @tparam Default_Value_Reference_Holder type for holding a default value.
+ * It's expected to be default_value_const_ref_holder_t<Field_Type> or
+ * default_value_rvalue_ref_holder_t<Field_Type>.
+ *
+ * @tparam Reader_Writer type of reader-writer for (de)serialization of
+ * field value.
+ *
+ * @tparam Validator type of validator for checking validity of the field value.
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Default_Value_Reference_Holder,
+	typename Reader_Writer,
+	typename Validator >
+class member_with_default_value_processor_t final
+	:	public member_processor_base_t
+	,	protected member_processor_common_impl_t<Field_Type, Reader_Writer, Validator>
+{
+	using common_impl_t =
+			member_processor_common_impl_t<Field_Type, Reader_Writer, Validator>;
+
+private:
+	Default_Value_Reference_Holder m_default_value_reference_holder;
+
+public:
+	member_with_default_value_processor_t(
+		Field_Type & field,
+		Default_Value_Reference_Holder default_value_reference_holder,
+		Reader_Writer reader_writer,
+		Validator validator )
+		:	common_impl_t{ field, std::move(reader_writer), std::move(validator) }
+		,	m_default_value_reference_holder{ default_value_reference_holder }
+	{}
+
+	void
+	read(
+		rapidjson::SizeType index,
+		const rapidjson::Value & from ) const override
+	{
+		this->read_impl( index, from );
+	}
+
+	void
+	on_field_not_defined() const override
+	{
+		this->m_field = m_default_value_reference_holder.get();
+
+		// The default value has to be passed to the validator too.
+		this->m_validator( this->m_field );
+	}
+
+	void
+	write(
+		rapidjson::Value & to,
+		rapidjson::MemoryPoolAllocator<> & allocator ) const override
+	{
+		this->write_impl( to, allocator );
+	}
+};
+
+/*!
+ * @brief Helper class for holding a "const reference" to the default value.
+ *
+ * This class is used when the default value has to be copied, not moved out.
+ *
+ * @note
+ * The m_default_value may be a "reference" to a temporary value.
+ * It's assumed that this "reference" remains valid the whole life of
+ * a default_value_const_ref_holder_t object.
+ *
+ * @since v.0.3.3
+ */
+template< typename Field_Type >
+class default_value_const_ref_holder_t
+{
+	const Field_Type * m_default_value;
+
+public:
+	explicit default_value_const_ref_holder_t( const Field_Type & default_value )
+		:	m_default_value{ std::addressof(default_value) }
+	{}
+
+	JSON_DTO_NODISCARD
+	const Field_Type &
+	get() const noexcept { return *m_default_value; }
+};
+
+/*!
+ * @brief Helper class for holding a "rvalue reference" to the default value.
+ *
+ * This class is used when the default value has to be moved out, not copied.
+ *
+ * @note
+ * The m_default_value may be a "reference" to a temporary value.
+ * It's assumed that this "reference" remains valid the whole life of
+ * a default_value_rvalue_ref_holder_t object.
+ *
+ * @since v.0.3.3
+ */
+template< typename Field_Type >
+class default_value_rvalue_ref_holder_t
+{
+	Field_Type * m_default_value;
+
+public:
+	explicit default_value_rvalue_ref_holder_t( Field_Type && default_value )
+		:	m_default_value{ std::addressof(default_value) }
+	{}
+
+	JSON_DTO_NODISCARD
+	Field_Type &&
+	get() const noexcept { return std::move(*m_default_value); }
+};
+
+} /* namespace inside_array::details */
+
+/*!
+ * @brief A metafunction that specified a number of mandatory member count.
+ *
+ * Usage example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * 	int d;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer<
+ * 					// At least two members have to be present.
+ * 					// Otherwise an exception will be thrown.
+ * 					json_dto::inside_array::at_least<2>
+ * 				>(
+ * 					// Mandatory member. Has to be present during deserialization.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Mandatory member. Has to be present during deserialization.
+ * 					json_dto::inside_array::member(x.b),
+ * 					// Optional member. A default value will be used if it's missing during deserialization.
+ * 					json_dto::inside_array::member(x.c),
+ * 					// Optional member. A default value will be used if it's missing during deserialization.
+ * 					json_dto::inside_array::member(x.d)
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @note
+ * This metafunction will lead to run-time exceptions if there are more items in
+ * an array than described fields:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer<
+ * 					json_dto::inside_array::at_least<1>
+ * 				>(
+ * 					json_dto::inside_array::member(x.a),
+ * 					json_dto::inside_array::member(x.b),
+ * 					json_dto::inside_array::member(x.c)
+ * 				), "x", x );
+ * 	}
+ * };
+ * ...
+ * // An exception will be thrown here, because the array in JSON contains
+ * // more items than described members.
+ * auto obj = json_dto::from_json<outer>(R"({"x":[1, 2, 3, 4, 5]})");
+ * @endcode
+ *
+ * @since v.0.3.3
+ */
+template< std::size_t Number >
+struct at_least
+{
+	/*!
+	 * @brief Metafunction that detects if Number is not greater than Members_Count.
+	 *
+	 * The at_least metafunction can be used with
+	 * json_dto::inside_array::reader_writer only if Number is less than or
+	 * equal to Members_Count. Otherwise the at_least limitation can't be used.
+	 *
+	 * @since v.0.3.3
+	 */
+	template< rapidjson::SizeType Members_Count >
+	struct is_valid_members_count
+	{
+		static constexpr bool value = (Number <= Members_Count);
+	};
+
+	/*!
+	 * @brief Helper method that detect number of array members to be read.
+	 *
+	 * @throw ex_t if @a actual_members is less than Number.
+	 * @throw ex_t if @a actual_members is greater than @a expected_members.
+	 *
+	 * @since v.0.3.3
+	 */
+	JSON_DTO_NODISCARD
+	static rapidjson::SizeType
+	handle_actual_members_count(
+		rapidjson::SizeType expected_members,
+		rapidjson::SizeType actual_members )
+	{
+		if( actual_members < Number )
+			throw ex_t{ "inside_array: actual members count ("
+					+ std::to_string(actual_members)
+					+ ") is less than expected mandatory members count ("
+					+ std::to_string(Number) + ")"
+				};
+		if( expected_members < actual_members )
+			throw ex_t{ "inside_array: actual members count ("
+					+ std::to_string(actual_members)
+					+ ") is greater than expected members count ("
+					+ std::to_string(Number) + ")"
+				};
+
+		return actual_members;
+	}
+};
+
+/*!
+ * @brief A special reader-writer that allows to store several values into an array
+ * and read from an array.
+ *
+ * Usage example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	std::string b;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 			json_dto::inside_array::reader_writer(
+ * 				// All fields to be placed inside an array have
+ * 				// to be enumerated here. The order is important.
+ * 				json_dto::inside_array::member(x.a),
+ * 				json_dto::inside_array::member(x.b) ),
+ * 			"x", x);
+ * 	}
+ * };
+ *
+ * auto obj = json_dto::from_json<outer>(R"({"x":[1, "two"]})");
+ * assert(obj.x.a == 1);
+ * assert(obj.x.b == "two");
+ *
+ * obj.x.a = 42;
+ * obj.x.b = "Hello, World";
+ * auto json = json_dto::to_json(obj);
+ * assert(json == R"({"x":[42,"Hello, World"]})");
+ * @endcode
+ *
+ * By default this reader_writer requires that all members are present during
+ * deserialization. If some members may be absent then `at_least` limit has to
+ * be specified:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * 	int d;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer<
+ * 					// At least two members have to be present.
+ * 					// Otherwise an exception will be thrown.
+ * 					json_dto::inside_array::at_least<2>
+ * 				>(
+ * 					json_dto::inside_array::member(x.a),
+ * 					json_dto::inside_array::member(x.b),
+ * 					json_dto::inside_array::member(x.c),
+ * 					json_dto::inside_array::member(x.d)
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ *
+ * const auto o1 = json_dto::from_json<outer>(R"({"x":[1,2,3]})");
+ * // o1.x.d will be 0.
+ *
+ * const auto o2 = json_dto::from_json<outer>(R"({"x":[1,2]})");
+ * // o2.x.c and o2.x.d will be 0.
+ * @endcode
+ *
+ * This reader-writer can be used for manual (de)serialization of tuples:
+ * @code
+ * struct outer {
+ * 	std::tuple<int, std::string> x;
+ *
+ * 	template<typename Io> json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 			json_dto::inside_array::reader_writer(
+ * 				json_dto::inside_array::member(std::get<0>(x)),
+ * 				json_dto::inside_array::member(std::get<1>(x))),
+ * 			"x", x);
+ * 	}
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::mandatory(), json_dto::optional(),
+ * json_dto::optional_no_default() and similar binders.
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename At_Least_Limiter = inside_array::details::all_members_required_t,
+	typename... Member_Processors >
+JSON_DTO_NODISCARD
+auto
+reader_writer( Member_Processors && ...processors )
+{
+	return details::reader_writer_t<
+			sizeof...(Member_Processors),
+			At_Least_Limiter
+		>( std::forward<Member_Processors>(processors)... );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Usage example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * 	int d;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<2> >(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.b, json_dto::min_max_constraint(-10, +10)),
+ * 					// Optional member. Will be initialized by int{} if it's absent
+ * 					// during deserialiaztion.
+ * 					json_dto::inside_array::member(x.c),
+ * 					// Optional member. Will be initialized by int{} if it's absent
+ * 					// during deserialiaztion.
+ * 					json_dto::inside_array::member(x.d, json_dto::one_of_constraint({2, 4, 6, 10, 20, 40})
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member( Field_Type & field, Validator validator = Validator{} )
+{
+	return details::simplest_member_processor_t<
+			Field_Type,
+			default_reader_writer_t,
+			Validator
+		>( field, default_reader_writer_t{}, std::move(validator) );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Allows to specify a default value if item is not present in an array
+ * on deserialization.
+ *
+ * Usage example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * 	int d;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<2>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.b, json_dto::min_max_constraint(-10, +10)),
+ * 					// Optional member. It will be initialized by 5 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member_with_default_value(x.c, 5),
+ * 					// Optional member. It will be initialized by 6 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member(x.d, 6, json_dto::one_of_constraint({2, 4, 6, 10, 20, 40})
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @note
+ * This overload is used when the default value is represented as ordinary
+ * const- or non-const reference. A copy of default value will be made if the member
+ * is missing during deserialization.
+ * For example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	some_complex_type b;
+ * 	another_complex_type c;
+ * 	...
+ *
+ * 	static const some_complex_type default_b;
+ * 	static another_complex_type default_c;
+ * };
+ * const some_complex_type inner::default_b{...};
+ * another_complex_type inner::default_c{...};
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<2>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Optional member. A copy of inner::default_b will be made if
+ * 					// inner::b is missing during deserialization.
+ * 					json_dto::inside_array::member_with_default_value(x.b, inner::default_b),
+ * 					// Optional member. A copy of inner::default_c will be made if
+ * 					// inner::c is missing during deserialization.
+ * 					json_dto::inside_array::member(x.c, inner::default_c)
+ * 				),
+ * 				"x", x )
+ * 			;
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member_with_default_value(
+	Field_Type & field,
+	const Field_Type & default_value,
+	Validator validator = Validator{} )
+{
+	using default_holder_t = details::default_value_const_ref_holder_t<Field_Type>;
+
+	return details::member_with_default_value_processor_t<
+			Field_Type,
+			default_holder_t,
+			default_reader_writer_t,
+			Validator
+		>( field,
+				default_holder_t{ default_value },
+				default_reader_writer_t{},
+				std::move(validator) );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Allows to specify a default value if item is not present in an array
+ * on deserialization.
+ *
+ * Usage example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * 	int c;
+ * 	int d;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<2>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.b, json_dto::min_max_constraint(-10, +10)),
+ * 					// Optional member. It will be initialized by 5 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member_with_default_value(x.c, 5),
+ * 					// Optional member. It will be initialized by 6 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member(x.d, 6, json_dto::one_of_constraint({2, 4, 6, 10, 20, 40})
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @note
+ * This overload is used when the default value is represented as a
+ * rvalue-reference (that means that the default value is a temporary object).
+ * The value of this temporary object wlll be moved into the member if the
+ * member is missing during deserialization.
+ * For example:
+ * @code
+ * struct inner {
+ * 	int a;
+ * 	some_complex_type b;
+ * 	another_complex_type c;
+ * 	...
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<2>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Optional member. Value of this temporary object will be used if
+ * 					// inner::b is missing during deserialization.
+ * 					json_dto::inside_array::member_with_default_value(x.b, some_complex_type{...}),
+ * 					// Optional member. Value of this temporary object will be used if
+ * 					// inner::c is missing during deserialization.
+ * 					json_dto::inside_array::member(x.c, another_complex_type{...})
+ * 				),
+ * 				"x", x )
+ * 			;
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member_with_default_value(
+	Field_Type & field,
+	Field_Type && default_value,
+	Validator validator = Validator{} )
+{
+	using default_holder_t = details::default_value_rvalue_ref_holder_t<Field_Type>;
+
+	return details::member_with_default_value_processor_t<
+			Field_Type,
+			default_holder_t,
+			default_reader_writer_t,
+			Validator
+		>( field,
+				default_holder_t{ std::move(default_value) },
+				default_reader_writer_t{},
+				std::move(validator) );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Allows to specify a custom reader-writer for (de)serialization of the member.
+ *
+ * Usage example:
+ * @code
+ * struct my_special_int_reader_writer {...};
+ *
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<1> >(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(my_special_int_reader_writer{}, x.a),
+ * 					// Optional member. Will be initialized by int{} if it's absent
+ * 					// during deserialiaztion.
+ * 					json_dto::inside_array::member(
+ * 						my_special_int_reader_writer{},
+ * 						x.d,
+ * 						json_dto::one_of_constraint({2, 4, 6, 10, 20, 40})
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Reader_Writer,
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member(
+	Reader_Writer && reader_writer,
+	Field_Type & field,
+	Validator validator = Validator{} )
+{
+	return details::simplest_member_processor_t<
+			Field_Type,
+			Reader_Writer,
+			Validator
+		>( field, std::forward<Reader_Writer>(reader_writer), std::move(validator) );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Allows to specify a custom reader-writer for (de)serialization of the member.
+ *
+ * Allows to specify a default value if item is not present in an array
+ * on deserialization.
+ *
+ * Usage example:
+ * @code
+ * struct my_special_int_reader_writer {...};
+ *
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<1>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(my_special_int_reader_writer{}, x.a),
+ * 					// Optional member. It will be initialized by 5 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member_with_default_value(
+ * 						my_special_int_reader_writer{},
+ * 						x.b, 5),
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @note
+ * This overload is used when the default value is represented as ordinary
+ * const- or non-const reference. A copy of default value will be made if the member
+ * is missing during deserialization.
+ * For example:
+ * @code
+ * struct my_special_some_complex_type_reader_writer {...}
+ *
+ * struct inner {
+ * 	int a;
+ * 	some_complex_type b;
+ * 	...
+ *
+ * 	static const some_complex_type default_b;
+ * };
+ * const some_complex_type inner::default_b{...};
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<1>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Optional member. A copy of inner::default_b will be made if
+ * 					// inner::b is missing during deserialization.
+ * 					json_dto::inside_array::member_with_default_value(
+ * 						my_special_some_complex_type_reader_writer{},
+ * 						x.b,
+ * 						inner::default_b),
+ * 				),
+ * 				"x", x )
+ * 			;
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Reader_Writer,
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member_with_default_value(
+	Reader_Writer && reader_writer,
+	Field_Type & field,
+	const Field_Type & default_value,
+	Validator validator = Validator{} )
+{
+	using default_holder_t = details::default_value_const_ref_holder_t<Field_Type>;
+
+	return details::member_with_default_value_processor_t<
+			Field_Type,
+			default_holder_t,
+			Reader_Writer,
+			Validator
+		>( field,
+				default_holder_t{ default_value },
+				std::forward<Reader_Writer>(reader_writer),
+				std::move(validator) );
+}
+
+/*!
+ * @brief A special function that describes one member of an array
+ * representation.
+ *
+ * Allows to specify a custom reader-writer for (de)serialization of the member.
+ *
+ * Allows to specify a default value if item is not present in an array
+ * on deserialization.
+ *
+ * Usage example:
+ * @code
+ * struct my_special_int_reader_writer {...};
+ *
+ * struct inner {
+ * 	int a;
+ * 	int b;
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<1>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(my_special_int_reader_writer{}, x.a),
+ * 					// Optional member. It will be initialized by 5 if it's absent during
+ * 					// deserialization.
+ * 					json_dto::inside_array::member_with_default_value(
+ * 						my_special_int_reader_writer{},
+ * 						x.b, 5),
+ * 				),
+ * 				"x", x )
+ * 			;
+ * 	}
+ * };
+ * @endcode
+ *
+ * @note
+ * This overload is used when the default value is represented as a
+ * rvalue-reference (that means that the default value is a temporary object).
+ * The value of this temporary object wlll be moved into the member if the
+ * member is missing during deserialization.
+ * For example:
+ * @code
+ * struct my_special_some_complex_type_reader_writer {...}
+ *
+ * struct inner {
+ * 	int a;
+ * 	some_complex_type b;
+ * 	...
+ * };
+ *
+ * struct outer {
+ * 	inner x;
+ *
+ * 	template<typename Io> void json_io(Io & io) {
+ * 		io & json_dto::mandatory(
+ * 				json_dto::inside_array::reader_writer< json_dto::inside_array::at_least<1>(
+ * 					// Mandatory member.
+ * 					json_dto::inside_array::member(x.a),
+ * 					// Optional member. The value of a temporary object will be moved
+ * 					// into inner::b if inner::b is missing during deserialization.
+ * 					json_dto::inside_array::member_with_default_value(
+ * 						my_special_some_complex_type_reader_writer{},
+ * 						x.b,
+ * 						some_complex_type{...}),
+ * 				),
+ * 				"x", x )
+ * 			;
+ * };
+ * @endcode
+ *
+ * @attention
+ * This function returns a temporary object that should not be stored anywhere and
+ * must be passed directly to json_dto::inside_array::reader_writer().
+ *
+ * @since v.0.3.3
+ */
+template<
+	typename Reader_Writer,
+	typename Field_Type,
+	typename Validator = empty_validator_t >
+JSON_DTO_NODISCARD
+auto
+member_with_default_value(
+	Reader_Writer && reader_writer,
+	Field_Type & field,
+	Field_Type && default_value,
+	Validator validator = Validator{} )
+{
+	using default_holder_t = details::default_value_rvalue_ref_holder_t<Field_Type>;
+
+	return details::member_with_default_value_processor_t<
+			Field_Type,
+			default_holder_t,
+			Reader_Writer,
+			Validator
+		>( field,
+				default_holder_t{ std::move(default_value) },
+				std::forward<Reader_Writer>(reader_writer),
+				std::move(validator) );
+}
+
+} /* namespace inside_array */
+
+//
+// end of inside_array related stuff
+//
 
 //
 // binder_data_holder_t
@@ -3039,15 +4393,66 @@ operator << ( json_output_t & o, const Dto & v )
 // to_json
 //
 
+/*!
+ * @brief Helper function for serialization of an object to string.
+ */
 template< typename Dto >
+JSON_DTO_NODISCARD
 std::string
-to_json( const Dto & dto )
+to_json(
+	//! Object to be serialized.
+	const Dto & dto )
 {
 	rapidjson::Document output_doc;
 	json_output_t jout{
 		output_doc, output_doc.GetAllocator() };
 
 	jout << dto;
+
+	rapidjson::StringBuffer buffer;
+	rapidjson::Writer< rapidjson::StringBuffer > writer( buffer );
+	const bool result = output_doc.Accept( writer );
+	if( !result )
+		throw ex_t{ "to_json: output_doc.Accept(writer) returns false" };
+
+	return { buffer.GetString(), buffer.GetSize() };
+}
+
+/*!
+ * @brief Helper function for serialization of an object to string
+ * with a custom reader-writer.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * some_data data_to_pack{...};
+ * auto json_string = json_dto::to_json(some_data_reader_writer{}, data_to_pack);
+ * @endcode
+ *
+ * @since v.0.3.4
+ */
+template< typename Reader_Writer, typename Dto >
+JSON_DTO_NODISCARD
+std::string
+to_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Object to be serialized.
+	const Dto & dto )
+{
+	rapidjson::Document output_doc;
+
+	reader_writer.write( dto, output_doc, output_doc.GetAllocator() );
 
 	rapidjson::StringBuffer buffer;
 	rapidjson::Writer< rapidjson::StringBuffer > writer( buffer );
@@ -3113,9 +4518,17 @@ struct pretty_writer_params_t
 	}
 };
 
+/*!
+ * @brief Helper function for serialization of an object to string
+ * by using pretty_writer.
+ */
 template< typename Dto >
 std::string
-to_json( const Dto & dto, pretty_writer_params_t writer_params )
+to_json(
+	//! Object to be serialized.
+	const Dto & dto,
+	//! Parameters for pretty_writer.
+	pretty_writer_params_t writer_params )
 {
 	rapidjson::Document output_doc;
 	json_output_t jout{
@@ -3139,6 +4552,61 @@ to_json( const Dto & dto, pretty_writer_params_t writer_params )
 	return { buffer.GetString(), buffer.GetSize() };
 }
 
+/*!
+ * @brief Helper function for serialization of an object to string
+ * by using pretty_writer and a custom Reader-Writer.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * some_data data_to_pack{...};
+ * auto json_string = json_dto::to_json( some_data_reader_writer{}, data_to_pack,
+ * 	json_dto::pretty_writer_params_t{}.indent_char(' ').indent_char_count(3) );
+ * @endcode
+ *
+ * @since v.0.3.4
+ */
+template< typename Reader_Writer, typename Dto >
+std::string
+to_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Object to be serialized.
+	const Dto & dto,
+	//! Parameters for pretty_writer.
+	pretty_writer_params_t writer_params )
+{
+	rapidjson::Document output_doc;
+
+	reader_writer.write( dto, output_doc, output_doc.GetAllocator() );
+
+	rapidjson::StringBuffer buffer;
+
+	rapidjson::PrettyWriter< rapidjson::StringBuffer > writer( buffer );
+	writer.SetIndent(
+			writer_params.m_indent_char,
+			writer_params.m_indent_char_count );
+	writer.SetFormatOptions(
+			writer_params.m_format_options );
+
+	const bool result = output_doc.Accept( writer );
+	if( !result )
+		throw ex_t{ "to_json: output_doc.Accept(writer) returns false" };
+
+	return { buffer.GetString(), buffer.GetSize() };
+}
+
+//FIXME: document this!
 inline void
 check_document_parse_status(
 	const rapidjson::Document & document )
@@ -3153,13 +4621,35 @@ check_document_parse_status(
 }
 
 //
+// NOTE: there are a lot of overloads for from_json functions.
+// It's because we have to distinguish three different cases:
+//
+// - const char *;
+// - string_ref_t;
+// - std::string.
+//
+// Unfortunately, we can't limit himself to just one overload with
+// string_ref_t, because RapidJSON's GenericStringRef has no constructor
+// that accepts std::string. So we have to have overloads for string_ref_t
+// and for std::string. But it's not enough because if const char* is
+// passed to from_json, then compiler can't decide which overload to
+// select (string_ref_t and std::string can be implicitly constructed
+// from const char *).
+//
+
+//
 // from_json
 //
 
 //! Helper function to read DTO from already parsed document.
+//!
+//! @note
+//! Type @a Type is required to be DefaultConstructible.
 template< typename Type >
 Type
-from_json( const rapidjson::Value & json )
+from_json(
+	//! JSON representation of value to be extracted.
+	const rapidjson::Value & json )
 {
 	json_input_t jin{ json };
 
@@ -3170,24 +4660,119 @@ from_json( const rapidjson::Value & json )
 	return result;
 }
 
+/*!
+ * @brief Helper function to read DTO from already parsed document by using a
+ * custom Reader_Writer object.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * rapidjson::Document & doc = ...;
+ * auto unpacked_data = json_dto::from_json<some_data>( some_data_reader_writer{}, doc["SomeData"] );
+ * @endcode
+ *
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
+ * @since v.0.3.4
+ */
+template< typename Type, typename Reader_Writer >
+Type
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! JSON representation of value to be extracted.
+	const rapidjson::Value & json )
+{
+	Type result{};
+
+	reader_writer.read( result, json );
+
+	return result;
+}
+
 //! Helper function to read from already parsed document to already
 //! constructed DTO.
+//!
+//! @note
+//! The state of @a o object is not defined if an error occurs.
 template< typename Type >
 void
-from_json( const rapidjson::Value & json, Type & o )
+from_json(
+	//! JSON representation of value to be extracted.
+	const rapidjson::Value & json,
+	//! The receiver of the extracted value.
+	Type & o )
 {
 	json_input_t jin{ json };
 
 	jin >> o;
 }
 
-//! Helper function to read DTO from json-string in form of string_ref.
 /*!
- * @since v.0.2.9
+ * Helper function to read DTO from already parsed document by
+ * using a custom Reader_Writer object.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * rapidjson::Document & doc = ...;
+ * some_data unpacked_data;
+ * json_dto::from_json( some_data_reader_writer{}, doc["SomeData"], unpacked_data );
+ * @endcode
+ *
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ *
+ * @since v.0.3.4
  */
-template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+template< typename Type, typename Reader_Writer >
+void
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! JSON representation of value to be extracted.
+	const rapidjson::Value & json,
+	//! The receiver of the extracted value.
+	Type & o )
+{
+	reader_writer.read( o, json );
+}
+
+//! Helper function to read DTO from json-string in form of string_ref.
+//!
+//! @note
+//! Type @a Type is required to be DefaultConstructible.
+//!
+//! @since v.0.2.9
+template<
+	typename Type,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
 Type
-from_json( const string_ref_t & json )
+from_json(
+	//! Value to be parsed.
+	const string_ref_t & json )
 {
 	rapidjson::Document document;
 
@@ -3198,10 +4783,65 @@ from_json( const string_ref_t & json )
 	return from_json<Type>( document );
 }
 
-//! Helper function to read DTO from json-string.
-template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+/*!
+ * @brief Helper function to read DTO from json-string in form of string_ref
+ * with a custom Reader-Writer object.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * jsom_dto::string_ref_t json_string = ...;
+ * auto unpacked_data = json_dto::from_json<some_data>( some_data_reader_writer{}, json_string );
+ * @endcode
+ *
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
 Type
-from_json( const std::string & json )
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const string_ref_t & json )
+{
+	rapidjson::Document document;
+
+	document.Parse< Rapidjson_Parseflags >( json.s, json.length );
+
+	check_document_parse_status( document );
+
+	return from_json<Type, Reader_Writer>( reader_writer, document );
+}
+
+//! Helper function to read DTO from json-string.
+//!
+//! @note
+//! Type @a Type is required to be DefaultConstructible.
+template<
+	typename Type,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
+Type
+from_json(
+	//! Value to be parsed.
+	const std::string & json )
 {
 	return from_json< Type, Rapidjson_Parseflags >( make_string_ref(json) );
 }
@@ -3211,13 +4851,89 @@ from_json( const std::string & json )
  * This version reads the JSON content from a raw char pointer
  * (it's assumed that it is a null-terminated string).
  *
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
  * @since v.0.2.9
  */
-template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+template<
+	typename Type,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
 Type
-from_json( const char * json )
+from_json(
+	//! Value to be parsed.
+	const char * json )
 {
 	return from_json< Type, Rapidjson_Parseflags >( make_string_ref(json) );
+}
+
+//! Helper function to read DTO from json-string.
+/*!
+ * This version reads the JSON content from a raw char pointer
+ * (it's assumed that it is a null-terminated string).
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * const char * json_string = ...;
+ * auto unpacked_data = json_dto::from_json<some_data>( some_data_reader_writer{}, json_string );
+ * @endcode
+ *
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
+Type
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const char * json )
+{
+	return from_json< Type, Reader_Writer, Rapidjson_Parseflags >(
+			reader_writer, make_string_ref(json) );
+}
+
+//! Helper function to read DTO from json-string.
+/*!
+ * This version reads the JSON content from a std::string.
+ *
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
+Type
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const std::string & json )
+{
+	return from_json< Type, Reader_Writer, Rapidjson_Parseflags >(
+			reader_writer, make_string_ref(json) );
 }
 
 //! Helper function to read an already instantiated DTO.
@@ -3225,11 +4941,20 @@ from_json( const char * json )
  * This version reads the JSON content from a string_ref_t (aka
  * rapidjson::Value::StringRefType) object.
  *
+ * @note
+ * The state of @a o object is undefined if an error occurs.
+ *
  * @since v.0.2.9
  */
-template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+template<
+	typename Type,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
 void
-from_json( const string_ref_t & json, Type & o )
+from_json(
+	//! Value to be parsed.
+	const string_ref_t & json,
+	//! The receiver of the extracted value.
+	Type & o )
 {
 	rapidjson::Document document;
 
@@ -3240,12 +4965,113 @@ from_json( const string_ref_t & json, Type & o )
 	from_json( document, o );
 }
 
-//! Helper function to read an already instantiated DTO.
-template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+//! Helper function to read an already instantiated DTO with
+//! a custom Reader-Writer object.
+/*!
+ * This version reads the JSON content from a string_ref_t (aka
+ * rapidjson::Value::StringRefType) object.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * json_dto::string_ref_t json_string = ...;
+ * some_data unpacked_data;
+ * json_dto::from_json( some_data_reader_writer{}, json_string, unpacked_data );
+ * @endcode
+ *
+ * @note
+ * The state of @a o object is undefined if an error occurs.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
 void
-from_json( const std::string & json, Type & o )
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const string_ref_t & json,
+	//! The receiver of the extracted value.
+	Type & o )
+{
+	rapidjson::Document document;
+
+	document.Parse< Rapidjson_Parseflags >( json.s, json.length );
+
+	check_document_parse_status( document );
+
+	from_json( reader_writer, document, o );
+}
+
+//! Helper function to read an already instantiated DTO.
+//!
+//! @note
+//! The state of @a o object is not defined if an error occurs.
+template<
+	typename Type,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+void
+from_json(
+	//! Value to be parsed.
+	const std::string & json,
+	//! The receiver of the extracted value.
+	Type & o )
 {
 	from_json< Type, Rapidjson_Parseflags >( make_string_ref(json), o );
+}
+
+//! Helper function to read an already instantiated DTO.
+/*!
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * const std::string json_string = ...;
+ * auto unpacked_data = json_dto::from_json<some_data>( some_data_reader_writer{}, json_string );
+ * @endcode
+ *
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+void
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const std::string & json,
+	//! The receiver of the extracted value.
+	Type & o )
+{
+	from_json< Type, Reader_Writer, Rapidjson_Parseflags >(
+			reader_writer, make_string_ref(json), o );
 }
 
 //! Helper function to read an already instantiated DTO.
@@ -3253,13 +5079,64 @@ from_json( const std::string & json, Type & o )
  * This version reads the JSON content from a raw char pointer
  * (it's assumed that it is a null-terminated string).
  *
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ *
  * @since v.0.2.9
  */
 template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
 void
-from_json( const char * json, Type & o )
+from_json(
+	//! Value to be parsed.
+	const char * json,
+	//! The receiver of the extracted value.
+	Type & o )
 {
 	from_json< Type, Rapidjson_Parseflags >( make_string_ref(json), o );
+}
+
+/*!
+ * @brief Helper function to read an already instantiated DTO with
+ * a custom Reader-Writer.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * const char * json_string = ...;
+ * some_data unpacked_data;
+ * json_dto::from_json( some_data_reader_writer{}, json_string, unpacked_data );
+ * @endcode
+ *
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+void
+from_json(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Value to be parsed.
+	const char * json,
+	//! The receiver of the extracted value.
+	Type & o )
+{
+	from_json< Type, Reader_Writer, Rapidjson_Parseflags >(
+			reader_writer, make_string_ref(json), o );
 }
 
 /*!
@@ -3271,13 +5148,68 @@ from_json( const char * json, Type & o )
  */
 template< typename Type >
 void
-to_stream( std::ostream & to, const Type & type )
+to_stream(
+	//! Target stream.
+	std::ostream & to,
+	//! Value to be serialized.
+	const Type & type )
 {
 	rapidjson::Document output_doc;
 	json_dto::json_output_t jout{
 		output_doc, output_doc.GetAllocator() };
 
 	jout << type;
+
+	rapidjson::OStreamWrapper wrapper{ to };
+	rapidjson::Writer< rapidjson::OStreamWrapper > writer{ wrapper };
+
+	const bool result = output_doc.Accept( writer );
+	if( !result )
+		throw ex_t{ "to_stream: output_doc.Accept(writer) returns false" };
+}
+
+/*!
+ * @brief Serialize an object into specified stream with custom
+ * Reader-Writer object.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * some_data data_to_pack{...};
+ * json_dto::to_stream(some_data_reader_writer{}, std::cout, data_to_pack);
+ * @endcode
+ *
+ * @note
+ * Default formatting will be used. If one needs pretty-formatted
+ * output then another overload has to be used.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer >
+void
+to_stream(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Target stream.
+	std::ostream & to,
+	//! Value to be serialized.
+	const Type & type )
+{
+	rapidjson::Document output_doc;
+
+	reader_writer.write( type, output_doc, output_doc.GetAllocator() );
 
 	rapidjson::OStreamWrapper wrapper{ to };
 	rapidjson::Writer< rapidjson::OStreamWrapper > writer{ wrapper };
@@ -3321,9 +5253,73 @@ to_stream(
 		throw ex_t{ "to_stream: output_doc.Accept(writer) returns false" };
 }
 
+/*!
+ * @brief Serialize an object into specified stream with 
+ * custom Reader-Writer object and using pretty-writer.
+ *
+ * Usage example:
+ * @code
+ * class some_data {
+ * public:
+ * 	...
+ * 	template<typename Io> void json_io(Io & io) {...}
+ * };
+ * struct some_data_reader_writer {
+ * 	void read( some_data & obj, const rapidjson::Value & from ) const {...}
+ *
+ * 	void write( const some_data & obj, rapidjson::Value & to, rapidjson::MemoryPoolAllocator<> & allocator ) const {...}
+ * };
+ * ...
+ * some_data data_to_pack{...};
+ * json_dto::to_stream( some_data_reader_writer{}, std::cout, data_to_pack,
+ * 	json_dto::pretty_writer_params_t{}.indent_char(' ').indent_char_count(3) );
+ * @endcode
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer >
+void
+to_stream(
+	//! The reader implementing serialization.
+	const Reader_Writer & reader_writer,
+	//! The target stream.
+	std::ostream & to,
+	//! Object to be serialized.
+	const Type & type,
+	//! Parameters for pretty-writer.
+	pretty_writer_params_t writer_params )
+{
+	rapidjson::Document output_doc;
+
+	reader_writer.write( type, output_doc, output_doc.GetAllocator() );
+
+	rapidjson::OStreamWrapper wrapper{ to };
+	rapidjson::PrettyWriter< rapidjson::OStreamWrapper > writer{ wrapper };
+	writer.SetIndent(
+			writer_params.m_indent_char,
+			writer_params.m_indent_char_count );
+	writer.SetFormatOptions(
+			writer_params.m_format_options );
+
+	const bool result = output_doc.Accept( writer );
+	if( !result )
+		throw ex_t{ "to_stream: output_doc.Accept(writer) returns false" };
+}
+
+//! Helper function to read an already instantiated DTO.
+/*!
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ */
 template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
 void
-from_stream( std::istream & from, Type & o )
+from_stream(
+	//! Source stream.
+	std::istream & from,
+	//! The receiver of the extracted value.
+	Type & o )
 {
 	rapidjson::IStreamWrapper wrapper{ from };
 
@@ -3337,12 +5333,76 @@ from_stream( std::istream & from, Type & o )
 	jin >> o;
 }
 
+//! Helper function to read an already instantiated DTO with
+//! custom Reader-Writer.
+/*!
+ * @note
+ * The state of @a o object is not defined if an error occurs.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+void
+from_stream(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Source stream.
+	std::istream & from,
+	//! The receiver of the extracted value.
+	Type & o)
+{
+	rapidjson::IStreamWrapper wrapper{ from };
+
+	rapidjson::Document document;
+	document.ParseStream< Rapidjson_Parseflags >( wrapper );
+	check_document_parse_status( document );
+
+	reader_writer.read( o, document );
+}
+
+//! Helper function to read DTO from a stream.
+/*!
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ */
 template< typename Type, unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
 Type
-from_stream( std::istream & from )
+from_stream(
+	//! Source stream.
+	std::istream & from )
 {
 	Type result;
 	from_stream< Type, Rapidjson_Parseflags >( from, result );
+
+	return result;
+}
+
+//! Helper function to read DTO from a stream with custom Reader-Writer.
+/*!
+ * @note
+ * Type @a Type is required to be DefaultConstructible.
+ *
+ * @since v.0.3.4
+ */
+template<
+	typename Type,
+	typename Reader_Writer,
+	unsigned Rapidjson_Parseflags = rapidjson::kParseDefaultFlags >
+JSON_DTO_NODISCARD
+Type
+from_stream(
+	//! Custom Reader_Writer to be used.
+	const Reader_Writer & reader_writer,
+	//! Source stream.
+	std::istream & from )
+{
+	Type result;
+	from_stream< Type, Reader_Writer, Rapidjson_Parseflags >(
+			reader_writer, from, result );
 
 	return result;
 }
