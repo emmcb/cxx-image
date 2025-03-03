@@ -15,12 +15,13 @@
 #pragma once
 
 #include "ExifMetadata.h"
+#include "ImageLayout.h"
+#include "PixelType.h"
 
-#include "image/ImageLayout.h"
-#include "image/PixelType.h"
 #include "math/ColorSpace.h"
 #include "math/DynamicMatrix.h"
 #include "math/Matrix.h"
+#include "math/Rect.h"
 
 #include <cstdint>
 #include <optional>
@@ -54,13 +55,6 @@ struct ImageMetadata final {
         float gainB; ///< White balance B/G scale
     };
 
-    struct ROI final {
-        float x;      ///< x for ROI
-        float y;      ///< y for ROI
-        float width;  ///< width for ROI
-        float height; ///< height for ROI
-    };
-
     struct SemanticMask final {
         std::string name;    ///< Identification string
         SemanticLabel label; ///< Semantic label
@@ -81,9 +75,9 @@ struct ImageMetadata final {
     };
 
     struct CameraControls final {
-        std::optional<WhiteBalance> whiteBalance;      ///< White balance scales
-        std::optional<ColorShading> colorShading;      ///< Color lens shading correction maps
-        std::optional<std::vector<ROI>> faceDetection; ///< Array of face ROI
+        std::optional<WhiteBalance> whiteBalance;        ///< White balance scales
+        std::optional<ColorShading> colorShading;        ///< Color lens shading correction maps
+        std::optional<std::vector<Rectf>> faceDetection; ///< Array of face ROI (using normalized coordinates)
     };
 
     struct ShootingParams final {
@@ -93,7 +87,7 @@ struct ImageMetadata final {
         std::optional<float> totalGain;    ///< Total applied gain (= sensorGain * ispgain)
         std::optional<float> sensorGain;   ///< Sensor gain
         std::optional<float> ispGain;      ///< ISP gain
-        std::optional<ROI> zoom;           ///< Zoom ROI
+        std::optional<Rectf> zoom;         ///< Zoom ROI (using normalized coordinates)
     };
 
     struct CalibrationData final {

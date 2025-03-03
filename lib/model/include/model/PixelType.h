@@ -21,7 +21,7 @@
 namespace cxximg {
 
 /// Pixel layout description.
-/// @ingroup image
+/// @ingroup model
 enum class PixelType {
     /// Custom
     CUSTOM,
@@ -166,7 +166,7 @@ inline std::optional<PixelType> parsePixelType(const std::string &pixelType) {
     return std::nullopt;
 }
 
-namespace image {
+namespace model {
 
 /// Returns the number of image planes required by the given pixel type.
 inline int pixelNumPlanes(PixelType pixelType) {
@@ -207,7 +207,7 @@ inline bool isQuadBayerPixelType(PixelType pixelType) {
 }
 
 /// Returns the X offset of a bayer color for a given bayer phase.
-inline int bayerXOffset(PixelType pixelType, Bayer bayer) {
+inline int bayerOffsetX(PixelType pixelType, Bayer bayer) {
     using namespace std::string_literals;
 
     switch (pixelType) {
@@ -240,7 +240,7 @@ inline int bayerXOffset(PixelType pixelType, Bayer bayer) {
 }
 
 /// Returns the Y offset of a bayer color for a given bayer phase.
-inline int bayerYOffset(PixelType pixelType, Bayer bayer) {
+inline int bayerOffsetY(PixelType pixelType, Bayer bayer) {
     using namespace std::string_literals;
 
     switch (pixelType) {
@@ -272,6 +272,6 @@ inline int bayerYOffset(PixelType pixelType, Bayer bayer) {
     throw std::invalid_argument("Invalid pixel type "s + toString(pixelType));
 }
 
-} // namespace image
+} // namespace model
 
 } // namespace cxximg

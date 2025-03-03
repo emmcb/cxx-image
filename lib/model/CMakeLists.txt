@@ -14,7 +14,7 @@ endif()
 target_include_directories(
     ${TARGET} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${PUBLIC_HDR_DIR}> $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${TARGET} INTERFACE image math)
+target_link_libraries(${TARGET} INTERFACE math)
 
 # Installation
 

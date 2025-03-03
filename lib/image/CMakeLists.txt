@@ -22,7 +22,7 @@ target_include_directories(
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${PUBLIC_HDR_DIR}> $<INSTALL_INTERFACE:include>
     PRIVATE ${PRIVATE_HDR_DIR}
 )
-target_link_libraries(${TARGET} PUBLIC math util)
+target_link_libraries(${TARGET} PUBLIC math model util)
 
 # Compiler flags
 

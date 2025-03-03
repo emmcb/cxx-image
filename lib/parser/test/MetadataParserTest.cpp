@@ -52,7 +52,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                .totalGain = 1.0f,
                                .sensorGain = 1.0f,
                                .ispGain = 1.0f,
-                               .zoom = ImageMetadata::ROI{0.05f, 0.1f, 0.9f, 0.8f}},
+                               .zoom = Rectf{0.05f, 0.1f, 0.9f, 0.8f}},
             .calibrationData = {.blackLevel = 64,
                                 .whiteLevel = 1024.0f,
                                 .vignetting = DynamicMatrix{{3.0f, 1.5f, 3.0f}, {1.5f, 1.0f, 1.5f}, {3.0f, 1.5f, 3.0f}},
@@ -65,7 +65,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                                                            {{0.95f, 0.99f, 0.95f},
                                                                             {0.99f, 1.0f, 0.99f},
                                                                             {0.95f, 0.99f, 0.95f}}},
-                               .faceDetection = std::vector<ImageMetadata::ROI>{{0.1f, 0.15f, 0.2f, 0.3f}}},
+                               .faceDetection = std::vector<Rectf>{{0.1f, 0.15f, 0.2f, 0.3f}}},
             .semanticMasks = {}};
 
     parser::writeMetadata(metadata, "test_serialization_full.json");

@@ -118,7 +118,7 @@ public:
     bool allocated() const noexcept { return mSize > 0; }
 
     /// Re-assign image ROI.
-    void setRoi(const Roi &roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
+    void setRoi(const Rect &roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
 
     /// Copy data from another image.
     template <typename U>

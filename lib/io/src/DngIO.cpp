@@ -236,7 +236,7 @@ Image<T> DngReader::read() {
                                                      .width(stage1->Width())
                                                      .height(stage1->Height())
                                                      .build();
-            Roi crop{ifd->fActiveArea.l, ifd->fActiveArea.t, image.width(), image.height()};
+            Rect crop{ifd->fActiveArea.l, ifd->fActiveArea.t, image.width(), image.height()};
 
             switch (stage1->PixelType()) {
                 case ttByte: {
@@ -382,7 +382,7 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
         const dng_opcode &opcode = mNegative->OpcodeList2().Entry(i);
         switch (opcode.OpcodeID()) {
             case dngOpcode_GainMap: {
-                if (!image::isBayerPixelType(layoutDescriptor().pixelType)) {
+                if (!model::isBayerPixelType(layoutDescriptor().pixelType)) {
                     continue;
                 }
 
@@ -390,17 +390,17 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
                 const dng_gain_map &gainMap = gainMapOpcode.GainMap();
                 const dng_rect &area = gainMapOpcode.AreaSpec().Area();
 
-                if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::R) &&
-                    area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::R)) {
+                if (area.l == model::bayerOffsetX(layoutDescriptor().pixelType, Bayer::R) &&
+                    area.t == model::bayerOffsetY(layoutDescriptor().pixelType, Bayer::R)) {
                     gainMaps[Bayer::R] = &gainMap;
-                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::GR) &&
-                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::GR)) {
+                } else if (area.l == model::bayerOffsetX(layoutDescriptor().pixelType, Bayer::GR) &&
+                           area.t == model::bayerOffsetY(layoutDescriptor().pixelType, Bayer::GR)) {
                     gainMaps[Bayer::GR] = &gainMap;
-                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::GB) &&
-                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::GB)) {
+                } else if (area.l == model::bayerOffsetX(layoutDescriptor().pixelType, Bayer::GB) &&
+                           area.t == model::bayerOffsetY(layoutDescriptor().pixelType, Bayer::GB)) {
                     gainMaps[Bayer::GB] = &gainMap;
-                } else if (area.l == image::bayerXOffset(layoutDescriptor().pixelType, Bayer::B) &&
-                           area.t == image::bayerYOffset(layoutDescriptor().pixelType, Bayer::B)) {
+                } else if (area.l == model::bayerOffsetX(layoutDescriptor().pixelType, Bayer::B) &&
+                           area.t == model::bayerOffsetY(layoutDescriptor().pixelType, Bayer::B)) {
                     gainMaps[Bayer::B] = &gainMap;
                 } else {
                     continue;
@@ -656,8 +656,8 @@ void DngWriter::writeImpl(const Image<T> &image) const {
                         }
 
                         AutoPtr<dng_opcode> opcode(
-                                new dng_opcode_GainMap({{image::bayerYOffset(image.pixelType(), bayer),
-                                                         image::bayerXOffset(image.pixelType(), bayer),
+                                new dng_opcode_GainMap({{model::bayerOffsetY(image.pixelType(), bayer),
+                                                         model::bayerOffsetX(image.pixelType(), bayer),
                                                          image.height(),
                                                          image.width()},
                                                         0,

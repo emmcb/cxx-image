@@ -63,7 +63,7 @@ public:
     }
 
     /// Subset image with the given roi.
-    UTIL_ALWAYS_INLINE ImageView<T> operator[](const Roi &roi) const {
+    UTIL_ALWAYS_INLINE ImageView<T> operator[](const Rect &roi) const {
         return ImageView<T>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 

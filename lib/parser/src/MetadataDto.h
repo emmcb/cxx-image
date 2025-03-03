@@ -21,6 +21,32 @@
 
 namespace cxximg {
 
+namespace detail {
+
+// Rect struct
+
+template <typename T>
+void read_json_value(Rect<T>& roi, const rapidjson::Value& object) {
+    if (!object.IsArray() || object.Size() != 4) {
+        throw json_dto::ex_t("Invalid ROI value");
+    }
+    json_dto::read_json_value(roi.x, object[0]);
+    json_dto::read_json_value(roi.y, object[1]);
+    json_dto::read_json_value(roi.width, object[2]);
+    json_dto::read_json_value(roi.height, object[3]);
+}
+
+template <typename T>
+void write_json_value(const Rect<T>& roi, rapidjson::Value& object, rapidjson::MemoryPoolAllocator<>& allocator) {
+    object.SetArray();
+    object.PushBack(roi.x, allocator);
+    object.PushBack(roi.y, allocator);
+    object.PushBack(roi.width, allocator);
+    object.PushBack(roi.height, allocator);
+}
+
+} // namespace detail
+
 // FileFormat enum
 
 inline void read_json_value(FileFormat& fileFormat, const rapidjson::Value& object) {
@@ -276,28 +302,6 @@ inline void write_json_value(const ImageMetadata::WhiteBalance& whiteBalance,
     object.SetArray();
     object.PushBack(whiteBalance.gainR, allocator);
     object.PushBack(whiteBalance.gainB, allocator);
-}
-
-// ImageMetadata::ROI struct
-
-inline void read_json_value(ImageMetadata::ROI& roi, const rapidjson::Value& object) {
-    if (!object.IsArray() || object.Size() != 4) {
-        throw json_dto::ex_t("Invalid ROI value");
-    }
-    json_dto::read_json_value(roi.x, object[0]);
-    json_dto::read_json_value(roi.y, object[1]);
-    json_dto::read_json_value(roi.width, object[2]);
-    json_dto::read_json_value(roi.height, object[3]);
-}
-
-inline void write_json_value(const ImageMetadata::ROI& roi,
-                             rapidjson::Value& object,
-                             rapidjson::MemoryPoolAllocator<>& allocator) {
-    object.SetArray();
-    object.PushBack(roi.x, allocator);
-    object.PushBack(roi.y, allocator);
-    object.PushBack(roi.width, allocator);
-    object.PushBack(roi.height, allocator);
 }
 
 struct SemanticMasksReaderWriter final {

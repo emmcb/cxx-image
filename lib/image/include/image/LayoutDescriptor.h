@@ -14,12 +14,12 @@
 
 #pragma once
 
-#include "image/ImageLayout.h"
-#include "image/PixelType.h"
 #include "image/detail/Alignment.h"
 
 #include "math/half.h"
 #include "math/math.h"
+#include "model/ImageLayout.h"
+#include "model/PixelType.h"
 
 #include <algorithm>
 #include <array>
@@ -428,18 +428,18 @@ public:
 
     LayoutDescriptor build() {
         // Force YUV pixel type for YUV layouts
-        if (image::isYuvLayout(mDescriptor.imageLayout)) {
+        if (model::isYuvLayout(mDescriptor.imageLayout)) {
             pixelType(PixelType::YUV);
         }
 
         // Force number of planes depending on pixel type
-        const int numPlanesForPixelType = image::pixelNumPlanes(mDescriptor.pixelType);
+        const int numPlanesForPixelType = model::pixelNumPlanes(mDescriptor.pixelType);
         if (numPlanesForPixelType > 0) {
             numPlanes(numPlanesForPixelType);
         }
 
         // Force planar layout for grayscale and bayer pixels
-        if (mDescriptor.pixelType == PixelType::GRAYSCALE || image::isBayerPixelType(mDescriptor.pixelType)) {
+        if (mDescriptor.pixelType == PixelType::GRAYSCALE || model::isBayerPixelType(mDescriptor.pixelType)) {
             imageLayout(ImageLayout::PLANAR);
         }
 

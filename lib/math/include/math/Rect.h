@@ -16,13 +16,25 @@
 
 namespace cxximg {
 
-/// ROI definition structure.
-/// @ingroup image
-struct Roi final {
-    int x;      ///< X coordinate of the ROI position in the image, in pixels.
-    int y;      ///< Y coordinate of the ROI position in the image, in pixels.
-    int width;  ///< ROI width, in pixels.
-    int height; ///< ROI height, in pixels.
+namespace detail {
+
+/// Base rectangle type.
+template <typename T>
+struct Rect final {
+    T x;      ///< X coordinate of the top-left rectangle corner.
+    T y;      ///< Y coordinate of the top-left rectangle corner.
+    T width;  ///< Rectangle width.
+    T height; ///< Rectangle height.
 };
+
+} // namespace detail
+
+/// Rectangle with integer coordinates.
+/// @ingroup math
+using Rect = detail::Rect<int>;
+
+/// Rectangle with floating-point coordinates.
+/// @ingroup math
+using Rectf = detail::Rect<float>;
 
 } // namespace cxximg

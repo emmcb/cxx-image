@@ -109,8 +109,8 @@ void TiffReader::readHeader() {
                 uint8_t *cfaPattern = nullptr;
                 if (TIFFGetField(tif, TIFFTAG_CFAPATTERN, &count, &cfaPattern) != 0) {
                     builder.pixelType(cfaPatternToPixelType(cfaPattern));
-                } else if (fileInfo.pixelType && (image::isBayerPixelType(*fileInfo.pixelType) ||
-                                                  image::isQuadBayerPixelType(*fileInfo.pixelType))) {
+                } else if (fileInfo.pixelType && (model::isBayerPixelType(*fileInfo.pixelType) ||
+                                                  model::isQuadBayerPixelType(*fileInfo.pixelType))) {
                     builder.pixelType(*fileInfo.pixelType);
                 } else {
                     throw IOError(MODULE, "Unspecified CFA pattern");
@@ -412,7 +412,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
         TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
     }
 
-    if (image::isBayerPixelType(image.pixelType())) {
+    if (model::isBayerPixelType(image.pixelType())) {
         TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_CFA);
         TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
         const int16_t cfaPatternDim[] = {2, 2};

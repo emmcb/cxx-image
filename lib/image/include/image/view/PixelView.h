@@ -40,7 +40,7 @@ public:
     PixelView(PixelView<T, N> &&) noexcept = default;
 
     /// Subset image with the given roi.
-    UTIL_ALWAYS_INLINE Pixel<T, N> operator[](const Roi &roi) const {
+    UTIL_ALWAYS_INLINE Pixel<T, N> operator[](const Rect &roi) const {
         return Pixel<T, N>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 

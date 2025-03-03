@@ -95,7 +95,7 @@ public:
     using ImageWriter::ImageWriter;
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
-        return image::isBayerPixelType(descriptor.pixelType);
+        return model::isBayerPixelType(descriptor.pixelType);
     }
 
     void write(const Image16u &image) const override;

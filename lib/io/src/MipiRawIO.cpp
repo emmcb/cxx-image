@@ -62,7 +62,7 @@ void MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::readHeader() {
     if (!fileInfo.pixelType) {
         throw IOError(MODULE, "Unspecified pixel type");
     }
-    if (!image::isBayerPixelType(*fileInfo.pixelType) && !image::isQuadBayerPixelType(*fileInfo.pixelType)) {
+    if (!model::isBayerPixelType(*fileInfo.pixelType) && !model::isQuadBayerPixelType(*fileInfo.pixelType)) {
         throw IOError(MODULE, "Pixel type must be bayer (got"s + toString(*fileInfo.pixelType) + ")");
     }
     if ((*fileInfo.width * PIXEL_PRECISION) % 8 != 0) {

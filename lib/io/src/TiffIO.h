@@ -74,7 +74,7 @@ public:
 
     bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||
-               image::isBayerPixelType(descriptor.pixelType) || image::isQuadBayerPixelType(descriptor.pixelType);
+               model::isBayerPixelType(descriptor.pixelType) || model::isQuadBayerPixelType(descriptor.pixelType);
     }
 
     void write(const Image8u &image) const override;

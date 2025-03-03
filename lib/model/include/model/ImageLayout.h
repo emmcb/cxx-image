@@ -20,7 +20,7 @@
 namespace cxximg {
 
 /// Image layout description.
-/// @ingroup image
+/// @ingroup model
 enum class ImageLayout {
     /// Custom
     CUSTOM,
@@ -73,13 +73,13 @@ inline std::optional<ImageLayout> parseImageLayout(const std::string &imageLayou
     return std::nullopt;
 }
 
-namespace image {
+namespace model {
 
 /// Checks whether the given image layout is a YUV-type layout (for example YUV420 or NV12).
 inline bool isYuvLayout(ImageLayout layout) {
     return layout == ImageLayout::YUV_420 || layout == ImageLayout::NV12;
 }
 
-} // namespace image
+} // namespace model
 
 } // namespace cxximg

@@ -32,15 +32,15 @@ enum class BorderMode {
 /// The borders must already have been allocated with the makeBorders() function.
 template <BorderMode MODE, typename T>
 void updateBorders(const ImageView<T> &img, int borderSize) {
-    Roi leftRoi = {-borderSize, 0, borderSize, img.height()};
-    Roi rightRoi = {img.width(), 0, borderSize, img.height()};
-    Roi topRoi = {0, -borderSize, img.width(), borderSize};
-    Roi bottomRoi = {0, img.height(), img.width(), borderSize};
+    Rect leftRoi = {-borderSize, 0, borderSize, img.height()};
+    Rect rightRoi = {img.width(), 0, borderSize, img.height()};
+    Rect topRoi = {0, -borderSize, img.width(), borderSize};
+    Rect bottomRoi = {0, img.height(), img.width(), borderSize};
 
-    Roi topLeftRoi = {-borderSize, -borderSize, borderSize, borderSize};
-    Roi topRightRoi = {img.width(), -borderSize, borderSize, borderSize};
-    Roi bottomLeftRoi = {-borderSize, img.height(), borderSize, borderSize};
-    Roi bottomRightRoi = {img.width(), img.height(), borderSize, borderSize};
+    Rect topLeftRoi = {-borderSize, -borderSize, borderSize, borderSize};
+    Rect topRightRoi = {img.width(), -borderSize, borderSize, borderSize};
+    Rect bottomLeftRoi = {-borderSize, img.height(), borderSize, borderSize};
+    Rect bottomRightRoi = {img.width(), img.height(), borderSize, borderSize};
 
     if constexpr (MODE == BorderMode::CONSTANT) {
         img[leftRoi] = 0;

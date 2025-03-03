@@ -15,7 +15,8 @@
 #pragma once
 
 #include "image/LayoutDescriptor.h"
-#include "image/Roi.h"
+
+#include "math/Rect.h"
 #include "math/half.h"
 
 #include <array>
@@ -129,7 +130,8 @@ ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerD
     const int64_t rowStride = bayerLayout.planes[0].rowStride;
 
     const auto computeOffset = [&](Bayer bayer) {
-        return bayerYOffset(bayerLayout.pixelType, bayer) * rowStride + bayerXOffset(bayerLayout.pixelType, bayer);
+        return model::bayerOffsetY(bayerLayout.pixelType, bayer) * rowStride +
+               model::bayerOffsetX(bayerLayout.pixelType, bayer);
     };
 
     return ImageDescriptor<T>(LayoutDescriptor::Builder(bayerLayout.width / 2, bayerLayout.height / 2)
@@ -150,7 +152,7 @@ ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerD
 
 /// Computes the subset of the input descriptor given the ROI coordinates.
 template <typename T>
-ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, const Roi &roi) {
+ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, const Rect &roi) {
     LayoutDescriptor::Builder builder(descriptor.layout);
     builder.width(roi.width).height(roi.height).border(0);
 
