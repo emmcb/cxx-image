@@ -15,14 +15,8 @@
 #pragma once
 
 #include <cassert>
-#include <type_traits>
-
-#if defined(_MSC_VER)
-#define _USE_MATH_DEFINES
-#include <math.h>
-#else
 #include <cmath>
-#endif
+#include <type_traits>
 
 namespace cxximg {
 

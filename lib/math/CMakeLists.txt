@@ -29,6 +29,8 @@ if(HAVE_FLOAT16)
     target_compile_definitions(${TARGET} INTERFACE CXXIMG_HAVE_FLOAT16)
 endif()
 
+target_compile_definitions(${TARGET} INTERFACE $<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>)
+
 # Installation
 
 if(CXXIMG_ENABLE_INSTALL)
