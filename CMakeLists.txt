@@ -35,6 +35,7 @@ option(CXXIMG_WITH_FLOAT16 "Enable float16 image support" OFF)
 option(CXXIMG_WITH_DNG "Enable DNG format IO" ON)
 option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
+option(CXXIMG_WITH_RAWSPEED "Enable various RAW images IO supported by RawSpeed library" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
 
 set(CXXIMG_BASE_ALIGNMENT
@@ -110,6 +111,11 @@ if(CXXIMG_WITH_PNG)
     else()
         message(WARNING "Disabling PNG support because libpng is not found")
     endif()
+endif()
+
+set(HAVE_RAWSPEED 0)
+if(CXXIMG_WITH_RAWSPEED)
+    set(HAVE_RAWSPEED 1)
 endif()
 
 set(HAVE_TIFF 0)

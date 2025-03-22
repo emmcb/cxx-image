@@ -1,0 +1,23 @@
+project(rawspeed CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(RAWSPEED_SOURCE_DIR ${PROJECT_SOURCE_DIR})
+set(RAWSPEED_BINARY_DIR ${PROJECT_BINARY_DIR})
+
+include(cmake/cmake-command-wrappers.cmake)
+
+rawspeed_add_library(rawspeed STATIC)
+
+include(cmake/Modules/thread-local.cmake)
+include(cmake/Modules/cpu-cache-line-size.cmake)
+include(cmake/Modules/cpu-page-size.cmake)
+include(cmake/Modules/cpu-large-page-size.cmake)
+
+configure_file(${RAWSPEED_SOURCE_DIR}/src/config.h.in ${RAWSPEED_BINARY_DIR}/src/rawspeedconfig.h)
+target_include_directories(rawspeed PUBLIC ${RAWSPEED_BINARY_DIR}/src)
+
+add_subdirectory(src/librawspeed)
+
+add_library(rawspeed::rawspeed ALIAS rawspeed)
