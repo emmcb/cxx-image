@@ -16,7 +16,7 @@
 
 #include "JsonDto.h"
 
-#include "io/ImageIO.h"
+#include "cxximg/io/ImageIO.h"
 
 namespace cxximg {
 

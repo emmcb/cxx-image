@@ -1,6 +1,6 @@
-project(image)
+project(cxximg-image)
 
-set(TARGET image)
+set(TARGET cxximg-image)
 set(SRC_DIR src)
 set(PUBLIC_HDR_DIR include)
 set(PRIVATE_HDR_DIR src)
@@ -14,7 +14,7 @@ set(SRCS ${SRC_DIR}/Image.cpp ${SRC_DIR}/ImageView.cpp ${SRC_DIR}/PlaneView.cpp)
 
 add_library(${TARGET} STATIC ${SRCS})
 if(NOT PROJECT_IS_TOP_LEVEL)
-    add_library(cxximg::${TARGET} ALIAS ${TARGET})
+    add_library(cxximg::image ALIAS ${TARGET})
 endif()
 
 target_include_directories(
@@ -22,7 +22,7 @@ target_include_directories(
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${PUBLIC_HDR_DIR}> $<INSTALL_INTERFACE:include>
     PRIVATE ${PRIVATE_HDR_DIR}
 )
-target_link_libraries(${TARGET} PUBLIC math model util)
+target_link_libraries(${TARGET} PUBLIC cxximg-math cxximg-model cxximg-util)
 
 # Compiler flags
 
@@ -53,7 +53,7 @@ if(HAVE_GTEST AND BUILD_TESTING)
         ${TARGET}-test ${TEST_DIR}/BorderTest.cpp ${TEST_DIR}/ImageTest.cpp ${TEST_DIR}/LayoutTest.cpp
                        ${TEST_DIR}/PlaneViewTest.cpp ${TEST_DIR}/ResizeExpressionTest.cpp
     )
-    target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main image)
+    target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main cxximg-image)
 
     add_test(NAME ${TARGET}-test COMMAND ${TARGET}-test)
 endif()

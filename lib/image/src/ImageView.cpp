@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "image/view/ImageView.h"
+#include "cxximg/image/view/ImageView.h"
 
 namespace cxximg {
 

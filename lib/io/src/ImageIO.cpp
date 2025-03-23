@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "io/ImageIO.h"
+#include "cxximg/io/ImageIO.h"
 
 #include "BmpIO.h"
 #include "CfaIO.h"

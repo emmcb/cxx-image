@@ -1,6 +1,6 @@
-project(parser)
+project(cxximg-parser)
 
-set(TARGET parser)
+set(TARGET cxximg-parser)
 set(SRC_DIR src)
 set(PUBLIC_HDR_DIR include)
 set(PRIVATE_HDR_DIR src)
@@ -14,7 +14,7 @@ set(SRCS ${SRC_DIR}/MetadataParser.cpp)
 
 add_library(${TARGET} STATIC ${SRCS})
 if(NOT PROJECT_IS_TOP_LEVEL)
-    add_library(cxximg::${TARGET} ALIAS ${TARGET})
+    add_library(cxximg::parser ALIAS ${TARGET})
 endif()
 
 target_include_directories(
@@ -24,8 +24,8 @@ target_include_directories(
 )
 target_link_libraries(
     ${TARGET}
-    PUBLIC model
-    PRIVATE $<BUILD_INTERFACE:json_dto> loguru::loguru io math
+    PUBLIC cxximg-model
+    PRIVATE $<BUILD_INTERFACE:json_dto> loguru::loguru cxximg-io cxximg-math
 )
 
 # Installation
@@ -39,7 +39,7 @@ endif()
 
 if(HAVE_GTEST AND BUILD_TESTING)
     add_executable(${TARGET}-test ${TEST_DIR}/MetadataParserTest.cpp)
-    target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main parser)
+    target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main cxximg-parser)
 
     add_test(NAME ${TARGET}-test COMMAND ${TARGET}-test)
 endif()

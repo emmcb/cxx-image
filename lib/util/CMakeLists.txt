@@ -1,4 +1,4 @@
-project(util)
+project(cxximg-util)
 
 message(STATUS "Resolving GIT revision")
 
@@ -26,7 +26,7 @@ endif()
 
 configure_file(revision.h.in ${CMAKE_CURRENT_BINARY_DIR}/revision.h @ONLY)
 
-set(TARGET util)
+set(TARGET cxximg-util)
 set(SRC_DIR src)
 set(PUBLIC_HDR_DIR include)
 
@@ -38,7 +38,7 @@ set(SRCS ${SRC_DIR}/Version.cpp)
 
 add_library(${TARGET} STATIC ${SRCS})
 if(NOT PROJECT_IS_TOP_LEVEL)
-    add_library(cxximg::${TARGET} ALIAS ${TARGET})
+    add_library(cxximg::util ALIAS ${TARGET})
 endif()
 
 target_include_directories(

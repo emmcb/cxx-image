@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "parser/MetadataParser.h"
-#include "parser/Exceptions.h"
-
 #include "MetadataDto.h"
+
+#include "cxximg/parser/Exceptions.h"
+#include "cxximg/parser/MetadataParser.h"
 
 #include <loguru.hpp>
 

@@ -10,7 +10,7 @@ set(SRCS ${SRC_DIR}/main.cpp)
 # Target definitions
 
 add_executable(${TARGET} ${SRCS})
-target_link_libraries(${TARGET} PRIVATE cxxopts::cxxopts loguru::loguru io parser util)
+target_link_libraries(${TARGET} PRIVATE cxxopts::cxxopts loguru::loguru cxximg-io cxximg-parser cxximg-util)
 
 # Installation
 

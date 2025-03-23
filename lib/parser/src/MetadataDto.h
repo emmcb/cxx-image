@@ -17,7 +17,7 @@
 #include "ImageReaderWriter.h"
 #include "JsonDto.h"
 
-#include "model/ImageMetadata.h"
+#include "cxximg/model/ImageMetadata.h"
 
 namespace cxximg {
 

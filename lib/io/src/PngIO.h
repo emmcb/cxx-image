@@ -14,10 +14,10 @@
 
 #pragma once
 
-#include "io/ImageReader.h"
-#include "io/ImageWriter.h"
+#include "cxximg/io/ImageReader.h"
+#include "cxximg/io/ImageWriter.h"
 
-#include "util/File.h"
+#include "cxximg/util/File.h"
 
 // NOLINTBEGIN
 // from png.h

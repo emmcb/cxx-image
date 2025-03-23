@@ -14,7 +14,7 @@
 
 #include "DngIO.h"
 
-#include "math/ColorSpace.h"
+#include "cxximg/math/ColorSpace.h"
 
 #include <dng_color_space.h>
 #include <dng_color_spec.h>

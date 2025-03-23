@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "math/Histogram.h"
+#include "cxximg/math/Histogram.h"
 
 #include "gtest/gtest.h"
 

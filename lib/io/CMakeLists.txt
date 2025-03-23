@@ -1,6 +1,6 @@
-project(io)
+project(cxximg-io)
 
-set(TARGET io)
+set(TARGET cxximg-io)
 set(SRC_DIR src)
 set(PUBLIC_HDR_DIR include)
 set(PRIVATE_HDR_DIR src)
@@ -15,7 +15,7 @@ set(SRCS ${SRC_DIR}/ImageIO.cpp ${SRC_DIR}/BmpIO.cpp ${SRC_DIR}/CfaIO.cpp ${SRC_
 
 add_library(${TARGET} STATIC ${SRCS})
 if(NOT PROJECT_IS_TOP_LEVEL)
-    add_library(cxximg::${TARGET} ALIAS ${TARGET})
+    add_library(cxximg::io ALIAS ${TARGET})
 endif()
 
 target_include_directories(
@@ -25,8 +25,8 @@ target_include_directories(
 )
 target_link_libraries(
     ${TARGET}
-    PUBLIC image model
-    PRIVATE loguru::loguru math util
+    PUBLIC cxximg-image cxximg-model
+    PRIVATE loguru::loguru cxximg-math cxximg-util
 )
 
 # Compiler flags

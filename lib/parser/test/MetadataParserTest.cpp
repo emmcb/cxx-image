@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "parser/MetadataParser.h"
-#include "util/File.h"
+#include "cxximg/parser/MetadataParser.h"
+#include "cxximg/util/File.h"
 
 #include "gtest/gtest.h"
 

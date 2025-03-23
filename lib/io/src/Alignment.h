@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "image/LayoutDescriptor.h"
+#include "cxximg/image/LayoutDescriptor.h"
 
 #include <optional>
 
