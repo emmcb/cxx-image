@@ -31,7 +31,7 @@ static PixelType bppToPixelType(uint16_t bitPerPixel) {
         case 32:
             return PixelType::RGBA;
         default:
-            throw IOError(MODULE, "Unsupported bit per pixel " + std::to_string(bitPerPixel));
+            throw IOError(MODULE, "Unsupported bit per pixel: " + std::to_string(bitPerPixel));
     }
 }
 
@@ -44,11 +44,11 @@ static uint16_t pixelTypeToBPP(PixelType pixelType) {
         case PixelType::RGBA:
             return 32;
         default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(pixelType));
+            throw IOError(MODULE, "Unsupported pixel type: "s + toString(pixelType));
     }
 }
 
-void BmpReader::readHeader() {
+void BmpReader::initialize() {
     BmpHeader header = {};
     mStream->read(reinterpret_cast<char *>(&header), sizeof(header));
 

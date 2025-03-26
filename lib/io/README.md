@@ -16,6 +16,8 @@ The [Image IO library](@ref io) allows to read and write images in many file for
 | PNG           | x    | x     |      | 8 bits, 16 bits        | Grayscale, RGB, RGBA | .png                             |
 | TIFF          | x    | x     | x    | 8 bits, 16 bits, float | Bayer, RGB           | .tif, .tiff                      |
 
+In addition to this, if it is built with [Rawler](https://github.com/dnglab/dnglab) library support, then it will be able to read the RAW formats from all the major camera manufacters.
+
 # Image reading
 
 ## Creating the image reader

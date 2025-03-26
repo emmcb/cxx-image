@@ -172,7 +172,7 @@ void JpegDecompressDeleter::operator()(jpeg_decompress_struct *dinfo) const {
     delete dinfo;
 }
 
-void JpegReader::readHeader() {
+void JpegReader::initialize() {
     mInfo.reset(new jpeg_decompress_struct());
     jpeg_decompress_struct *dinfo = mInfo.get();
 
@@ -206,7 +206,7 @@ void JpegReader::readHeader() {
             builder.pixelType(PixelType::RGB);
         }
     } else {
-        throw IOError(MODULE, "Unsupported number of components " + std::to_string(dinfo->num_components));
+        throw IOError(MODULE, "Unsupported number of components: " + std::to_string(dinfo->num_components));
     }
 
     mDescriptor = {builder.build(), PixelRepresentation::UINT8};
@@ -497,7 +497,7 @@ void JpegWriter::write(const Image8u &image) const {
             cinfo.in_color_space = JCS_YCbCr;
             break;
         default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(image.pixelType()));
+            throw IOError(MODULE, "Unsupported pixel type: "s + toString(image.pixelType()));
     }
 
     jpeg_set_defaults(&cinfo);
@@ -563,7 +563,7 @@ void JpegWriter::write(const Image8u &image) const {
 void JpegWriter::writeExif(const ExifMetadata &exif) const {
     std::ifstream ifs(path(), std::ios::binary);
     if (!ifs) {
-        throw IOError("Cannot open file for reading: " + path());
+        throw IOError(MODULE, "Cannot open file for reading: " + path());
     }
 
     jpeg_decompress_struct dinfo{};

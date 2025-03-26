@@ -1,5 +1,3 @@
-include(FetchContent)
-
 # Loguru
 
 set(LOGURU_STACKTRACES 0)
@@ -26,7 +24,7 @@ endif()
 
 # DNG
 
-if(CXXIMG_WITH_DNG)
+if(HAVE_DNG)
     set(DNG_THREAD_SAFE 0)
     set(DNG_WITH_JPEG 0)
     set(DNG_WITH_XMP 0)
@@ -49,6 +47,12 @@ if(CXXIMG_WITH_DNG)
             DESTINATION cmake
         )
     endif()
+endif()
+
+# Rawler
+
+if(HAVE_RAWLER)
+    add_subdirectory(rawler)
 endif()
 
 # CXXOpts

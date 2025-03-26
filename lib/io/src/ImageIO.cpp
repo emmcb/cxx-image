@@ -31,6 +31,10 @@
 #include "PngIO.h"
 #endif
 
+#ifdef HAVE_RAWLER
+#include "RawlerIO.h"
+#endif
+
 #ifdef HAVE_TIFF
 #include "TiffIO.h"
 #endif
@@ -65,6 +69,12 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
         if (PlainReader::accept(path)) {
             return std::make_unique<PlainReader>(path, stream, options);
         }
+
+#ifdef HAVE_RAWLER
+        if (RawlerReader::accept(path)) {
+            return std::make_unique<RawlerReader>(path, stream, options);
+        }
+#endif
 
         // Read file signature
         uint8_t signature[8] = {0};
@@ -140,8 +150,8 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
         throw IOError("No reader available for " + path);
     }();
 
-    // Read image header now
-    reader->readHeader();
+    // Initialize reader
+    reader->initialize();
 
     return reader;
 }

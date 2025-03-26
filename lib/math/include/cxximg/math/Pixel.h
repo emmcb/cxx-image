@@ -34,10 +34,10 @@ template <typename T, int N>
 class Pixel final {
 public:
     /// Constructs empty pixel.
-    Pixel() = default;
+    constexpr Pixel() = default;
 
     /// Constructs pixel from scalar.
-    explicit Pixel(T value) {
+    explicit constexpr Pixel(T value) {
         for (int n = 0; n < N; ++n) {
             mPixel[n] = value;
         }
@@ -45,14 +45,14 @@ public:
 
     /// Constructs pixel from another pixel.
     template <typename U>
-    explicit Pixel(const Pixel<U, N> &other) {
+    explicit constexpr Pixel(const Pixel<U, N> &other) {
         for (int n = 0; n < N; ++n) {
             mPixel[n] = other[n];
         }
     }
 
     /// Constructs pixel from brace initializer.
-    Pixel(const std::initializer_list<T> &initializer) {
+    constexpr Pixel(const std::initializer_list<T> &initializer) {
         assert(initializer.size() == N);
 
         const T *data = initializer.begin();
@@ -62,13 +62,13 @@ public:
     }
 
     /// Gets value at position n.
-    UTIL_ALWAYS_INLINE T operator[](int n) const {
+    UTIL_ALWAYS_INLINE constexpr T operator[](int n) const {
         assert(n < N);
         return mPixel[n];
     }
 
     /// Gets reference at position n.
-    UTIL_ALWAYS_INLINE T &operator[](int n) {
+    UTIL_ALWAYS_INLINE constexpr T &operator[](int n) {
         assert(n < N);
         return mPixel[n];
     }
@@ -76,14 +76,16 @@ public:
     /// Get tuple value at position I.
     /// This allows for C++17 structured binding.
     template <std::size_t I>
-    UTIL_ALWAYS_INLINE T get() const {
+    UTIL_ALWAYS_INLINE constexpr T get() const {
+        static_assert(I < N);
         return mPixel[I];
     }
 
     /// Get tuple reference at position I.
     /// This allows for C++17 structured binding.
     template <std::size_t I>
-    UTIL_ALWAYS_INLINE T &get() {
+    UTIL_ALWAYS_INLINE constexpr T &get() {
+        static_assert(I < N);
         return mPixel[I];
     }
 

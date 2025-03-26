@@ -49,6 +49,12 @@ if(HAVE_PNG)
     target_compile_definitions(${TARGET} PRIVATE HAVE_PNG)
 endif()
 
+if(HAVE_RAWLER)
+    target_sources(${TARGET} PRIVATE ${SRC_DIR}/RawlerIO.cpp)
+    target_link_libraries(${TARGET} PRIVATE rawler::rawler_ffi)
+    target_compile_definitions(${TARGET} PRIVATE HAVE_RAWLER)
+endif()
+
 if(HAVE_TIFF)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/TiffIO.cpp)
     target_link_libraries(${TARGET} PRIVATE TIFF::TIFF TIFF::CXX $<BUILD_INTERFACE:tiff-rational>)

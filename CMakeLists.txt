@@ -35,6 +35,7 @@ option(CXXIMG_WITH_FLOAT16 "Enable float16 image support" OFF)
 option(CXXIMG_WITH_DNG "Enable DNG format IO" ON)
 option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
+option(CXXIMG_WITH_RAWLER "Enable reading of various RAW image formats supported by Rawler library" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
 
 set(CXXIMG_BASE_ALIGNMENT
@@ -53,6 +54,8 @@ set(CXXIMG_DEFAULT_SIZE_ALIGNMENT
     "1"
     CACHE STRING "Default total size alignment of allocated images (must be a power of two)"
 )
+
+include(FetchContent)
 
 set(HAVE_GTEST 0)
 if(CXXIMG_BUILD_TESTS)
@@ -109,6 +112,27 @@ if(CXXIMG_WITH_PNG)
         set(HAVE_PNG 1)
     else()
         message(WARNING "Disabling PNG support because libpng is not found")
+    endif()
+endif()
+
+set(HAVE_RAWLER 0)
+if(CXXIMG_WITH_RAWLER)
+    FetchContent_Declare(
+        corrosion
+        GIT_REPOSITORY "https://github.com/corrosion-rs/corrosion.git"
+        GIT_TAG "v0.5.1"
+        SOURCE_SUBDIR "dummy"
+    )
+    FetchContent_MakeAvailable(corrosion)
+
+    list(APPEND CMAKE_MODULE_PATH "${corrosion_SOURCE_DIR}/cmake")
+    find_package(Rust)
+
+    if(Rust_FOUND)
+        add_subdirectory("${corrosion_SOURCE_DIR}" "${corrosion_BINARY_DIR}")
+        set(HAVE_RAWLER 1)
+    else()
+        message(WARNING "Disabling Rawler library support because Rust is not found")
     endif()
 endif()
 

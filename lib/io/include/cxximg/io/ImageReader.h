@@ -75,21 +75,23 @@ public:
         return mDescriptor->layout;
     }
 
-    virtual void readHeader() = 0;
+    /// Initialize the reader.
+    /// Implementations must read the image header and fill descriptor required values.
+    virtual void initialize() = 0;
 
-    /// Read and decode the given file into a newly allocated 8 bits image.
+    /// Read and decode the opened stream into a newly allocated 8 bits image.
     virtual Image8u read8u() { throw IOError("This format does not support 8 bits read."); }
 
-    /// Read and decode the given file into a newly allocated 16 bits image.
+    /// Read and decode the opened stream into a newly allocated 16 bits image.
     virtual Image16u read16u() { throw IOError("This format does not support 16 bits read."); }
 
-    /// Read and decode the given file into a newly allocated float image.
+    /// Read and decode the opened stream into a newly allocated float image.
     virtual Imagef readf() { throw IOError("This format does not support float read."); }
 
-    /// Read the file EXIF metadata, if present.
+    /// Read the image EXIF metadata, if available.
     virtual std::optional<ExifMetadata> readExif() const { return std::nullopt; }
 
-    /// Read the image metadata if present and updates the given structure with the result.
+    /// Read the image metadata if available and updates the given structure with the result.
     virtual void readMetadata(std::optional<ImageMetadata>& metadata) const {
         std::optional<ExifMetadata> exif = readExif();
         if (exif) {
@@ -100,7 +102,7 @@ public:
         }
     }
 
-    /// Read the image metadata, if present.
+    /// Read the image metadata, if available.
     std::optional<ImageMetadata> readMetadata() const {
         std::optional<ImageMetadata> metadata;
         readMetadata(metadata);

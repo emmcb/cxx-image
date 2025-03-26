@@ -41,7 +41,7 @@ static decltype(auto) guessPixelFromExtension(const std::string &path) {
     return std::make_tuple(imageLayout, pixelType);
 }
 
-void PlainReader::readHeader() {
+void PlainReader::initialize() {
     mStream->seekg(0, std::istream::end);
     const int64_t fileSize = mStream->tellg();
     mStream->seekg(0);

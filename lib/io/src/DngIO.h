@@ -42,7 +42,7 @@ public:
     DngReader(const std::string &path, std::istream *stream, const Options &options);
     ~DngReader() override;
 
-    void readHeader() override;
+    void initialize() override;
 
     Image16u read16u() override;
     Imagef readf() override;

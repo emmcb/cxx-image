@@ -1,0 +1,11 @@
+[package]
+name = "rawler-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rawler_ffi"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+rawler = { git = "https://github.com/dnglab/dnglab.git", rev = "40801bab74af3fdf9625fe4db4916a60acaa1c98" }

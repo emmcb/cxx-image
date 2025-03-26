@@ -54,7 +54,7 @@ Raw16From12Pixel &Raw16From12Pixel::operator=(const Raw12Pixel &pixel) {
 }
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
-void MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::readHeader() {
+void MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::initialize() {
     const auto &fileInfo = options().fileInfo;
     if (!fileInfo.width || !fileInfo.height) {
         throw IOError(MODULE, "Unspecified image dimensions");

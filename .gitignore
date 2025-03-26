@@ -3,3 +3,5 @@ build/*
 !build/.clang-tidy
 compile_commands.json
 doc/*/*
+target/
+Cargo.lock

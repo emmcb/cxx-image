@@ -54,10 +54,10 @@ static PixelType cfaPatternToPixelType(const uint8_t *cfaPattern) {
         return PixelType::BAYER_GBRG;
     }
     throw IOError(MODULE,
-                  "Unsupported CFA pattern " + std::to_string(cfaPattern[0]) + " " + std::to_string(cfaPattern[1]));
+                  "Unsupported CFA pattern: " + std::to_string(cfaPattern[0]) + " " + std::to_string(cfaPattern[1]));
 }
 
-void TiffReader::readHeader() {
+void TiffReader::initialize() {
     TIFFSetWarningHandler(tiffWarningHandler);
     TIFFSetErrorHandler(tiffErrorHandler);
 
@@ -117,11 +117,11 @@ void TiffReader::readHeader() {
                 }
             } break;
             default:
-                throw IOError(MODULE, "Unsupported photo metric " + std::to_string(photoMetric));
+                throw IOError(MODULE, "Unsupported photo metric: " + std::to_string(photoMetric));
         }
     } else if (samplesPerPixel == 3) {
         if (photoMetric != PHOTOMETRIC_RGB) {
-            throw IOError(MODULE, "Unsupported photo metric " + std::to_string(photoMetric));
+            throw IOError(MODULE, "Unsupported photo metric: " + std::to_string(photoMetric));
         }
 
         builder.pixelType(PixelType::RGB);
@@ -136,28 +136,29 @@ void TiffReader::readHeader() {
         } else if (planarConfig == PLANARCONFIG_SEPARATE) {
             builder.imageLayout(ImageLayout::PLANAR);
         } else {
-            throw IOError(MODULE, "Unsupported planar config " + std::to_string(planarConfig));
+            throw IOError(MODULE, "Unsupported planar config: " + std::to_string(planarConfig));
         }
     } else {
-        throw IOError(MODULE, "Unsupported samples per pixel " + std::to_string(samplesPerPixel));
+        throw IOError(MODULE, "Unsupported samples per pixel: " + std::to_string(samplesPerPixel));
     }
 
-    PixelRepresentation pixelRepresentation;
-    if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
-        pixelRepresentation = PixelRepresentation::FLOAT;
-    } else if (sampleFormat == SAMPLEFORMAT_UINT) {
-        builder.pixelPrecision(bitsPerSample);
-
-        if (bitsPerSample <= 8) {
-            pixelRepresentation = PixelRepresentation::UINT8;
-        } else if (bitsPerSample <= 16) {
-            pixelRepresentation = PixelRepresentation::UINT16;
-        } else {
-            throw IOError(MODULE, "Unsupported bits per sample " + std::to_string(bitsPerSample));
+    PixelRepresentation pixelRepresentation = [&]() {
+        if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            return PixelRepresentation::FLOAT;
         }
-    } else {
-        throw IOError(MODULE, "Unsupported sample format " + std::to_string(sampleFormat));
-    }
+        if (sampleFormat == SAMPLEFORMAT_UINT) {
+            builder.pixelPrecision(bitsPerSample);
+
+            if (bitsPerSample <= 8) {
+                return PixelRepresentation::UINT8;
+            }
+            if (bitsPerSample <= 16) {
+                return PixelRepresentation::UINT16;
+            }
+            throw IOError(MODULE, "Unsupported bits per sample: " + std::to_string(bitsPerSample));
+        }
+        throw IOError(MODULE, "Unsupported sample format: " + std::to_string(sampleFormat));
+    }();
 
     if (fileInfo.pixelPrecision) {
         builder.pixelPrecision(*fileInfo.pixelPrecision);
@@ -447,7 +448,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
             TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
             break;
         default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(image.pixelType()));
+            throw IOError(MODULE, "Unsupported pixel type: "s + toString(image.pixelType()));
     }
 
     const uint32_t rowsPerStrip = TIFFDefaultStripSize(tif, -1);

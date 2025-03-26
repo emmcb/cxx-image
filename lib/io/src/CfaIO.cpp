@@ -33,7 +33,7 @@ static PixelType phaseToPixelType(uint8_t phase) {
         case 3:
             return PixelType::BAYER_GRBG;
         default:
-            throw IOError(MODULE, "Unsupported bayer phase " + std::to_string(phase));
+            throw IOError(MODULE, "Unsupported bayer phase: " + std::to_string(phase));
     }
 }
 
@@ -52,11 +52,11 @@ static uint8_t pixelTypeToPhase(PixelType pixelType) {
         case PixelType::QUADBAYER_GRBG:
             return 3;
         default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(pixelType));
+            throw IOError(MODULE, "Unsupported pixel type: "s + toString(pixelType));
     }
 }
 
-void CfaReader::readHeader() {
+void CfaReader::initialize() {
     CfaHeader header = {};
     mStream->read(reinterpret_cast<char *>(&header), sizeof(header));
 

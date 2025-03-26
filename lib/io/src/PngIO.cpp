@@ -70,7 +70,7 @@ static PixelType colorTypeToPixelType(int colorType) {
         case PNG_COLOR_TYPE_RGBA:
             return PixelType::RGBA;
         default:
-            throw IOError(MODULE, "Unsupported color type " + std::to_string(colorType));
+            throw IOError(MODULE, "Unsupported color type: " + std::to_string(colorType));
     }
 }
 
@@ -85,11 +85,11 @@ static int pixelTypeToColorType(PixelType pixelType) {
         case PixelType::RGBA:
             return PNG_COLOR_TYPE_RGBA;
         default:
-            throw IOError(MODULE, "Unsupported pixel type "s + toString(pixelType));
+            throw IOError(MODULE, "Unsupported pixel type: "s + toString(pixelType));
     }
 }
 
-void PngReader::readHeader() {
+void PngReader::initialize() {
     mPng.reset(png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr));
 
     png_structp png = mPng.get();
@@ -127,14 +127,15 @@ void PngReader::readHeader() {
     // all transformations have been registered; now update info_ptr data
     png_read_update_info(png, info);
 
-    PixelRepresentation pixelRepresentation;
-    if (bitDepth <= 8) {
-        pixelRepresentation = PixelRepresentation::UINT8;
-    } else if (bitDepth == 16) {
-        pixelRepresentation = PixelRepresentation::UINT16;
-    } else {
-        throw IOError(MODULE, "Unsupported bit depth " + std::to_string(bitDepth));
-    }
+    PixelRepresentation pixelRepresentation = [&]() {
+        if (bitDepth <= 8) {
+            return PixelRepresentation::UINT8;
+        }
+        if (bitDepth == 16) {
+            return PixelRepresentation::UINT16;
+        }
+        throw IOError(MODULE, "Unsupported bit depth: " + std::to_string(bitDepth));
+    }();
 
     mDescriptor = {LayoutDescriptor::Builder(width, height)
                            .imageLayout(ImageLayout::INTERLEAVED)

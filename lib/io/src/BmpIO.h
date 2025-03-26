@@ -58,7 +58,8 @@ public:
 
     using ImageReader::ImageReader;
 
-    void readHeader() override;
+    void initialize() override;
+
     Image8u read8u() override;
 
 private:

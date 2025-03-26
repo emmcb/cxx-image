@@ -68,7 +68,8 @@ class MipiRawReader : public ImageReader {
 public:
     using ImageReader::ImageReader;
 
-    void readHeader() override;
+    void initialize() override;
+
     Image16u read16u() override;
 };
 

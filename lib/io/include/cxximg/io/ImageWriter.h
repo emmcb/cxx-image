@@ -77,27 +77,27 @@ public:
     /// Check if the writer can write the given image descriptor.
     virtual bool acceptDescriptor(const LayoutDescriptor &descriptor) const = 0;
 
-    /// Encode and write the given 8 bits image into a file.
+    /// Encode and write the given 8 bits image into the opened stream.
     virtual void write([[maybe_unused]] const Image8u &image) const {
         throw IOError("This format does not support 8 bits write.");
     }
 
-    /// Encode and write the given 16 bits image into a file.
+    /// Encode and write the given 16 bits image into the opened stream.
     virtual void write([[maybe_unused]] const Image16u &image) const {
         throw IOError("This format does not support 16 bits write.");
     }
 
-    /// Encode and write the given float image into a file.
+    /// Encode and write the given float image into the opened stream.
     virtual void write([[maybe_unused]] const Imagef &image) const {
         throw IOError("This format does not support float write.");
     }
 
-    /// Write the given EXIF metadata into a file.
+    /// Write the given EXIF metadata into the opened stream.
     virtual void writeExif([[maybe_unused]] const ExifMetadata &exif) const {
         throw IOError("This format does not support EXIF write.");
     }
 
-    /// Encode and write the given view into a file.
+    /// Encode and write the given view into the opened stream.
     template <typename T>
     void write(const ImageView<T> &imageView) const {
         return write(image::clone(imageView));

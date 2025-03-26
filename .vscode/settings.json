@@ -3,5 +3,8 @@
     "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
     "files.trimFinalNewlines": true,
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "rust-analyzer.linkedProjects": [
+        "${workspaceFolder}/external/rawler/Cargo.toml",
+    ]
 }

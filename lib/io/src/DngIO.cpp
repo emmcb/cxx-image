@@ -110,11 +110,11 @@ static PixelType cfaPatternToPixelType(const dng_ifd *ifd) {
     }
 
     throw IOError(MODULE,
-                  "Unsupported CFA pattern " + std::to_string(ifd->fCFAPattern[0][0]) + " " +
+                  "Unsupported CFA pattern: " + std::to_string(ifd->fCFAPattern[0][0]) + " " +
                           std::to_string(ifd->fCFAPattern[0][1]));
 }
 
-void DngReader::readHeader() {
+void DngReader::initialize() {
     mStream = std::make_unique<DngReadStream>(ImageReader::mStream);
     mHost = std::make_unique<dng_host>();
     mInfo = std::make_unique<dng_info>();
@@ -133,7 +133,7 @@ void DngReader::readHeader() {
         mNegative->Parse(*mHost, *mStream, *mInfo);
         mNegative->PostParse(*mHost, *mStream, *mInfo);
     } catch (const dng_exception &except) {
-        throw IOError(MODULE, "Reading failed with error code " + std::to_string(except.ErrorCode()));
+        throw IOError(MODULE, "Reading failed with error code: " + std::to_string(except.ErrorCode()));
     }
 
     const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
@@ -141,12 +141,12 @@ void DngReader::readHeader() {
 
     if (ifd->fSamplesPerPixel == 1) {
         if (ifd->fPhotometricInterpretation != piCFA) {
-            throw IOError(MODULE, "Unsupported photo metric " + std::to_string(ifd->fPhotometricInterpretation));
+            throw IOError(MODULE, "Unsupported photo metric: " + std::to_string(ifd->fPhotometricInterpretation));
         }
         builder.pixelType(cfaPatternToPixelType(ifd));
     } else if (ifd->fSamplesPerPixel == 3) {
         if (ifd->fPhotometricInterpretation != piLinearRaw) {
-            throw IOError(MODULE, "Unsupported photo metric " + std::to_string(ifd->fPhotometricInterpretation));
+            throw IOError(MODULE, "Unsupported photo metric: " + std::to_string(ifd->fPhotometricInterpretation));
         }
 
         builder.pixelType(PixelType::RGB);
@@ -156,25 +156,26 @@ void DngReader::readHeader() {
         } else if (ifd->fPlanarConfiguration == pcPlanar) {
             builder.imageLayout(ImageLayout::PLANAR);
         } else {
-            throw IOError(MODULE, "Unsupported planar config " + std::to_string(ifd->fPlanarConfiguration));
+            throw IOError(MODULE, "Unsupported planar config: " + std::to_string(ifd->fPlanarConfiguration));
         }
     } else {
-        throw IOError(MODULE, "Unsupported samples per pixel " + std::to_string(ifd->fSamplesPerPixel));
+        throw IOError(MODULE, "Unsupported samples per pixel: " + std::to_string(ifd->fSamplesPerPixel));
     }
 
-    PixelRepresentation pixelRepresentation;
-    if (ifd->fSampleFormat[0] == sfFloatingPoint) {
-        pixelRepresentation = PixelRepresentation::FLOAT;
-    } else if (ifd->fSampleFormat[0] == sfUnsignedInteger) {
-        if (ifd->fBitsPerSample[0] > 16) {
-            throw IOError(MODULE, "Unsupported bits per sample " + std::to_string(ifd->fBitsPerSample[0]));
+    PixelRepresentation pixelRepresentation = [&]() {
+        if (ifd->fSampleFormat[0] == sfFloatingPoint) {
+            return PixelRepresentation::FLOAT;
         }
-        pixelRepresentation = PixelRepresentation::UINT16;
+        if (ifd->fSampleFormat[0] == sfUnsignedInteger) {
+            if (ifd->fBitsPerSample[0] > 16) {
+                throw IOError(MODULE, "Unsupported bits per sample: " + std::to_string(ifd->fBitsPerSample[0]));
+            }
 
-        builder.pixelPrecision(std::ceil(std::log2(ifd->fWhiteLevel[0])));
-    } else {
-        throw IOError(MODULE, "Unsupported sample format " + std::to_string(ifd->fSampleFormat[0]));
-    }
+            builder.pixelPrecision(std::ceil(std::log2(ifd->fWhiteLevel[0])));
+            return PixelRepresentation::UINT16;
+        }
+        throw IOError(MODULE, "Unsupported sample format: " + std::to_string(ifd->fSampleFormat[0]));
+    }();
 
     mDescriptor = {builder.build(), pixelRepresentation};
 }
@@ -211,7 +212,7 @@ Image<T> DngReader::read() {
         if (!hasLinearizationTable) {
             const dng_image *stage1 = mNegative->Stage1Image();
             if (stage1->PixelType() != ttShort && stage1->PixelType() != ttFloat) {
-                throw IOError(MODULE, "Unsupported pixel type " + std::to_string(stage1->PixelType()));
+                throw IOError(MODULE, "Unsupported pixel type: " + std::to_string(stage1->PixelType()));
             }
 
             dng_pixel_buffer buffer(ifd->fActiveArea,
@@ -248,13 +249,13 @@ Image<T> DngReader::read() {
                     image = expr::lut(expr::min(srcImage[crop], lut.size() - 1), lut);
                 } break;
                 default:
-                    throw IOError(MODULE, "Unsupported pixel type " + std::to_string(stage1->PixelType()));
+                    throw IOError(MODULE, "Unsupported pixel type: " + std::to_string(stage1->PixelType()));
             }
         }
 
         return image;
     } catch (const dng_exception &except) {
-        throw IOError(MODULE, "Reading failed with error code " + std::to_string(except.ErrorCode()));
+        throw IOError(MODULE, "Reading failed with error code: " + std::to_string(except.ErrorCode()));
     }
 }
 
@@ -560,7 +561,7 @@ void DngWriter::writeImpl(const Image<T> &image) const {
             case PixelType::RGB:
                 break;
             default:
-                throw IOError(MODULE, "Unsupported pixel type "s + toString(image.pixelType()));
+                throw IOError(MODULE, "Unsupported pixel type: "s + toString(image.pixelType()));
         }
 
         AutoPtr<dng_camera_profile> profile(new dng_camera_profile());
@@ -681,7 +682,7 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         dng_image_writer writer;
         writer.WriteDNG(host, writeStream, *negative.Get());
     } catch (const dng_exception &except) {
-        throw IOError(MODULE, "Writing failed with error code " + std::to_string(except.ErrorCode()));
+        throw IOError(MODULE, "Writing failed with error code: " + std::to_string(except.ErrorCode()));
     }
 }
 

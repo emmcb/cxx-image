@@ -19,7 +19,6 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
-#include <utility>
 
 namespace cxximg {
 
@@ -36,27 +35,31 @@ public:
     /// Identity matrix.
     static const Matrix<M, N> IDENTITY;
 
+    /// Constructs diagonal matrix from given values.
+    template <typename T>
+    static constexpr Matrix<M, N> diag(const Pixel<T, M> &values) {
+        static_assert(M == N, "Matrix must be square");
+
+        Matrix<M, N> mat(0.0f);
+        for (int i = 0; i < M; ++i) {
+            mat(i, i) = static_cast<float>(values[i]);
+        }
+        return mat;
+    }
+
     /// Constructs empty matrix.
-    Matrix() = default;
+    constexpr Matrix() = default;
 
     /// Constructs value-initialized matrix with specified dimensions.
-    explicit Matrix(float value) {
+    explicit constexpr Matrix(float value) {
         for (float &v : mData) {
             v = value;
         }
     }
 
-    /// Constructs matrix from buffer.
-    template <typename T>
-    explicit Matrix(const T *buffer) {
-        for (size_t i = 0; i < mData.size(); ++i) {
-            mData[i] = static_cast<float>(buffer[i]);
-        }
-    }
-
     /// Constructs matrix from brace initializer.
     template <typename T>
-    Matrix(const std::initializer_list<std::initializer_list<T>> &initializer) {
+    constexpr Matrix(const std::initializer_list<std::initializer_list<T>> &initializer) {
         if (static_cast<int>(initializer.size()) != M) {
             throw std::invalid_argument("Mismatch between matrix number of rows");
         }
@@ -73,11 +76,19 @@ public:
         }
     }
 
-    /// Returns value at specified position.
-    float operator()(int row, int col) const noexcept { return mData[row * N + col]; }
+    /// Constructs matrix from buffer.
+    template <typename T>
+    explicit Matrix(const T *buffer) {
+        for (size_t i = 0; i < mData.size(); ++i) {
+            mData[i] = static_cast<float>(buffer[i]);
+        }
+    }
 
     /// Returns value at specified position.
-    float &operator()(int row, int col) noexcept { return mData[row * N + col]; }
+    constexpr float operator()(int row, int col) const noexcept { return mData[row * N + col]; }
+
+    /// Returns value at specified position.
+    constexpr float &operator()(int row, int col) noexcept { return mData[row * N + col]; }
 
     /// Returns matrix number of rows.
     constexpr int numRows() const noexcept { return M; }
