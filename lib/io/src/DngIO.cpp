@@ -312,6 +312,12 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     if (dngExif->fFocalLengthIn35mmFilm != 0) {
         exif.focalLengthIn35mmFilm = dngExif->fFocalLengthIn35mmFilm;
     }
+    if (dngExif->fLensMake.NotEmpty()) {
+        exif.lensMake = dngExif->fLensMake.Get();
+    }
+    if (dngExif->fLensName.NotEmpty()) {
+        exif.lensModel = dngExif->fLensName.Get();
+    }
 
     return exif;
 }
@@ -498,6 +504,12 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
     }
     if (exif.focalLengthIn35mmFilm) {
         dngExif->fFocalLengthIn35mmFilm = *exif.focalLengthIn35mmFilm;
+    }
+    if (exif.lensMake) {
+        dngExif->fLensMake.Set(exif.lensMake->c_str());
+    }
+    if (exif.lensModel) {
+        dngExif->fLensName.Set(exif.lensModel->c_str());
     }
 }
 

@@ -45,18 +45,21 @@ pub struct Exif {
     brightness_value: [i32; 2],
     exposure_bias: [i32; 2],
     focal_length: [u32; 2],
-}
-
-#[repr(C)]
-pub struct RawMetadata {
-    exif: Exif,
-    model: [c_char; 32],
-    make: [c_char; 32],
+    lens_make: [c_char; 32],
+    lens_model: [c_char; 32],
 }
 
 // Combined struct for raw image data and metadata
 #[repr(C)]
 pub struct RawImage {
+    /// camera make as encoded in the file
+    make: [c_char; 32],
+    /// camera model as encoded in the file
+    model: [c_char; 32],
+    /// make cleaned up to be consistent and short
+    clean_make: [c_char; 32],
+    /// model cleaned up to be consistent and short
+    clean_model: [c_char; 32],
     /// width of the full image
     width: c_uint,
     /// height of the full image
@@ -75,8 +78,8 @@ pub struct RawImage {
     wb_coeffs: [f32; 4],
     /// color matrix
     color_matrix: [f32; 9],
-    /// image metadata
-    metadata: RawMetadata,
+    /// image exif
+    exif: Exif,
     /// image data type
     data_type: DataType,
     /// image data pointer
@@ -137,6 +140,10 @@ pub unsafe extern "C" fn decode_buffer(
 
         // Create the combined decoded image struct
         let mut decoded_image = Box::new(RawImage {
+            make: [0; 32],
+            model: [0; 32],
+            clean_make: [0; 32],
+            clean_model: [0; 32],
             width: raw_image.width as c_uint,
             height: raw_image.height as c_uint,
             cpp: raw_image.cpp as c_uint,
@@ -146,24 +153,31 @@ pub unsafe extern "C" fn decode_buffer(
             white_levels: raw_image.whitelevel.as_bayer_array(),
             wb_coeffs: raw_image.wb_coeffs,
             color_matrix: [0.0; 9],
-            metadata: RawMetadata {
-                exif: Exif {
-                    orientation: 0,
-                    exposure_time: [0; 2],
-                    fnumber: [0; 2],
-                    iso_speed_ratings: 0,
-                    date_time_original: [0; 32],
-                    brightness_value: [0; 2],
-                    exposure_bias: [0; 2],
-                    focal_length: [0; 2],
-                },
-                model: [0; 32],
-                make: [0; 32],
+            exif: Exif {
+                orientation: 0,
+                exposure_time: [0; 2],
+                fnumber: [0; 2],
+                iso_speed_ratings: 0,
+                date_time_original: [0; 32],
+                brightness_value: [0; 2],
+                exposure_bias: [0; 2],
+                focal_length: [0; 2],
+                lens_make: [0; 32],
+                lens_model: [0; 32],
             },
             data_type,
             data_ptr,
             data_len,
         });
+
+        // Fill in the camera make and model
+        string_to_fixed_c_chars(&raw_image.camera.make, &mut decoded_image.make);
+        string_to_fixed_c_chars(&raw_image.camera.model, &mut decoded_image.model);
+        string_to_fixed_c_chars(&raw_image.camera.clean_make, &mut decoded_image.clean_make);
+        string_to_fixed_c_chars(
+            &raw_image.camera.clean_model,
+            &mut decoded_image.clean_model,
+        );
 
         // Fill in the cfa pattern
         string_to_fixed_c_chars(&raw_image.camera.cfa.name, &mut decoded_image.cfa);
@@ -177,37 +191,38 @@ pub unsafe extern "C" fn decode_buffer(
 
         // Fill in the metadata
         if let Ok(metadata) = decoder.raw_metadata(&buf, &params) {
-            // Copy make and model to metadata
-            string_to_fixed_c_chars(&metadata.make, &mut decoded_image.metadata.make);
-            string_to_fixed_c_chars(&metadata.model, &mut decoded_image.metadata.model);
-
             if let Some(orientation) = metadata.exif.orientation {
-                decoded_image.metadata.exif.orientation = orientation;
+                decoded_image.exif.orientation = orientation;
             }
             if let Some(exposure_time) = metadata.exif.exposure_time {
-                decoded_image.metadata.exif.exposure_time = [exposure_time.n, exposure_time.d];
+                decoded_image.exif.exposure_time = [exposure_time.n, exposure_time.d];
             }
             if let Some(fnumber) = metadata.exif.fnumber {
-                decoded_image.metadata.exif.fnumber = [fnumber.n, fnumber.d];
+                decoded_image.exif.fnumber = [fnumber.n, fnumber.d];
             }
             if let Some(iso_speed_ratings) = metadata.exif.iso_speed_ratings {
-                decoded_image.metadata.exif.iso_speed_ratings = iso_speed_ratings;
+                decoded_image.exif.iso_speed_ratings = iso_speed_ratings;
             }
             if let Some(date_time_original) = metadata.exif.date_time_original {
                 string_to_fixed_c_chars(
                     &date_time_original,
-                    &mut decoded_image.metadata.exif.date_time_original,
+                    &mut decoded_image.exif.date_time_original,
                 );
             }
             if let Some(brightness_value) = metadata.exif.brightness_value {
-                decoded_image.metadata.exif.brightness_value =
-                    [brightness_value.n, brightness_value.d];
+                decoded_image.exif.brightness_value = [brightness_value.n, brightness_value.d];
             }
             if let Some(exposure_bias) = metadata.exif.exposure_bias {
-                decoded_image.metadata.exif.exposure_bias = [exposure_bias.n, exposure_bias.d];
+                decoded_image.exif.exposure_bias = [exposure_bias.n, exposure_bias.d];
             }
             if let Some(focal_length) = metadata.exif.focal_length {
-                decoded_image.metadata.exif.focal_length = [focal_length.n, focal_length.d];
+                decoded_image.exif.focal_length = [focal_length.n, focal_length.d];
+            }
+            if let Some(lens_make) = metadata.exif.lens_make {
+                string_to_fixed_c_chars(&lens_make, &mut decoded_image.exif.lens_make);
+            }
+            if let Some(lens_model) = metadata.exif.lens_model {
+                string_to_fixed_c_chars(&lens_model, &mut decoded_image.exif.lens_model);
             }
         }
 

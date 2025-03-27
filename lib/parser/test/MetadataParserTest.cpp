@@ -34,8 +34,8 @@ TEST(MetadataParserTest, TestSerializationFull) {
             .exifMetadata = {.imageWidth = 4000,
                              .imageHeight = 3000,
                              .imageDescription = "My description",
-                             .make = "Parser",
-                             .model = "Test",
+                             .make = "Make",
+                             .model = "Model",
                              .orientation = 1,
                              .software = "",
                              .exposureTime = ExifMetadata::Rational{1, 100},
@@ -45,7 +45,9 @@ TEST(MetadataParserTest, TestSerializationFull) {
                              .brightnessValue = ExifMetadata::SRational{25, 10},
                              .exposureBiasValue = ExifMetadata::SRational{-100, 100},
                              .focalLength = ExifMetadata::Rational{35, 1},
-                             .focalLengthIn35mmFilm = 50},
+                             .focalLengthIn35mmFilm = 50,
+                             .lensMake = "Lens make",
+                             .lensModel = "Lens model"},
             .shootingParams = {.aperture = 5.6f,
                                .exposureTime = 0.01f,
                                .sensitivity = 100.0f,
@@ -89,8 +91,8 @@ TEST(MetadataParserTest, TestSerializationFull) {
         "imageWidth": 4000,
         "imageHeight": 3000,
         "imageDescription": "My description",
-        "make": "Parser",
-        "model": "Test",
+        "make": "Make",
+        "model": "Model",
         "orientation": 1,
         "software": "",
         "exposureTime": [
@@ -115,7 +117,9 @@ TEST(MetadataParserTest, TestSerializationFull) {
             35,
             1
         ],
-        "focalLengthIn35mmFilm": 50
+        "focalLengthIn35mmFilm": 50,
+        "lensMake": "Lens make",
+        "lensModel": "Lens model"
     },
     "shootingParams": {
         "aperture": 5.599999904632568,

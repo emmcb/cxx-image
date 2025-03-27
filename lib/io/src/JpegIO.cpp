@@ -326,6 +326,12 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
                     case EXIF_TAG_FOCAL_LENGTH_IN_35MM_FILM:
                         exif->focalLengthIn35mmFilm = exif_get_short(entry->data, byteOrder);
                         break;
+                    case EXIF_TAG_LENS_MAKE:
+                        exif->lensMake = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        break;
+                    case EXIF_TAG_LENS_MODEL:
+                        exif->lensModel = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        break;
                     default:
                         break;
                 }
@@ -449,6 +455,14 @@ static void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
     if (exif.focalLengthIn35mmFilm) {
         entry = addExifEntry(ifdExif, EXIF_TAG_FOCAL_LENGTH_IN_35MM_FILM);
         exif_set_short(entry->data, FILE_BYTE_ORDER, *exif.focalLengthIn35mmFilm);
+    }
+    if (exif.lensMake) {
+        entry = addExifEntry(ifdExif, EXIF_TAG_LENS_MAKE);
+        exifSetString(mem, entry, *exif.lensMake);
+    }
+    if (exif.lensModel) {
+        entry = addExifEntry(ifdExif, EXIF_TAG_LENS_MODEL);
+        exifSetString(mem, entry, *exif.lensModel);
     }
 }
 #endif

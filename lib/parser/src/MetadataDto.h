@@ -348,7 +348,9 @@ void json_io(JsonIo& io, ExifMetadata& exifMetadata) {
             json_dto::optional("brightnessValue", exifMetadata.brightnessValue, std::nullopt) &
             json_dto::optional("exposureBiasValue", exifMetadata.exposureBiasValue, std::nullopt) &
             json_dto::optional("focalLength", exifMetadata.focalLength, std::nullopt) &
-            json_dto::optional("focalLengthIn35mmFilm", exifMetadata.focalLengthIn35mmFilm, std::nullopt);
+            json_dto::optional("focalLengthIn35mmFilm", exifMetadata.focalLengthIn35mmFilm, std::nullopt) &
+            json_dto::optional("lensMake", exifMetadata.lensMake, std::nullopt) &
+            json_dto::optional("lensModel", exifMetadata.lensModel, std::nullopt);
 }
 
 template <typename JsonIo>

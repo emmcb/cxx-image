@@ -54,6 +54,8 @@ struct ExifMetadata final {
     std::optional<SRational> exposureBiasValue;    ///< The exposure bias.
     std::optional<Rational> focalLength;           ///< Focal length of lens in millimeters
     std::optional<uint16_t> focalLengthIn35mmFilm; ///< Focal length of lens in millimeters (35mm equivalent)
+    std::optional<std::string> lensMake;           ///< Lens manufacturer
+    std::optional<std::string> lensModel;          ///< Lens model
 };
 
 } // namespace cxximg

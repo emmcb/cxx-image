@@ -311,6 +311,16 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
         exif.focalLengthIn35mmFilm = focalLengthIn35mmFilm;
     }
 
+    char *lensMake = nullptr;
+    if (TIFFGetField(tif, EXIFTAG_LENSMAKE, &lensMake) != 0) {
+        exif.lensMake = lensMake;
+    }
+
+    char *lensModel = nullptr;
+    if (TIFFGetField(tif, EXIFTAG_LENSMODEL, &lensModel) != 0) {
+        exif.lensModel = lensModel;
+    }
+
     TIFFSetDirectory(tif, 0); // go back to main directory
 
     return exif;
@@ -364,6 +374,12 @@ static void populateExif(TIFF *tif, const ExifMetadata &exif) {
     }
     if (exif.focalLengthIn35mmFilm) {
         TIFFSetField(tif, EXIFTAG_FOCALLENGTHIN35MMFILM, *exif.focalLengthIn35mmFilm);
+    }
+    if (exif.lensMake) {
+        TIFFSetField(tif, EXIFTAG_LENSMAKE, (*exif.lensMake).c_str());
+    }
+    if (exif.lensModel) {
+        TIFFSetField(tif, EXIFTAG_LENSMODEL, (*exif.lensModel).c_str());
     }
 }
 

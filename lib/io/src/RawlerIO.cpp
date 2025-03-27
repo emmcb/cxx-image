@@ -100,33 +100,38 @@ Image<T> RawlerReader::read() {
 
 std::optional<ExifMetadata> RawlerReader::readExif() const {
     ExifMetadata exif;
-    exif.make = mRawImage->metadata.make;
-    exif.model = mRawImage->metadata.model;
+    exif.make = mRawImage->make;
+    exif.model = mRawImage->model;
 
-    if (mRawImage->metadata.exif.orientation > 0) {
-        exif.orientation = mRawImage->metadata.exif.orientation;
+    if (mRawImage->exif.orientation > 0) {
+        exif.orientation = mRawImage->exif.orientation;
     }
-    if (mRawImage->metadata.exif.exposure_time[1] > 0) {
-        exif.exposureTime = {mRawImage->metadata.exif.exposure_time[0], mRawImage->metadata.exif.exposure_time[1]};
+    if (mRawImage->exif.exposure_time[1] > 0) {
+        exif.exposureTime = {mRawImage->exif.exposure_time[0], mRawImage->exif.exposure_time[1]};
     }
-    if (mRawImage->metadata.exif.fnumber[1] > 0) {
-        exif.fNumber = {mRawImage->metadata.exif.fnumber[0], mRawImage->metadata.exif.fnumber[1]};
+    if (mRawImage->exif.fnumber[1] > 0) {
+        exif.fNumber = {mRawImage->exif.fnumber[0], mRawImage->exif.fnumber[1]};
     }
-    if (mRawImage->metadata.exif.iso_speed_ratings > 0) {
-        exif.isoSpeedRatings = mRawImage->metadata.exif.iso_speed_ratings;
+    if (mRawImage->exif.iso_speed_ratings > 0) {
+        exif.isoSpeedRatings = mRawImage->exif.iso_speed_ratings;
     }
-    if (mRawImage->metadata.exif.date_time_original[0] != 0) {
-        exif.dateTimeOriginal = mRawImage->metadata.exif.date_time_original;
+    if (mRawImage->exif.date_time_original[0] != 0) {
+        exif.dateTimeOriginal = mRawImage->exif.date_time_original;
     }
-    if (mRawImage->metadata.exif.brightness_value[1] > 0) {
-        exif.brightnessValue = {mRawImage->metadata.exif.brightness_value[0],
-                                mRawImage->metadata.exif.brightness_value[1]};
+    if (mRawImage->exif.brightness_value[1] > 0) {
+        exif.brightnessValue = {mRawImage->exif.brightness_value[0], mRawImage->exif.brightness_value[1]};
     }
-    if (mRawImage->metadata.exif.exposure_bias[1] > 0) {
-        exif.exposureBiasValue = {mRawImage->metadata.exif.exposure_bias[0], mRawImage->metadata.exif.exposure_bias[1]};
+    if (mRawImage->exif.exposure_bias[1] > 0) {
+        exif.exposureBiasValue = {mRawImage->exif.exposure_bias[0], mRawImage->exif.exposure_bias[1]};
     }
-    if (mRawImage->metadata.exif.focal_length[1] > 0) {
-        exif.focalLength = {mRawImage->metadata.exif.focal_length[0], mRawImage->metadata.exif.focal_length[1]};
+    if (mRawImage->exif.focal_length[1] > 0) {
+        exif.focalLength = {mRawImage->exif.focal_length[0], mRawImage->exif.focal_length[1]};
+    }
+    if (mRawImage->exif.lens_make[0] != 0) {
+        exif.lensMake = mRawImage->exif.lens_make;
+    }
+    if (mRawImage->exif.lens_model[0] != 0) {
+        exif.lensModel = mRawImage->exif.lens_model;
     }
 
     return exif;

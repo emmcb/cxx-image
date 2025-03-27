@@ -26,15 +26,19 @@ struct Exif {
     int32_t brightness_value[2];
     int32_t exposure_bias[2];
     uint32_t focal_length[2];
-};
-
-struct RawMetadata {
-    Exif exif;
-    char model[32];
-    char make[32];
+    char lens_make[32];
+    char lens_model[32];
 };
 
 struct RawImage {
+    /// camera make as encoded in the file
+    char make[32];
+    /// camera model as encoded in the file
+    char model[32];
+    /// make cleaned up to be consistent and short
+    char clean_make[32];
+    /// model cleaned up to be consistent and short
+    char clean_model[32];
     /// width of the full image
     unsigned int width;
     /// height of the full image
@@ -53,8 +57,8 @@ struct RawImage {
     float wb_coeffs[4];
     /// color matrix
     float color_matrix[9];
-    /// image metadata
-    RawMetadata metadata;
+    /// image exif
+    Exif exif;
     /// image data type
     DataType data_type;
     /// image data pointer
