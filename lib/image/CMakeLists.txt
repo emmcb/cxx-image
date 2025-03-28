@@ -8,7 +8,7 @@ set(TEST_DIR test)
 
 # Sources
 
-set(SRCS ${SRC_DIR}/Image.cpp ${SRC_DIR}/ImageView.cpp ${SRC_DIR}/PlaneView.cpp)
+set(SRCS ${SRC_DIR}/Image.cpp ${SRC_DIR}/ImageView.cpp ${SRC_DIR}/PlaneView.cpp ${SRC_DIR}/ImageAllocator.cpp)
 
 # Include and target definitions
 
@@ -50,8 +50,8 @@ endif()
 
 if(HAVE_GTEST AND BUILD_TESTING)
     add_executable(
-        ${TARGET}-test ${TEST_DIR}/BorderTest.cpp ${TEST_DIR}/ImageTest.cpp ${TEST_DIR}/LayoutTest.cpp
-                       ${TEST_DIR}/PlaneViewTest.cpp ${TEST_DIR}/ResizeExpressionTest.cpp
+        ${TARGET}-test ${TEST_DIR}/AllocatorTest.cpp ${TEST_DIR}/BorderTest.cpp ${TEST_DIR}/ImageTest.cpp
+                       ${TEST_DIR}/LayoutTest.cpp ${TEST_DIR}/PlaneViewTest.cpp ${TEST_DIR}/ResizeExpressionTest.cpp
     )
     target_link_libraries(${TARGET}-test PRIVATE GTest::gtest_main cxximg-image)
 

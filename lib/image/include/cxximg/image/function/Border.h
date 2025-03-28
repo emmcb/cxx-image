@@ -15,18 +15,11 @@
 #pragma once
 
 #include "cxximg/image/Image.h"
+#include "cxximg/image/function/BorderMode.h"
 
 namespace cxximg {
 
 namespace image {
-
-/// How image borders are handled.
-enum class BorderMode {
-    CONSTANT, ///< 000|abc|000
-    MIRROR,   ///< cb|abc|ba
-    NEAREST,  ///< aaa|abc|ccc
-    REFLECT   ///< cba|abc|cba
-};
 
 /// Updates the image border values.
 /// The borders must already have been allocated with the makeBorders() function.

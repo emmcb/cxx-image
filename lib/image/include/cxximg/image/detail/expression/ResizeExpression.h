@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/Interpolator.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -27,7 +27,7 @@ namespace detail {
 
 /// An expression to resize an another expression.
 template <typename Expr, class Interpolator>
-struct ResizeExpression final : public BaseExpression {
+struct ResizeExpression final : public Expression {
     view_t<Expr> expr; ///< Child expression.
     Interpolator interpolator;
     float offsetX;

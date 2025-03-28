@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/ImageDescriptor.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 #include "cxximg/image/view/PlaneView.h"
 
 #include "cxximg/util/compiler.h"
@@ -32,7 +32,7 @@ namespace cxximg {
 
 /// Image manipulation class.
 template <typename T>
-class ImageView : public expr::BaseExpression {
+class ImageView : public expr::Expression {
 public:
     class PlaneIterable;
 

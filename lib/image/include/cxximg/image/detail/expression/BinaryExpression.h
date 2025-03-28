@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/detail/operator/BinaryOperators.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -28,7 +28,7 @@ namespace detail {
 /// A binary expression, that is a binary operator applied on two child
 /// expressions.
 template <typename LeftExpr, class BinaryOp, typename RightExpr>
-struct BinaryExpression final : public BaseExpression {
+struct BinaryExpression final : public Expression {
     view_t<LeftExpr> left;   ///< Left child.
     view_t<RightExpr> right; ///< Right child.
 

@@ -33,137 +33,112 @@ struct BinaryExpression;
 } // namespace detail
 
 /// Expression base class that provides basic operators (+, -, *, /).
-struct BaseExpression {};
+struct Expression {};
 
 template <typename LeftExpr, typename RightExpr>
-using IsBaseExpression = std::disjunction<std::is_base_of<BaseExpression, std::remove_reference_t<LeftExpr>>,
-                                          std::is_base_of<BaseExpression, std::remove_reference_t<RightExpr>>>;
+constexpr bool is_expression_v = // NOLINT(readability-identifier-naming)
+        std::is_base_of_v<Expression, std::remove_reference_t<LeftExpr>> ||
+        std::is_base_of_v<Expression, std::remove_reference_t<RightExpr>>;
 
 /// Expression addition.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator+(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::AddOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression subtraction.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator-(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::SubtractOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression multiplication.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator*(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::MultiplyOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression division.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator/(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::DivideOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression binary left shift.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator<<(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::LeftShiftOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression binary right shift.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator>>(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::RightShiftOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression comparison.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator==(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::EqualToOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression comparison.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator<(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::LessThanOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression comparison.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator<=(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::LessOrEqualThanOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression comparison.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator>(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::GreaterThanOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression comparison.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator>=(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::GreaterOrEqualThanOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression logical AND.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator&&(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::LogicalAndOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));
 }
 
 /// Expression logical OR.
-/// @relates BaseExpression
-template <typename LeftExpr,
-          typename RightExpr,
-          typename = std::enable_if_t<IsBaseExpression<LeftExpr, RightExpr>::value>>
+/// @relates Expression
+template <typename LeftExpr, typename RightExpr, typename = std::enable_if_t<is_expression_v<LeftExpr, RightExpr>>>
 decltype(auto) operator||(LeftExpr &&leftExpr, RightExpr &&rightExpr) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::LogicalOrOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(leftExpr), std::forward<RightExpr>(rightExpr));

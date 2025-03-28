@@ -15,7 +15,7 @@
 #include "cxximg/parser/MetadataParser.h"
 #include "cxximg/util/File.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace cxximg;
 

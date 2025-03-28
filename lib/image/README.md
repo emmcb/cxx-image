@@ -174,7 +174,7 @@ The idea is to wrap the image into an expression that will do the bound checking
 
 ~~~~~~~~~~~~~~~{.cpp}
 // Wraps the input image into an expression that will do the bound checking.
-auto imgWithBoundCheck = expr::border<image::BorderMode::MIRROR>(img);
+auto imgWithBoundCheck = expr::border<BorderMode::MIRROR>(img);
 
 // Now we are safe to look outside bounds.
 img2 = [&](int x, int y, auto... coords) {
@@ -190,8 +190,10 @@ img2 = [&](int x, int y, auto... coords) {
 Another option is to allocate a bigger buffer with an extra space for the borders, that can be precomputed before evaluating the expression. The advantage is that once the border has been precomputed, no additional runtime cost will occur. cxximg::image::makeBorders and cxximg::image::updateBorders will take care of these steps.
 
 ~~~~~~~~~~~~~~~{.cpp}
+#include "cxximg/image/function/Border.h"
+
 // Allocate a new image with 1px border.
-Image16u imgWithBorder = image::makeBorders<image::BorderMode::MIRROR>(img, 1);
+Image16u imgWithBorder = image::makeBorders<BorderMode::MIRROR>(img, 1);
 
 // Note that the width and height of imgWithBorder is the same than the width and height of img.
 // However, we can now access to the coordinate x = -1 or y = -1 due to the extra 1px border.

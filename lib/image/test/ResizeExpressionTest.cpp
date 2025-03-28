@@ -14,7 +14,7 @@
 
 #include "cxximg/image/Image.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace cxximg;
 

@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/ImageDescriptor.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/math/Pixel.h"
 #include "cxximg/util/compiler.h"
@@ -30,7 +30,7 @@ namespace cxximg {
 
 /// Pixel manipulation class.
 template <typename T, int N>
-class PixelView final : public expr::BaseExpression {
+class PixelView final : public expr::Expression {
 public:
     /// Constructs image from a given descriptor.
     explicit PixelView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}

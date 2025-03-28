@@ -14,7 +14,7 @@
 
 #include "cxximg/math/Histogram.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace cxximg;
 

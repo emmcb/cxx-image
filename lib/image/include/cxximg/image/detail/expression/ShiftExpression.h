@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -26,7 +26,7 @@ namespace detail {
 
 /// An expression to shift an another expression.
 template <typename Expr>
-struct ShiftExpression final : public BaseExpression {
+struct ShiftExpression final : public Expression {
     view_t<Expr> expr; ///< Child expression.
     int shiftX;
     int shiftY;

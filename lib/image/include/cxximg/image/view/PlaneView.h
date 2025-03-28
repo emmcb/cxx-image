@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/ImageDescriptor.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/math/Histogram.h"
 
@@ -32,7 +32,7 @@ namespace cxximg {
 
 /// Plane manipulation class.
 template <typename T>
-class PlaneView final : public expr::BaseExpression {
+class PlaneView final : public expr::Expression {
 public:
     /// Constructs plane view from specified image plane.
     PlaneView(const ImageDescriptor<T> &imageDescriptor, int index)

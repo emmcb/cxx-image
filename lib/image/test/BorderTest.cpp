@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include "cxximg/image/Image.h"
+#include "cxximg/image/function/Border.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace cxximg;
 
@@ -48,7 +49,7 @@ TEST_F(BorderTest, TestMakeBorderConstant) {
     // 0 0  0 0 0  0 0
 
     // When I create constant borders filled with zero
-    Image8u borders = image::makeBorders<image::BorderMode::CONSTANT>(image, 2);
+    Image8u borders = image::makeBorders<BorderMode::CONSTANT>(image, 2);
 
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
@@ -141,7 +142,7 @@ TEST_F(BorderTest, TestMakeBorderMirror) {
     // c b  a b c  b a
 
     // When I create mirror borders
-    Image8u borders = image::makeBorders<image::BorderMode::MIRROR>(image, 2);
+    Image8u borders = image::makeBorders<BorderMode::MIRROR>(image, 2);
 
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
@@ -234,7 +235,7 @@ TEST_F(BorderTest, TestMakeBorderNearest) {
     // g g  g h i  i i
 
     // When I create nearest borders
-    Image8u borders = image::makeBorders<image::BorderMode::NEAREST>(image, 2);
+    Image8u borders = image::makeBorders<BorderMode::NEAREST>(image, 2);
 
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
@@ -327,7 +328,7 @@ TEST_F(BorderTest, TestMakeBorderReflect) {
     // e d  d e f  f e
 
     // When I create reflect borders
-    Image8u borders = image::makeBorders<image::BorderMode::REFLECT>(image, 2);
+    Image8u borders = image::makeBorders<BorderMode::REFLECT>(image, 2);
 
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);

@@ -14,8 +14,9 @@
 
 #pragma once
 
+#include "cxximg/image/Expressions.h"
 #include "cxximg/image/ImageDescriptor.h"
-#include "cxximg/image/expression/Expressions.h"
+#include "cxximg/image/detail/memory/AllocatorManager.h"
 #include "cxximg/image/function/Conversion.h"
 #include "cxximg/image/view/ImageView.h"
 
@@ -97,8 +98,13 @@ public:
         if (allocated() || !defined()) {
             return;
         }
+
+        auto &allocator = memory::detail::AllocatorManager::current();
+
         mSize = this->layoutDescriptor().requiredBufferSize();
-        mData.reset(static_cast<T *>(::operator new[](mSize * sizeof(T), std::align_val_t(CXXIMG_BASE_ALIGNMENT))));
+        mData.reset(static_cast<T *>(allocator.allocate(mSize * sizeof(T))));
+        mData.get_deleter().size = mSize;
+
         this->mapBuffer(mData.get());
     }
 
@@ -151,7 +157,12 @@ public:
 
 private:
     struct Deleter final {
-        void operator()(T *ptr) const { ::operator delete[](ptr, std::align_val_t(CXXIMG_BASE_ALIGNMENT)); }
+        int64_t size = 0;
+
+        void operator()(T *ptr) const {
+            auto &allocator = memory::detail::AllocatorManager::current();
+            allocator.deallocate(ptr, size * sizeof(T));
+        }
     };
 
     int64_t mSize = 0;

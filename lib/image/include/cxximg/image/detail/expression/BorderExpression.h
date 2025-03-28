@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "cxximg/image/expression/BaseExpression.h"
-#include "cxximg/image/function/Border.h"
+#include "cxximg/image/expression/Expression.h"
+#include "cxximg/image/function/BorderMode.h"
 
 #include "cxximg/math/math.h"
 #include "cxximg/util/compiler.h"
@@ -27,8 +27,8 @@ namespace expr {
 namespace detail {
 
 /// An expression to handle borders.
-template <typename Expr, image::BorderMode MODE>
-struct BorderExpression final : public BaseExpression {
+template <typename Expr, BorderMode MODE>
+struct BorderExpression final : public Expression {
     view_t<Expr> expr; ///< Child expression.
 
     /// Constructs expression from child and kernel.
@@ -37,7 +37,7 @@ struct BorderExpression final : public BaseExpression {
     /// Evaluates expression at position (x, y).
     template <typename... Coord>
     UTIL_ALWAYS_INLINE decltype(auto) operator()(int x, int y, Coord... coords) const noexcept {
-        if constexpr (MODE == image::BorderMode::CONSTANT) {
+        if constexpr (MODE == BorderMode::CONSTANT) {
             if (x < 0 || x >= expr.width() || y < 0 || y >= expr.height()) {
                 return 0;
             }
@@ -45,7 +45,7 @@ struct BorderExpression final : public BaseExpression {
             return evaluate(expr, x, y, coords...);
         }
 
-        if constexpr (MODE == image::BorderMode::MIRROR) {
+        if constexpr (MODE == BorderMode::MIRROR) {
             if (x < 0) {
                 x = -x;
             } else if (x >= expr.width()) {
@@ -59,12 +59,12 @@ struct BorderExpression final : public BaseExpression {
             }
         }
 
-        if constexpr (MODE == image::BorderMode::NEAREST) {
+        if constexpr (MODE == BorderMode::NEAREST) {
             x = math::saturate(x, 0, expr.width() - 1);
             y = math::saturate(y, 0, expr.height() - 1);
         }
 
-        if constexpr (MODE == image::BorderMode::REFLECT) {
+        if constexpr (MODE == BorderMode::REFLECT) {
             if (x < 0) {
                 x = -x - 1;
             } else if (x >= expr.width()) {
@@ -85,7 +85,7 @@ struct BorderExpression final : public BaseExpression {
 } // namespace detail
 
 /// Border handling expression.
-template <image::BorderMode MODE, typename Expr>
+template <BorderMode MODE, typename Expr>
 decltype(auto) border(Expr &&expr) {
     return detail::BorderExpression<Expr, MODE>(std::forward<Expr>(expr));
 }

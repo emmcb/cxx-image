@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 #include "cxximg/image/view/PlaneView.h"
 
 #include "cxximg/util/compiler.h"
@@ -30,7 +30,7 @@ namespace cxximg {
 
 /// Bayer manipulation class.
 template <typename T>
-class BayerView final : public expr::BaseExpression {
+class BayerView final : public expr::Expression {
 public:
     /// Constructs bayer view from specified bayer image and bayer color.
     BayerView(PlaneView<T> rawView, Bayer bayer)

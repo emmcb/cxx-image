@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/detail/operator/UnaryOperators.h"
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/math/half.h"
 #include "cxximg/util/compiler.h"
@@ -31,7 +31,7 @@ namespace detail {
 /// An unary expression, that is an unary operator applied on a child
 /// expression.
 template <typename Expr, class UnaryOp>
-struct UnaryExpression final : public BaseExpression {
+struct UnaryExpression final : public Expression {
     view_t<Expr> expr; ///< Child expression.
     UnaryOp unaryOp;   ///< Unary operator to apply.
 

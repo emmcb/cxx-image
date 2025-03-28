@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -30,7 +30,7 @@ namespace detail {
 
 /// An expression to convolve with 1D kernel.
 template <typename Expr, typename T, int N, ConvolveDirection DIR>
-struct ConvolveExpression1D final : public BaseExpression {
+struct ConvolveExpression1D final : public Expression {
     static constexpr int HALF_KERNEL_SIZE = (N - 1) / 2;
 
     view_t<Expr> expr;       ///< Child expression.

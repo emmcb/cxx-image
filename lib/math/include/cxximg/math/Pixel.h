@@ -15,6 +15,7 @@
 #pragma once
 
 #include "cxximg/math/half.h"
+#include "cxximg/math/math.h"
 #include "cxximg/util/compiler.h"
 
 #include <algorithm>

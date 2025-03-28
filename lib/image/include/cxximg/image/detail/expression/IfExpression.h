@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "cxximg/image/expression/BaseExpression.h"
+#include "cxximg/image/expression/Expression.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -26,7 +26,7 @@ namespace detail {
 
 /// An expression to choose between two expressions based on a condition.
 template <typename IfExpr, typename ThenExpr, typename ElseExpr>
-struct IfExpression final : public BaseExpression {
+struct IfExpression final : public Expression {
     view_t<IfExpr> ifExpr;     ///< Condition expression.
     view_t<ThenExpr> thenExpr; ///< Then expression.
     view_t<ElseExpr> elseExpr; ///< Else expression.
