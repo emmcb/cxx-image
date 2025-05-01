@@ -27,6 +27,10 @@
 #include "JpegIO.h"
 #endif
 
+#ifdef HAVE_JPEGXL
+#include "JpegXLIO.h"
+#endif
+
 #ifdef HAVE_PNG
 #include "PngIO.h"
 #endif
@@ -77,7 +81,7 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
 #endif
 
         // Read file signature
-        uint8_t signature[8] = {0};
+        uint8_t signature[12] = {0};
         bool signatureValid = false;
 
         const auto readSignature = [&signature, &signatureValid](std::istream *stream) {
@@ -114,6 +118,12 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
 #ifdef HAVE_JPEG
         if (JpegReader::accept(path, signature, signatureValid)) {
             return std::make_unique<JpegReader>(path, stream, options);
+        }
+#endif
+
+#ifdef HAVE_JPEGXL
+        if (JpegXLReader::accept(path, signature, signatureValid)) {
+            return std::make_unique<JpegXLReader>(path, stream, options);
         }
 #endif
 
@@ -184,6 +194,12 @@ std::unique_ptr<ImageWriter> makeWriter(const std::string &path,
 #ifdef HAVE_JPEG
     if (JpegWriter::accept(path)) {
         return std::make_unique<JpegWriter>(path, stream, options);
+    }
+#endif
+
+#ifdef HAVE_JPEGXL
+    if (JpegXLWriter::accept(path)) {
+        return std::make_unique<JpegXLWriter>(path, stream, options);
     }
 #endif
 

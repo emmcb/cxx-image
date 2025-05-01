@@ -43,6 +43,12 @@ if(HAVE_JPEG)
     target_compile_definitions(${TARGET} PRIVATE HAVE_JPEG)
 endif()
 
+if(HAVE_JPEGXL)
+    target_sources(${TARGET} PRIVATE ${SRC_DIR}/JpegXLIO.cpp)
+    target_link_libraries(${TARGET} PRIVATE JPEGXL::JPEGXL)
+    target_compile_definitions(${TARGET} PRIVATE HAVE_JPEGXL)
+endif()
+
 if(HAVE_PNG)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/PngIO.cpp)
     target_link_libraries(${TARGET} PRIVATE PNG::PNG)
