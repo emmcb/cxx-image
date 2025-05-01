@@ -40,25 +40,28 @@ inline void parse_value(const std::string& text, ImageWriter::TiffCompression& v
 
 static cxxopts::ParseResult handleArguments(int argc, char* argv[]) {
     cxxopts::Options options(APP_NAME, "Image conversion tool");
+    options.set_width(120);
     options.positional_help("input image");
-    options.add_options("",
-                        {{"i,input", "Input image path.", cxxopts::value<std::string>(), "PATH"},
-                         {"o,output", "Output image path.", cxxopts::value<std::string>(), "PATH"},
-                         {"m,metadata",
-                          "Path to metadata file. (default: use sidecar if any)",
-                          cxxopts::value<std::string>(),
-                          "PATH"},
-                         {"jpeg-quality", "JPEG output quality.", cxxopts::value<int>()->default_value("95")},
-                         {"tiff-compression",
-                          "TIFF output compression.",
-                          cxxopts::value<ImageWriter::TiffCompression>()->default_value("deflate"),
-                          "deflate|none"},
-                         {"v,verbosity",
-                          "Verbosity level.",
-                          cxxopts::value<std::string>()->default_value("WARNING"),
-                          "OFF|FATAL|ERROR|WARNING|INFO"},
-                         {"help", "Print help and exits."},
-                         {"version", "Print version number and exits."}});
+    options.add_options(
+            "",
+            {{"i,input", "Input image path.", cxxopts::value<std::string>(), "PATH"},
+             {"o,output", "Output image path.", cxxopts::value<std::string>(), "PATH"},
+             {"m,metadata",
+              "Path to metadata file. (default: use sidecar if any)",
+              cxxopts::value<std::string>(),
+              "PATH"},
+             {"jpeg-quality", "JPEG output quality [1-100].", cxxopts::value<int>()->default_value("95")},
+             {"tiff-compression",
+              "TIFF output compression.",
+              cxxopts::value<ImageWriter::TiffCompression>()->default_value("deflate"),
+              "deflate|none"},
+             {"compression-level", "Output compression level [1-9].", cxxopts::value<int>()->default_value("4")},
+             {"v,verbosity",
+              "Verbosity level.",
+              cxxopts::value<std::string>()->default_value("WARNING"),
+              "OFF|FATAL|ERROR|WARNING|INFO"},
+             {"help", "Print help and exits."},
+             {"version", "Print version number and exits."}});
     try {
         auto result = options.parse(argc, argv);
 
@@ -90,19 +93,17 @@ static cxxopts::ParseResult handleArguments(int argc, char* argv[]) {
 static void run(const std::string& inputPath,
                 const std::optional<std::string>& metadataPath,
                 const std::string& outputPath,
-                int jpegQuality,
-                ImageWriter::TiffCompression tiffCompression) {
+                ImageWriter::Options writeOptions) {
     // Input
     std::optional<ImageMetadata> metadata = parser::readMetadata(inputPath, metadataPath);
 
     std::unique_ptr<ImageReader> imageReader = io::makeReader(inputPath, ImageReader::Options(metadata));
     imageReader->readMetadata(metadata);
 
-    // Output
-    ImageWriter::Options writeOptions(metadata);
-    writeOptions.jpegQuality = jpegQuality;
-    writeOptions.tiffCompression = tiffCompression;
+    // Forward input metadata to output
+    writeOptions.metadata = metadata;
 
+    // Output
     std::unique_ptr<ImageWriter> imageWriter = io::makeWriter(outputPath, writeOptions);
     if (!imageWriter->acceptDescriptor(imageReader->layoutDescriptor())) {
         ABORT_S() << "Not supported output type: input image is not convertible to output";
@@ -142,13 +143,15 @@ int main(int argc, char* argv[]) {
 
     const auto& inputPath = args["input"].as<std::string>();
     const auto& outputPath = args["output"].as<std::string>();
-    const auto& jpegQuality = args["jpeg-quality"].as<int>();
-    const auto& tiffCompression = args["tiff-compression"].as<ImageWriter::TiffCompression>();
+    const auto& metadataPath = args.as_optional<std::string>("metadata");
 
-    auto metadataPath = args.as_optional<std::string>("metadata");
+    ImageWriter::Options writeOptions;
+    writeOptions.jpegQuality = args["jpeg-quality"].as<int>();
+    writeOptions.tiffCompression = args["tiff-compression"].as<ImageWriter::TiffCompression>();
+    writeOptions.compressionLevel = args["compression-level"].as<int>();
 
     try {
-        run(inputPath, metadataPath, outputPath, jpegQuality, tiffCompression);
+        run(inputPath, metadataPath, outputPath, writeOptions);
     } catch (const std::exception& e) {
         ABORT_S() << e.what();
     }

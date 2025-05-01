@@ -218,7 +218,7 @@ void PngWriter::writeImpl(const Image<T> &image) const {
     png_set_write_fn(png, static_cast<png_voidp>(mStream), pngWriteData, pngFlushData);
 
     // set the compression levels
-    png_set_compression_level(png, 3);
+    png_set_compression_level(png, options().compressionLevel);
 
     // set the image parameters appropriately
     png_set_IHDR(png,

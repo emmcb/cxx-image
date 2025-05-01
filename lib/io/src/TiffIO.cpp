@@ -473,7 +473,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
     if (options().tiffCompression == TiffCompression::DEFLATE) {
         LOG_S(INFO) << "Compression: zip";
         TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_ADOBE_DEFLATE);
-        TIFFSetField(tif, TIFFTAG_ZIPQUALITY, 3);
+        TIFFSetField(tif, TIFFTAG_ZIPQUALITY, options().compressionLevel);
 
         if constexpr (std::is_floating_point_v<T>) {
             TIFFSetField(tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);

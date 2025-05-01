@@ -36,8 +36,9 @@ public:
         std::optional<FileFormat> fileFormat;
         std::optional<ImageMetadata> metadata;
 
-        int jpegQuality = 95;
+        int jpegQuality = 95; // in [1-100]
         TiffCompression tiffCompression = TiffCompression::DEFLATE;
+        int compressionLevel = 4; // in [1-9]
 
         Options() = default;
 
