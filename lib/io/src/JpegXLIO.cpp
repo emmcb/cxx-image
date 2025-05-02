@@ -34,7 +34,7 @@ void JxlDecoderDeleter::operator()(JxlDecoder *decoder) const {
 
 void JpegXLReader::initialize() {
     mDecoder.reset(JxlDecoderCreate(nullptr));
-    JxlDecoderSetKeepOrientation(mDecoder.get(), JXL_TRUE);
+
     const bool supportBoxDecompression = (JxlDecoderSetDecompressBoxes(mDecoder.get(), JXL_TRUE) == JXL_DEC_SUCCESS);
 
     JxlDecoderSubscribeEvents(
@@ -213,7 +213,14 @@ std::optional<ExifMetadata> JpegXLReader::readExif() const {
         return std::nullopt;
     }
 
-    return detail::readExif(mExif.data(), mExif.size());
+    auto exifMetadata = detail::readExif(mExif.data(), mExif.size());
+
+    // According to JPEG XL specs, Exif orientation should be ignored and codestream orientation takes precedence.
+    if (exifMetadata) {
+        exifMetadata->orientation = std::nullopt;
+    }
+
+    return exifMetadata;
 }
 #endif
 
@@ -276,6 +283,12 @@ void JpegXLWriter::writeImpl(const Image<T> &image) const {
     if (format.num_channels == 2 || format.num_channels == 4) {
         info.num_extra_channels = 1;
     }
+
+    const auto &metadata = options().metadata;
+    if (metadata && metadata->exifMetadata.orientation) {
+        info.orientation = static_cast<JxlOrientation>(*metadata->exifMetadata.orientation);
+    }
+
     JxlEncoderSetBasicInfo(encoder.get(), &info);
 
     JxlColorEncoding colorEncoding = {};
@@ -288,7 +301,6 @@ void JpegXLWriter::writeImpl(const Image<T> &image) const {
 
 #ifdef HAVE_EXIF
     // Write EXIF
-    const auto &metadata = options().metadata;
     if (metadata) {
         ExifMem *mem = exif_mem_new_default();
         ExifData *data = exif_data_new();

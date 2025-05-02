@@ -63,7 +63,7 @@ private:
     std::array<uint8_t, CHUNK_SIZE> mBuffer;
     size_t mRemainingBytes = 0;
 
-    std::vector<uint8_t> mExif;
+    std::vector<uint8_t> mExif; /// Exif box
 };
 
 class JpegXLWriter final : public ImageWriter {
