@@ -185,14 +185,14 @@ Image<T> PngReader::read() {
     return image;
 }
 
-void PngWriter::write(const Image8u &image) const {
+void PngWriter::write(const Image8u &image) {
     LOG_SCOPE_F(INFO, "Write PNG (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void PngWriter::write(const Image16u &image) const {
+void PngWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write PNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -200,10 +200,11 @@ void PngWriter::write(const Image16u &image) const {
 }
 
 template <typename T>
-void PngWriter::writeImpl(const Image<T> &image) const {
+void PngWriter::writeImpl(const Image<T> &image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
-        return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        return;
     }
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -215,7 +216,7 @@ void PngWriter::writeImpl(const Image<T> &image) const {
         throw IOError(MODULE, "Writing failed");
     }
 
-    png_set_write_fn(png, static_cast<png_voidp>(mStream), pngWriteData, pngFlushData);
+    png_set_write_fn(png, static_cast<png_voidp>(stream()), pngWriteData, pngFlushData);
 
     // set the compression levels
     png_set_compression_level(png, options().compressionLevel);

@@ -99,7 +99,7 @@ public:
         return model::isBayerPixelType(descriptor.pixelType);
     }
 
-    void write(const Image16u &image) const override;
+    void write(const Image16u &image) override;
 };
 
 class MipiRaw10Writer final : public MipiRawWriter<10, Raw10Pixel, Raw16From10Pixel> {

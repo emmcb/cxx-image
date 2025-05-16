@@ -77,7 +77,7 @@ public:
                descriptor.pixelType == PixelType::RGBA;
     }
 
-    void write(const Image8u &image) const override;
+    void write(const Image8u &image) override;
 };
 
 } // namespace cxximg

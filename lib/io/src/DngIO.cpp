@@ -513,14 +513,14 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
     }
 }
 
-void DngWriter::write(const Image16u &image) const {
+void DngWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write DNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void DngWriter::write(const Imagef &image) const {
+void DngWriter::write(const Imagef &image) {
     LOG_SCOPE_F(INFO, "Write DNG (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -528,10 +528,11 @@ void DngWriter::write(const Imagef &image) const {
 }
 
 template <typename T>
-void DngWriter::writeImpl(const Image<T> &image) const {
+void DngWriter::writeImpl(const Image<T> &image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
-        return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        return;
     }
 
     try {
@@ -690,7 +691,7 @@ void DngWriter::writeImpl(const Image<T> &image) const {
         negative->SetStage1Image(stage1);
         negative->SynchronizeMetadata();
 
-        DngWriteStream writeStream(mStream);
+        DngWriteStream writeStream(stream());
         dng_image_writer writer;
         writer.WriteDNG(host, writeStream, *negative.Get());
     } catch (const dng_exception &except) {

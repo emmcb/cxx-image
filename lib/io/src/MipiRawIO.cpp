@@ -153,7 +153,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
 }
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
-void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Image16u &image) const {
+void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write MIPIRAW%d", PIXEL_PRECISION);
     LOG_S(INFO) << "Path: " << path();
 
@@ -183,7 +183,7 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     // Pack to MIPIRAW
     rawXImage = raw16Image;
 
-    mStream->write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
+    stream()->write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
 }
 
 template class MipiRawReader<10, Raw10Pixel, Raw16From10Pixel>;

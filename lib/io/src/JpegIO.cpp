@@ -250,14 +250,16 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
 }
 #endif
 
-void JpegWriter::write(const Image8u &image) const {
+void JpegWriter::write(const Image8u &image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
-        return write(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        write(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        return;
     }
     if (image.imageLayout() == ImageLayout::NV12) {
         // NV12 to YUV_420 conversion
-        return write(image::convertLayout(image, ImageLayout::YUV_420));
+        write(image::convertLayout(image, ImageLayout::YUV_420));
+        return;
     }
 
     LOG_SCOPE_F(INFO, "Write JPEG");
@@ -277,7 +279,7 @@ void JpegWriter::write(const Image8u &image) const {
 
     jpeg_create_compress(&cinfo);
 
-    setupJpegDestinationStream(&cinfo, mStream);
+    setupJpegDestinationStream(&cinfo, stream());
 
     cinfo.image_width = image.width();
     cinfo.image_height = image.height();
@@ -357,7 +359,7 @@ void JpegWriter::write(const Image8u &image) const {
 }
 
 #ifdef HAVE_EXIF
-void JpegWriter::writeExif(const ExifMetadata &exif) const {
+void JpegWriter::writeExif(const ExifMetadata &exif) {
     std::ifstream ifs(path(), std::ios::binary);
     if (!ifs) {
         throw IOError(MODULE, "Cannot open file for reading: " + path());
@@ -402,10 +404,9 @@ void JpegWriter::writeExif(const ExifMetadata &exif) const {
     // Initialize destination compression parameters from source values
     jpeg_copy_critical_parameters(&dinfo, &cinfo);
 
-    // Close input file and open output file
+    // Close input file and open output stream
     ifs.close();
-    std::ofstream ofs(path(), std::ios::binary);
-    setupJpegDestinationStream(&cinfo, &ofs);
+    setupJpegDestinationStream(&cinfo, stream());
 
     // Write destination DCT coefficients
     jpeg_write_coefficients(&cinfo, coefficients);

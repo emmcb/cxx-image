@@ -51,8 +51,8 @@ public:
     ImageReader(std::string path, std::istream* stream, Options options)
         : mStream(stream), mPath(std::move(path)), mOptions(options) {
         if (!stream) {
-            mOwnStream = std::make_unique<std::ifstream>(mPath, std::ios::binary);
-            mStream = mOwnStream.get();
+            mOwnedStream = std::make_unique<std::ifstream>(mPath, std::ios::binary);
+            mStream = mOwnedStream.get();
 
             if (!*mStream) {
                 throw IOError("Cannot open file for reading: " + mPath);
@@ -79,13 +79,13 @@ public:
     /// Implementations must read the image header and fill descriptor required values.
     virtual void initialize() = 0;
 
-    /// Read and decode the opened stream into a newly allocated 8 bits image.
+    /// Read and decode stream data into a newly allocated 8 bits image.
     virtual Image8u read8u() { throw IOError("This format does not support 8 bits read."); }
 
-    /// Read and decode the opened stream into a newly allocated 16 bits image.
+    /// Read and decode stream data into a newly allocated 16 bits image.
     virtual Image16u read16u() { throw IOError("This format does not support 16 bits read."); }
 
-    /// Read and decode the opened stream into a newly allocated float image.
+    /// Read and decode stream data into a newly allocated float image.
     virtual Imagef readf() { throw IOError("This format does not support float read."); }
 
     /// Read the image EXIF metadata, if available.
@@ -152,7 +152,7 @@ private:
     std::string mPath;
     Options mOptions;
 
-    std::unique_ptr<std::istream> mOwnStream;
+    std::unique_ptr<std::istream> mOwnedStream;
 };
 
 } // namespace cxximg

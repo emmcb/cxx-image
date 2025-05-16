@@ -77,15 +77,15 @@ public:
                model::isBayerPixelType(descriptor.pixelType) || model::isQuadBayerPixelType(descriptor.pixelType);
     }
 
-    void write(const Image8u &image) const override;
-    void write(const Image16u &image) const override;
-    void write(const Imagef &image) const override;
+    void write(const Image8u &image) override;
+    void write(const Image16u &image) override;
+    void write(const Imagef &image) override;
 
-    void writeExif(const ExifMetadata &exif) const override;
+    void writeExif(const ExifMetadata &exif) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image) const;
+    void writeImpl(const Image<T> &image);
 };
 
 } // namespace cxximg

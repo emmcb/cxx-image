@@ -109,7 +109,7 @@ Image8u BmpReader::read8u() {
     return image;
 }
 
-void BmpWriter::write(const Image8u &image) const {
+void BmpWriter::write(const Image8u &image) {
     LOG_SCOPE_F(INFO, "Write BMP");
     LOG_S(INFO) << "Path: " << path();
 
@@ -139,8 +139,8 @@ void BmpWriter::write(const Image8u &image) const {
         plane = image.plane(image.numPlanes() - plane.index() - 1);
     }
 
-    mStream->write(reinterpret_cast<const char *>(&header), sizeof(header));
-    mStream->write(reinterpret_cast<const char *>(alignedImage.data()), alignedImage.size());
+    stream()->write(reinterpret_cast<const char *>(&header), sizeof(header));
+    stream()->write(reinterpret_cast<const char *>(alignedImage.data()), alignedImage.size());
 }
 
 } // namespace cxximg

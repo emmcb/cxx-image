@@ -97,7 +97,7 @@ Image16u CfaReader::read16u() {
     return image;
 }
 
-void CfaWriter::write(const Image16u &image) const {
+void CfaWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write CFA");
     LOG_S(INFO) << "Path: " << path();
 
@@ -109,8 +109,8 @@ void CfaWriter::write(const Image16u &image) const {
                         .precision = static_cast<uint8_t>(image.pixelPrecision() > 0 ? image.pixelPrecision() : 16),
                         .padding = {0}};
 
-    mStream->write(reinterpret_cast<const char *>(&header), sizeof(header));
-    mStream->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(uint16_t));
+    stream()->write(reinterpret_cast<const char *>(&header), sizeof(header));
+    stream()->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(uint16_t));
 }
 
 } // namespace cxximg

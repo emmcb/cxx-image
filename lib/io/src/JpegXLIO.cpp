@@ -224,21 +224,21 @@ std::optional<ExifMetadata> JpegXLReader::readExif() const {
 }
 #endif
 
-void JpegXLWriter::write(const Image8u &image) const {
+void JpegXLWriter::write(const Image8u &image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void JpegXLWriter::write(const Image16u &image) const {
+void JpegXLWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void JpegXLWriter::write(const Imagef &image) const {
+void JpegXLWriter::write(const Imagef &image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -246,10 +246,11 @@ void JpegXLWriter::write(const Imagef &image) const {
 }
 
 template <typename T>
-void JpegXLWriter::writeImpl(const Image<T> &image) const {
+void JpegXLWriter::writeImpl(const Image<T> &image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
-        return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        return;
     }
 
     JxlEncoderPtr encoder = JxlEncoderMake(nullptr);
@@ -341,7 +342,7 @@ void JpegXLWriter::writeImpl(const Image<T> &image) const {
             throw IOError(MODULE, "Encoder error");
         }
 
-        mStream->write(reinterpret_cast<const char *>(buffer.data()), CHUNK_SIZE - availOut);
+        stream()->write(reinterpret_cast<const char *>(buffer.data()), CHUNK_SIZE - availOut);
 
         if (status == JXL_ENC_SUCCESS) {
             break;

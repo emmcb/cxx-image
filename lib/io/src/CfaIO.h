@@ -60,7 +60,7 @@ public:
         return model::isBayerPixelType(descriptor.pixelType) || model::isQuadBayerPixelType(descriptor.pixelType);
     }
 
-    void write(const Image16u &image) const override;
+    void write(const Image16u &image) override;
 };
 
 } // namespace cxximg

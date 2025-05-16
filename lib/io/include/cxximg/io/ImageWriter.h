@@ -61,16 +61,7 @@ public:
 
     /// Constructs with stream and options.
     ImageWriter(std::string path, std::ostream *stream, Options options)
-        : mStream(stream), mPath(std::move(path)), mOptions(std::move(options)) {
-        if (!stream) {
-            mOwnStream = std::make_unique<std::ofstream>(mPath, std::ios::binary);
-            mStream = mOwnStream.get();
-
-            if (!*mStream) {
-                throw IOError("Cannot open file for writing: " + mPath);
-            }
-        }
-    }
+        : mPath(std::move(path)), mStream(stream), mOptions(std::move(options)) {}
 
     /// Destructor.
     virtual ~ImageWriter() = default;
@@ -78,29 +69,30 @@ public:
     /// Check if the writer can write the given image descriptor.
     virtual bool acceptDescriptor(const LayoutDescriptor &descriptor) const = 0;
 
-    /// Encode and write the given 8 bits image into the opened stream.
-    virtual void write([[maybe_unused]] const Image8u &image) const {
+    /// Encode and write the given 8 bits image into stream.
+    virtual void write([[maybe_unused]] const Image8u &image) {
         throw IOError("This format does not support 8 bits write.");
     }
 
-    /// Encode and write the given 16 bits image into the opened stream.
-    virtual void write([[maybe_unused]] const Image16u &image) const {
+    /// Encode and write the given 16 bits image into stream.
+    virtual void write([[maybe_unused]] const Image16u &image) {
         throw IOError("This format does not support 16 bits write.");
     }
 
-    /// Encode and write the given float image into the opened stream.
-    virtual void write([[maybe_unused]] const Imagef &image) const {
+    /// Encode and write the given float image into stream.
+    virtual void write([[maybe_unused]] const Imagef &image) {
         throw IOError("This format does not support float write.");
     }
 
-    /// Write the given EXIF metadata into the opened stream.
-    virtual void writeExif([[maybe_unused]] const ExifMetadata &exif) const {
+    /// Write the given EXIF metadata into file.
+    /// This method does not re-encode the image data.
+    virtual void writeExif([[maybe_unused]] const ExifMetadata &exif) {
         throw IOError("This format does not support EXIF write.");
     }
 
-    /// Encode and write the given view into the opened stream.
+    /// Encode and write the given image view into stream.
     template <typename T>
-    void write(const ImageView<T> &imageView) const {
+    void write(const ImageView<T> &imageView) {
         return write(image::clone(imageView));
     }
 
@@ -108,13 +100,25 @@ protected:
     const std::string &path() const { return mPath; }
     const Options &options() const { return mOptions; }
 
-    std::ostream *mStream;
+    std::ostream *stream() {
+        if (!mStream) {
+            mOwnedStream = std::make_unique<std::ofstream>(mPath, std::ios::binary);
+            mStream = mOwnedStream.get();
+
+            if (!*mStream) {
+                throw IOError("Cannot open file for writing: " + mPath);
+            }
+        }
+
+        return mStream;
+    }
 
 private:
     std::string mPath;
+    std::ostream *mStream;
     Options mOptions;
 
-    std::unique_ptr<std::ostream> mOwnStream;
+    std::unique_ptr<std::ostream> mOwnedStream;
 };
 
 } // namespace cxximg

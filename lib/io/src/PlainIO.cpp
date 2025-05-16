@@ -159,21 +159,21 @@ Image<T> PlainReader::read() {
     return image;
 }
 
-void PlainWriter::write(const Image8u &image) const {
+void PlainWriter::write(const Image8u &image) {
     LOG_SCOPE_F(INFO, "Write plain image (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void PlainWriter::write(const Image16u &image) const {
+void PlainWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write plain image (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void PlainWriter::write(const Imagef &image) const {
+void PlainWriter::write(const Imagef &image) {
     LOG_SCOPE_F(INFO, "Write plain image (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -181,8 +181,8 @@ void PlainWriter::write(const Imagef &image) const {
 }
 
 template <typename T>
-void PlainWriter::writeImpl(const Image<T> &image) const {
-    mStream->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
+void PlainWriter::writeImpl(const Image<T> &image) {
+    stream()->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
 }
 
 } // namespace cxximg

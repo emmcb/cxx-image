@@ -383,21 +383,21 @@ static void populateExif(TIFF *tif, const ExifMetadata &exif) {
     }
 }
 
-void TiffWriter::write(const Image8u &image) const {
+void TiffWriter::write(const Image8u &image) {
     LOG_SCOPE_F(INFO, "Write TIFF (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void TiffWriter::write(const Image16u &image) const {
+void TiffWriter::write(const Image16u &image) {
     LOG_SCOPE_F(INFO, "Write TIFF (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void TiffWriter::write(const Imagef &image) const {
+void TiffWriter::write(const Imagef &image) {
     LOG_SCOPE_F(INFO, "Write TIFF (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -405,10 +405,11 @@ void TiffWriter::write(const Imagef &image) const {
 }
 
 template <typename T>
-void TiffWriter::writeImpl(const Image<T> &image) const {
+void TiffWriter::writeImpl(const Image<T> &image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
-        return writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
+        return;
     }
 
     TIFFSetWarningHandler(tiffWarningHandler);
@@ -523,7 +524,7 @@ void TiffWriter::writeImpl(const Image<T> &image) const {
     }
 }
 
-void TiffWriter::writeExif(const ExifMetadata &exif) const {
+void TiffWriter::writeExif(const ExifMetadata &exif) {
     TIFFSetWarningHandler(tiffWarningHandler);
     TIFFSetErrorHandler(tiffErrorHandler);
 

@@ -66,10 +66,10 @@ public:
                descriptor.pixelType == PixelType::YUV;
     }
 
-    void write(const Image8u &image) const override;
+    void write(const Image8u &image) override;
 
 #ifdef HAVE_EXIF
-    void writeExif(const ExifMetadata &exif) const override;
+    void writeExif(const ExifMetadata &exif) override;
 #endif
 };
 

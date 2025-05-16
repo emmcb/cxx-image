@@ -74,12 +74,12 @@ public:
                descriptor.pixelType == PixelType::RGB;
     }
 
-    void write(const Image16u &image) const override;
-    void write(const Imagef &image) const override;
+    void write(const Image16u &image) override;
+    void write(const Imagef &image) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image) const;
+    void writeImpl(const Image<T> &image);
 };
 
 } // namespace cxximg
