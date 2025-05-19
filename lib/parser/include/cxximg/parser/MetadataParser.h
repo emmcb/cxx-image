@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "cxximg/model/FileInfo.h"
 #include "cxximg/model/ImageMetadata.h"
 
 #include <optional>
@@ -24,11 +25,17 @@ namespace cxximg {
 /// @defgroup parser Image metadata parser
 /// @copydoc libparser
 
+/// @ingroup parser
+struct FileMetadata final {
+    std::optional<FileInfo> fileInfo;
+    std::optional<ImageMetadata> imageMetadata;
+};
+
 /// Metadata parser functions
 /// @ingroup parser
 namespace parser {
 
-/// Try to read the image metadata from different sources.
+/// Try to read the file metadata from different sources.
 ///
 /// This method will successively check:
 ///   1. If metadataPath is given and is a json file, then read it directly.
@@ -36,13 +43,13 @@ namespace parser {
 ///      than the image.
 ///   3. If metadataPath is not given, try to read a json file in the image directory with the same name than the image.
 ///   4. If everything has failed then return an empty optional.
-std::optional<ImageMetadata> readMetadata(const std::string& imagePath, const std::optional<std::string>& metadataPath);
+std::optional<FileMetadata> readMetadata(const std::string& imagePath, const std::optional<std::string>& metadataPath);
 
 /// Read metadata from the given file.
-ImageMetadata readMetadata(const std::string& metadataPath);
+FileMetadata readMetadata(const std::string& metadataPath);
 
 /// Write metadata to the given file.
-void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath);
+void writeMetadata(const FileMetadata& metadata, const std::string& metadataPath);
 
 } // namespace parser
 

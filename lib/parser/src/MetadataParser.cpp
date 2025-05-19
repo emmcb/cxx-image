@@ -26,36 +26,39 @@ namespace fs = std::filesystem;
 
 namespace cxximg {
 
-struct CurrentPathRestorer final {
+struct CurrentPathScope final {
     fs::path currentPath = fs::current_path();
-    ~CurrentPathRestorer() { fs::current_path(currentPath); }
+    ~CurrentPathScope() { fs::current_path(currentPath); }
 };
 
 namespace parser {
-std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
-                                          const std::optional<std::string>& metadataPath) {
-    const std::string metadataGuess =
-            [&]() {
-                static constexpr char METADATA_EXTENSION[] = ".json";
 
-                // We have a medatadata path
-                if (metadataPath) {
-                    fs::path fsMetadata(*metadataPath);
+namespace {
 
-                    // If the metadata path is a directory, we assume that it will contain a metadata file with the same
-                    // name than the image.
-                    if (fs::is_directory(fsMetadata)) {
-                        return fsMetadata / fs::path(imagePath).filename().replace_extension(METADATA_EXTENSION);
-                    }
+fs::path guessMetadataPath(const std::string& imagePath, const std::optional<std::string>& metadataPath) {
+    static constexpr char METADATA_EXTENSION[] = ".json";
 
-                    return fsMetadata;
-                }
+    // We have a medatadata path
+    if (metadataPath) {
+        fs::path fsMetadata(*metadataPath);
 
-                // We do not have a metadata path, try with a sidecar along the image
-                return fs::path(imagePath).replace_extension(METADATA_EXTENSION);
-            }()
-                    .string();
+        // If the metadata path is a directory, we assume that it will contain a metadata file with the same
+        // name than the image.
+        if (fs::is_directory(fsMetadata)) {
+            return fsMetadata / fs::path(imagePath).filename().replace_extension(METADATA_EXTENSION);
+        }
 
+        return fsMetadata;
+    }
+
+    // We do not have a metadata path, try with a sidecar along the image
+    return fs::path(imagePath).replace_extension(METADATA_EXTENSION);
+}
+
+} // namespace
+
+std::optional<FileMetadata> readMetadata(const std::string& imagePath, const std::optional<std::string>& metadataPath) {
+    const std::string metadataGuess = guessMetadataPath(imagePath, metadataPath).string();
     if (!fs::exists(metadataGuess)) {
         LOG_S(INFO) << "No metadata found at " << metadataGuess;
         return std::nullopt;
@@ -66,21 +69,21 @@ std::optional<ImageMetadata> readMetadata(const std::string& imagePath,
     return readMetadata(metadataGuess);
 }
 
-ImageMetadata readMetadata(const std::string& metadataPath) {
+FileMetadata readMetadata(const std::string& metadataPath) {
     std::ifstream ifs(metadataPath);
     if (!ifs) {
         throw ParserError("Cannot open file for reading: " + metadataPath);
     }
 
-    CurrentPathRestorer currentPathRestorer{};
+    CurrentPathScope pathScope{};
     fs::path fsMetadataPath(metadataPath);
     if (fsMetadataPath.has_parent_path()) {
         fs::current_path(fsMetadataPath.parent_path());
     }
 
-    ImageMetadata metadata;
+    FileMetadata metadata;
     try {
-        json_dto::from_stream(ifs, metadata);
+        json_dto::from_stream(FileMetadataReaderWriter{}, ifs, metadata);
     } catch (const json_dto::ex_t& e) {
         throw ParserError(e.what());
     }
@@ -88,20 +91,20 @@ ImageMetadata readMetadata(const std::string& metadataPath) {
     return metadata;
 }
 
-void writeMetadata(const ImageMetadata& metadata, const std::string& metadataPath) {
+void writeMetadata(const FileMetadata& fileMetadata, const std::string& metadataPath) {
     std::ofstream ofs(metadataPath);
     if (!ofs) {
         throw ParserError("Cannot open file for writing: " + metadataPath);
     }
 
-    CurrentPathRestorer currentPathRestorer{};
+    CurrentPathScope pathScope{};
     fs::path fsMetadataPath(metadataPath);
     if (fsMetadataPath.has_parent_path()) {
         fs::current_path(fsMetadataPath.parent_path());
     }
 
     try {
-        json_dto::to_stream(ofs, metadata, json_dto::pretty_writer_params_t{});
+        json_dto::to_stream(FileMetadataReaderWriter{}, ofs, fileMetadata, json_dto::pretty_writer_params_t{});
     } catch (const json_dto::ex_t& e) {
         throw ParserError(e.what());
     }

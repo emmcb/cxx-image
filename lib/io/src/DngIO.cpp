@@ -322,22 +322,15 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     return exif;
 }
 
-void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
-    if (!metadata) {
-        metadata = ImageMetadata{};
-    }
+std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMetadata> &baseMetadata) const {
+    ImageMetadata metadata = ImageReader::readMetadata(baseMetadata).value();
 
-    std::optional<ExifMetadata> exifMetadata = readExif();
-    if (exifMetadata) {
-        metadata->exifMetadata = std::move(*exifMetadata);
-    }
-
-    metadata->shootingParams.ispGain = std::exp2(mNegative->BaselineExposure());
+    metadata.shootingParams.ispGain = std::exp2(mNegative->BaselineExposure());
 
     if (mNegative->HasCameraNeutral()) {
         const dng_vector &neutral = mNegative->CameraNeutral();
-        metadata->cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
-                                                 static_cast<float>(1.0 / neutral[2])};
+        metadata.cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
+                                                static_cast<float>(1.0 / neutral[2])};
     }
 
     dng_camera_profile_id profileId; // default profile ID
@@ -357,17 +350,17 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
 
         const dng_vector &neutral = spec->CameraWhite();
         if (mNegative->HasCameraWhiteXY() && !mNegative->HasCameraNeutral()) {
-            metadata->cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
-                                                     static_cast<float>(1.0 / neutral[2])};
+            metadata.cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
+                                                    static_cast<float>(1.0 / neutral[2])};
         }
 
         // Compute camera to sRGB color matrix
         dng_matrix cameraToRGB = dng_space_sRGB::Get().MatrixFromPCS() * spec->CameraToPCS();
 
-        metadata->calibrationData.colorMatrix = Matrix3{};
+        metadata.calibrationData.colorMatrix = Matrix3{};
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
-                (*metadata->calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
+                (*metadata.calibrationData.colorMatrix)(i, j) = cameraToRGB[i][j] * neutral[j];
             }
         }
     }
@@ -375,10 +368,10 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
     const dng_linearization_info *linearizationInfo = mNegative->GetLinearizationInfo();
     if (linearizationInfo) {
         if (mNegative->IsFloatingPoint()) {
-            metadata->calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
+            metadata.calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
         } else {
-            metadata->calibrationData.blackLevel = static_cast<int>(std::lround(linearizationInfo->MaxBlackLevel(0)));
-            metadata->calibrationData.whiteLevel = static_cast<int>(std::lround(linearizationInfo->fWhiteLevel[0]));
+            metadata.calibrationData.blackLevel = static_cast<int>(std::lround(linearizationInfo->MaxBlackLevel(0)));
+            metadata.calibrationData.whiteLevel = static_cast<int>(std::lround(linearizationInfo->fWhiteLevel[0]));
         }
     }
 
@@ -439,8 +432,8 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
                 }
             }
 
-            metadata->calibrationData.vignetting = std::move(vignetting);
-            metadata->cameraControls.colorShading = {std::move(colorR), std::move(colorB)};
+            metadata.calibrationData.vignetting = std::move(vignetting);
+            metadata.cameraControls.colorShading = {std::move(colorR), std::move(colorB)};
         }
     }
 
@@ -459,8 +452,10 @@ void DngReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
             } break;
         }
 
-        metadata->semanticMasks.emplace(std::make_pair(semanticMask.label, std::move(semanticMask)));
+        metadata.semanticMasks.emplace(std::make_pair(semanticMask.label, std::move(semanticMask)));
     }
+
+    return metadata;
 }
 
 static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {

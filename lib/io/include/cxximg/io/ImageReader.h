@@ -18,6 +18,7 @@
 
 #include "cxximg/image/Image.h"
 #include "cxximg/model/ExifMetadata.h"
+#include "cxximg/model/FileInfo.h"
 #include "cxximg/model/ImageMetadata.h"
 
 #include <fstream>
@@ -35,14 +36,14 @@ public:
     enum class JpegDecodingMode { YUV, RGB };
 
     struct Options final {
-        ImageMetadata::FileInfo fileInfo;
+        FileInfo fileInfo;
         JpegDecodingMode jpegDecodingMode = JpegDecodingMode::RGB;
 
         Options() = default;
 
-        explicit Options(const std::optional<ImageMetadata>& metadata) {
-            if (metadata) {
-                fileInfo = metadata->fileInfo;
+        explicit Options(const std::optional<FileInfo>& fileInfo_) {
+            if (fileInfo_) {
+                fileInfo = *fileInfo_;
             }
         }
     };
@@ -91,8 +92,10 @@ public:
     /// Read the image EXIF metadata, if available.
     virtual std::optional<ExifMetadata> readExif() const { return std::nullopt; }
 
-    /// Read the image metadata if available and updates the given structure with the result.
-    virtual void readMetadata(std::optional<ImageMetadata>& metadata) const {
+    /// Read the image metadata, if available.
+    /// Base metadata values will be overriden by the ones read from the image, if any.
+    virtual std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata>& baseMetadata) const {
+        std::optional<ImageMetadata> metadata = baseMetadata;
         std::optional<ExifMetadata> exif = readExif();
         if (exif) {
             if (!metadata) {
@@ -100,15 +103,12 @@ public:
             }
             metadata->exifMetadata = std::move(*exif);
         }
-    }
-
-    /// Read the image metadata, if available.
-    std::optional<ImageMetadata> readMetadata() const {
-        std::optional<ImageMetadata> metadata;
-        readMetadata(metadata);
 
         return metadata;
     }
+
+    /// Read the image metadata, if available.
+    std::optional<ImageMetadata> readMetadata() const { return readMetadata(std::nullopt); }
 
 protected:
     struct Descriptor final {

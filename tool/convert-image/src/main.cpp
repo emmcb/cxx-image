@@ -95,10 +95,10 @@ static void run(const std::string& inputPath,
                 const std::string& outputPath,
                 ImageWriter::Options writeOptions) {
     // Input
-    std::optional<ImageMetadata> metadata = parser::readMetadata(inputPath, metadataPath);
+    FileMetadata fileMetadata = parser::readMetadata(inputPath, metadataPath).value_or(FileMetadata{});
 
-    std::unique_ptr<ImageReader> imageReader = io::makeReader(inputPath, ImageReader::Options(metadata));
-    imageReader->readMetadata(metadata);
+    std::unique_ptr<ImageReader> imageReader = io::makeReader(inputPath, ImageReader::Options(fileMetadata.fileInfo));
+    std::optional<ImageMetadata> metadata = imageReader->readMetadata(fileMetadata.imageMetadata);
 
     // Forward input metadata to output
     writeOptions.metadata = metadata;

@@ -137,20 +137,13 @@ std::optional<ExifMetadata> RawlerReader::readExif() const {
     return exif;
 }
 
-void RawlerReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
-    if (!metadata) {
-        metadata = ImageMetadata{};
-    }
+std::optional<ImageMetadata> RawlerReader::readMetadata(const std::optional<ImageMetadata> &baseMetadata) const {
+    ImageMetadata metadata = ImageReader::readMetadata(baseMetadata).value();
 
-    std::optional<ExifMetadata> exifMetadata = readExif();
-    if (exifMetadata) {
-        metadata->exifMetadata = std::move(*exifMetadata);
-    }
+    metadata.cameraControls.whiteBalance = {mRawImage->wb_coeffs[0], mRawImage->wb_coeffs[2]};
 
-    metadata->cameraControls.whiteBalance = {mRawImage->wb_coeffs[0], mRawImage->wb_coeffs[2]};
-
-    metadata->calibrationData.blackLevel = static_cast<int>(mRawImage->black_levels[0]);
-    metadata->calibrationData.whiteLevel = static_cast<int>(mRawImage->white_levels[0]);
+    metadata.calibrationData.blackLevel = static_cast<int>(mRawImage->black_levels[0]);
+    metadata.calibrationData.whiteLevel = static_cast<int>(mRawImage->white_levels[0]);
 
     // DNG color matrix is XYZ to Camera matrix, thus we need to compute the Camera to SRGB matrix.
     const Matrix3 colorMatrix(mRawImage->color_matrix);
@@ -168,7 +161,9 @@ void RawlerReader::readMetadata(std::optional<ImageMetadata> &metadata) const {
                                   adaptedMatrix.inverse() * Matrix3::diag(cameraNeutral);
 
     const float invScale = (adaptedMatrix * colorspace::D50_WHITE_XYZ).maximum();
-    metadata->calibrationData.colorMatrix = invScale * forwardMatrix;
+    metadata.calibrationData.colorMatrix = invScale * forwardMatrix;
+
+    return metadata;
 }
 
 } // namespace cxximg

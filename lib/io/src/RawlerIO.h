@@ -30,7 +30,7 @@ public:
     Imagef readf() override;
 
     std::optional<ExifMetadata> readExif() const override;
-    void readMetadata(std::optional<ImageMetadata> &metadata) const override;
+    std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata> &baseMetadata) const override;
 
 private:
     template <typename T>

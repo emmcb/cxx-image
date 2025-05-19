@@ -15,8 +15,6 @@
 #pragma once
 
 #include "ExifMetadata.h"
-#include "ImageLayout.h"
-#include "PixelType.h"
 
 #include "cxximg/math/ColorSpace.h"
 #include "cxximg/math/DynamicMatrix.h"
@@ -37,10 +35,6 @@ namespace cxximg {
 /// @addtogroup model
 /// @{
 
-enum class FileFormat { PLAIN, RAW10, RAW12 };
-
-enum class PixelRepresentation { UINT8, UINT16, FLOAT };
-
 enum class SemanticLabel { NONE, PERSON, SKIN, SKY, UNKNOWN };
 
 /// Structure holding image metadata.
@@ -59,19 +53,6 @@ struct ImageMetadata final {
         std::string name;    ///< Identification string
         SemanticLabel label; ///< Semantic label
         DynamicMatrix mask;  ///< Semantic mask
-    };
-
-    struct FileInfo final {
-        std::optional<FileFormat> fileFormat;                   ///< File format
-        std::optional<PixelRepresentation> pixelRepresentation; ///< Pixel representation
-        std::optional<ImageLayout> imageLayout;                 ///< Image layout
-        std::optional<PixelType> pixelType;                     ///< Pixel type
-        std::optional<uint8_t> pixelPrecision;                  ///< Bit precision of pixel
-        std::optional<uint16_t> width;                          ///< Image width
-        std::optional<uint16_t> height;                         ///< Image height
-        std::optional<uint16_t> widthAlignment;                 ///< Width alignment (must be a power of 2).
-        std::optional<uint16_t> heightAlignment;                ///< Height alignment (must be a power of 2).
-        std::optional<uint16_t> sizeAlignment;                  ///< Buffer size alignment (must be a power of 2).
     };
 
     struct CameraControls final {
@@ -100,7 +81,6 @@ struct ImageMetadata final {
 
     using SemanticMasks = std::unordered_multimap<SemanticLabel, SemanticMask>;
 
-    FileInfo fileInfo;               ///< File Information
     ExifMetadata exifMetadata;       ///< Exif metadata
     ShootingParams shootingParams;   ///< Shooting params
     CalibrationData calibrationData; ///< Calibration data
@@ -124,30 +104,6 @@ struct ImageMetadata final {
     }
 };
 
-inline const char *toString(FileFormat fileFormat) {
-    switch (fileFormat) {
-        case FileFormat::PLAIN:
-            return "plain";
-        case FileFormat::RAW10:
-            return "raw10";
-        case FileFormat::RAW12:
-            return "raw12";
-    }
-    return "undefined";
-}
-
-inline const char *toString(PixelRepresentation pixelRepresentation) {
-    switch (pixelRepresentation) {
-        case PixelRepresentation::UINT8:
-            return "uint8";
-        case PixelRepresentation::UINT16:
-            return "uint16";
-        case PixelRepresentation::FLOAT:
-            return "float";
-    }
-    return "undefined";
-}
-
 inline const char *toString(SemanticLabel semanticLabel) {
     switch (semanticLabel) {
         case SemanticLabel::NONE:
@@ -162,32 +118,6 @@ inline const char *toString(SemanticLabel semanticLabel) {
             return "unknown";
     }
     return "undefined";
-}
-
-inline std::optional<FileFormat> parseFileFormat(const std::string &fileFormat) {
-    if (fileFormat == "plain") {
-        return FileFormat::PLAIN;
-    }
-    if (fileFormat == "raw10") {
-        return FileFormat::RAW10;
-    }
-    if (fileFormat == "raw12") {
-        return FileFormat::RAW12;
-    }
-    return std::nullopt;
-}
-
-inline std::optional<PixelRepresentation> parsePixelRepresentation(const std::string &pixelRepresentation) {
-    if (pixelRepresentation == "uint8") {
-        return PixelRepresentation::UINT8;
-    }
-    if (pixelRepresentation == "uint16") {
-        return PixelRepresentation::UINT16;
-    }
-    if (pixelRepresentation == "float") {
-        return PixelRepresentation::FLOAT;
-    }
-    return std::nullopt;
 }
 
 inline std::optional<SemanticLabel> parseSemanticLabel(const std::string &semanticLabel) {

@@ -20,8 +20,7 @@
 using namespace cxximg;
 
 TEST(MetadataParserTest, TestSerializationFull) {
-    ImageMetadata metadata = {
-            .fileInfo = {.fileFormat = FileFormat::PLAIN,
+    FileInfo fileInfo = {.fileFormat = FileFormat::PLAIN,
                          .pixelRepresentation = PixelRepresentation::UINT16,
                          .imageLayout = ImageLayout::PLANAR,
                          .pixelType = PixelType::BAYER_RGGB,
@@ -30,7 +29,9 @@ TEST(MetadataParserTest, TestSerializationFull) {
                          .height = 3000,
                          .widthAlignment = 1,
                          .heightAlignment = 1,
-                         .sizeAlignment = 1},
+                         .sizeAlignment = 1};
+
+    ImageMetadata metadata = {
             .exifMetadata = {.imageWidth = 4000,
                              .imageHeight = 3000,
                              .imageDescription = "My description",
@@ -70,7 +71,7 @@ TEST(MetadataParserTest, TestSerializationFull) {
                                .faceDetection = std::vector<Rectf>{{0.1f, 0.15f, 0.2f, 0.3f}}},
             .semanticMasks = {}};
 
-    parser::writeMetadata(metadata, "test_serialization_full.json");
+    parser::writeMetadata({fileInfo, metadata}, "test_serialization_full.json");
     EXPECT_NO_THROW(parser::readMetadata("test_serialization_full.json"));
 
     std::string json = file::readContent("test_serialization_full.json");
@@ -230,8 +231,10 @@ TEST(MetadataParserTest, TestSerializationFull) {
     ASSERT_EQ(ref, json);
 }
 
-TEST(MetadataParserTest, TestDeserializationPartial) {
-    std::ofstream ofs("test_deserialization_partial.json");
+TEST(MetadataParserTest, TestDeserializationPartialFileInfo) {
+    constexpr char PATH[] = "test_deserialization_partial_file_info.json";
+
+    std::ofstream ofs(PATH);
     ofs << R"V0G0N({
     "fileInfo": {
         "fileFormat": "plain",
@@ -246,10 +249,10 @@ TEST(MetadataParserTest, TestDeserializationPartial) {
 })V0G0N";
     ofs.close();
 
-    ImageMetadata parsed = parser::readMetadata("test_deserialization_partial.json");
-    parser::writeMetadata(parsed, "test_deserialization_partial.json");
+    FileMetadata parsed = parser::readMetadata(PATH);
+    parser::writeMetadata(parsed, PATH);
 
-    std::string json = file::readContent("test_deserialization_partial.json");
+    std::string json = file::readContent(PATH);
     const char* ref = R"V0G0N({
     "fileInfo": {
         "fileFormat": "plain",
@@ -260,8 +263,31 @@ TEST(MetadataParserTest, TestDeserializationPartial) {
         "width": 4000,
         "height": 3000,
         "widthAlignment": 1
+    }
+})V0G0N";
+
+    ASSERT_EQ(ref, json);
+}
+
+TEST(MetadataParserTest, TestDeserializationPartialImageMetadata) {
+    constexpr char PATH[] = "test_deserialization_partial_image_metadata.json";
+
+    std::ofstream ofs(PATH);
+    ofs << R"V0G0N({
+    "exifMetadata": {
+        "software": "cxximg"
+    }
+    })V0G0N";
+    ofs.close();
+
+    FileMetadata parsed = parser::readMetadata(PATH);
+    parser::writeMetadata(parsed, PATH);
+
+    std::string json = file::readContent(PATH);
+    const char* ref = R"V0G0N({
+    "exifMetadata": {
+        "software": "cxximg"
     },
-    "exifMetadata": {},
     "shootingParams": {},
     "calibrationData": {},
     "cameraControls": {},

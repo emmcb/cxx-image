@@ -14,9 +14,12 @@
 
 #pragma once
 
+#include "cxximg/parser/MetadataParser.h"
+
 #include "ImageReaderWriter.h"
 #include "JsonDto.h"
 
+#include "cxximg/model/FileInfo.h"
 #include "cxximg/model/ImageMetadata.h"
 
 namespace cxximg {
@@ -326,10 +329,43 @@ struct SemanticMasksReaderWriter final {
     }
 };
 
+struct FileMetadataReaderWriter final {
+    static void read(FileMetadata& fileMetadata, const rapidjson::Value& object) {
+        json_dto::json_input_t jin{object};
+        jin& json_dto::optional("fileInfo", fileMetadata.fileInfo, std::nullopt);
+
+        if (object.HasMember("exifMetadata") || object.HasMember("shootingParams") ||
+            object.HasMember("calibrationData") || object.HasMember("cameraControls") ||
+            object.HasMember("semanticMasks")) {
+            fileMetadata.imageMetadata = ImageMetadata{};
+            jin >> *fileMetadata.imageMetadata;
+        }
+    }
+
+    static void write(const FileMetadata& fileMetadata,
+                      rapidjson::Value& object,
+                      rapidjson::MemoryPoolAllocator<>& allocator) {
+        json_dto::json_output_t jout{object, allocator};
+        jout& json_dto::optional("fileInfo", fileMetadata.fileInfo, std::nullopt);
+
+        if (fileMetadata.imageMetadata) {
+            jout << *fileMetadata.imageMetadata;
+        }
+    }
+};
+
 template <typename JsonIo>
-void json_io(JsonIo& io, ImageMetadata::SemanticMask& semanticMask) {
-    io& json_dto::mandatory("label", semanticMask.label) &
-            json_dto::mandatory(ImageLoader{}, "file", semanticMask.mask);
+void json_io(JsonIo& io, FileInfo& fileInfo) {
+    io& json_dto::optional("fileFormat", fileInfo.fileFormat, std::nullopt) &
+            json_dto::optional("pixelRepresentation", fileInfo.pixelRepresentation, std::nullopt) &
+            json_dto::optional("imageLayout", fileInfo.imageLayout, std::nullopt) &
+            json_dto::optional("pixelType", fileInfo.pixelType, std::nullopt) &
+            json_dto::optional("pixelPrecision", fileInfo.pixelPrecision, std::nullopt) &
+            json_dto::optional("width", fileInfo.width, std::nullopt) &
+            json_dto::optional("height", fileInfo.height, std::nullopt) &
+            json_dto::optional("widthAlignment", fileInfo.widthAlignment, std::nullopt) &
+            json_dto::optional("heightAlignment", fileInfo.heightAlignment, std::nullopt) &
+            json_dto::optional("sizeAlignment", fileInfo.sizeAlignment, std::nullopt);
 }
 
 template <typename JsonIo>
@@ -354,27 +390,6 @@ void json_io(JsonIo& io, ExifMetadata& exifMetadata) {
 }
 
 template <typename JsonIo>
-void json_io(JsonIo& io, ImageMetadata::FileInfo& fileInfo) {
-    io& json_dto::optional("fileFormat", fileInfo.fileFormat, std::nullopt) &
-            json_dto::optional("pixelRepresentation", fileInfo.pixelRepresentation, std::nullopt) &
-            json_dto::optional("imageLayout", fileInfo.imageLayout, std::nullopt) &
-            json_dto::optional("pixelType", fileInfo.pixelType, std::nullopt) &
-            json_dto::optional("pixelPrecision", fileInfo.pixelPrecision, std::nullopt) &
-            json_dto::optional("width", fileInfo.width, std::nullopt) &
-            json_dto::optional("height", fileInfo.height, std::nullopt) &
-            json_dto::optional("widthAlignment", fileInfo.widthAlignment, std::nullopt) &
-            json_dto::optional("heightAlignment", fileInfo.heightAlignment, std::nullopt) &
-            json_dto::optional("sizeAlignment", fileInfo.sizeAlignment, std::nullopt);
-}
-
-template <typename JsonIo>
-void json_io(JsonIo& io, ImageMetadata::CameraControls& cameraControls) {
-    io& json_dto::optional("whiteBalance", cameraControls.whiteBalance, std::nullopt) &
-            json_dto::optional("colorShading", cameraControls.colorShading, std::nullopt) &
-            json_dto::optional("faceDetection", cameraControls.faceDetection, std::nullopt);
-}
-
-template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata::ShootingParams& shootingParams) {
     io& json_dto::optional("aperture", shootingParams.aperture, std::nullopt) &
             json_dto::optional("exposureTime", shootingParams.exposureTime, std::nullopt) &
@@ -395,9 +410,21 @@ void json_io(JsonIo& io, ImageMetadata::CalibrationData& calibrationData) {
 }
 
 template <typename JsonIo>
+void json_io(JsonIo& io, ImageMetadata::CameraControls& cameraControls) {
+    io& json_dto::optional("whiteBalance", cameraControls.whiteBalance, std::nullopt) &
+            json_dto::optional("colorShading", cameraControls.colorShading, std::nullopt) &
+            json_dto::optional("faceDetection", cameraControls.faceDetection, std::nullopt);
+}
+
+template <typename JsonIo>
+void json_io(JsonIo& io, ImageMetadata::SemanticMask& semanticMask) {
+    io& json_dto::mandatory("label", semanticMask.label) &
+            json_dto::mandatory(ImageLoader{}, "file", semanticMask.mask);
+}
+
+template <typename JsonIo>
 void json_io(JsonIo& io, ImageMetadata& metadata) {
-    io& json_dto::optional_no_default("fileInfo", metadata.fileInfo) &
-            json_dto::optional_no_default("exifMetadata", metadata.exifMetadata) &
+    io& json_dto::optional_no_default("exifMetadata", metadata.exifMetadata) &
             json_dto::optional_no_default("shootingParams", metadata.shootingParams) &
             json_dto::optional_no_default("calibrationData", metadata.calibrationData) &
             json_dto::optional_no_default("cameraControls", metadata.cameraControls) &
