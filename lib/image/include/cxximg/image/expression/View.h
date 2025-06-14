@@ -14,8 +14,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 namespace cxximg {
 
 template <typename T>
@@ -30,23 +28,23 @@ namespace detail {
 
 template <typename Expr>
 struct View {
-    using TYPE = Expr;
+    using Type = Expr;
 };
 
 template <typename T>
 struct View<Image<T> &> {
-    using TYPE = ImageView<T> &;
+    using Type = ImageView<T> &;
 };
 
 template <typename T>
 struct View<const Image<T> &> {
-    using TYPE = const ImageView<T> &;
+    using Type = const ImageView<T> &;
 };
 
 } // namespace detail
 
 template <typename T>
-using view_t = typename detail::View<T>::TYPE; // NOLINT(readability-identifier-naming)
+using ViewType = typename detail::View<T>::Type;
 
 } // namespace expr
 

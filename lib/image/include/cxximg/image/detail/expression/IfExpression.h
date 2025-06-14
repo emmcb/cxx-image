@@ -27,9 +27,9 @@ namespace detail {
 /// An expression to choose between two expressions based on a condition.
 template <typename IfExpr, typename ThenExpr, typename ElseExpr>
 struct IfExpression final : public Expression {
-    view_t<IfExpr> ifExpr;     ///< Condition expression.
-    view_t<ThenExpr> thenExpr; ///< Then expression.
-    view_t<ElseExpr> elseExpr; ///< Else expression.
+    ViewType<IfExpr> ifExpr;     ///< Condition expression.
+    ViewType<ThenExpr> thenExpr; ///< Then expression.
+    ViewType<ElseExpr> elseExpr; ///< Else expression.
 
     /// Constructs expression from three expressions.
     IfExpression(IfExpr &&ifExpr_, ThenExpr &&thenExpr_, ElseExpr &&elseExpr_)

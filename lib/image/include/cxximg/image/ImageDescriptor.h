@@ -198,7 +198,7 @@ using ImageDescriptor8u = ImageDescriptor<uint8_t>;
 using ImageDescriptor16u = ImageDescriptor<uint16_t>;
 using ImageDescriptor32u = ImageDescriptor<uint32_t>;
 
-using ImageDescriptorh = ImageDescriptor<half_t>;
+using ImageDescriptorh = ImageDescriptor<half>;
 using ImageDescriptorf = ImageDescriptor<float>;
 using ImageDescriptord = ImageDescriptor<double>;
 

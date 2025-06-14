@@ -33,7 +33,7 @@ template <typename Expr, typename T, int N, ConvolveDirection DIR>
 struct ConvolveExpression1D final : public Expression {
     static constexpr int HALF_KERNEL_SIZE = (N - 1) / 2;
 
-    view_t<Expr> expr;       ///< Child expression.
+    ViewType<Expr> expr;     ///< Child expression.
     std::array<T, N> kernel; ///< kernel to convolve.
 
     /// Constructs expression from child and kernel.

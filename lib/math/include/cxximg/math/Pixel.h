@@ -111,17 +111,17 @@ using Pixel4 = Pixel<T, 4>;
 
 using Pixel2u8 = Pixel<uint8_t, 2>;
 using Pixel2u16 = Pixel<uint16_t, 2>;
-using Pixel2h = Pixel<half_t, 2>;
+using Pixel2h = Pixel<half, 2>;
 using Pixel2f = Pixel<float, 2>;
 
 using Pixel3u8 = Pixel<uint8_t, 3>;
 using Pixel3u16 = Pixel<uint16_t, 3>;
-using Pixel3h = Pixel<half_t, 3>;
+using Pixel3h = Pixel<half, 3>;
 using Pixel3f = Pixel<float, 3>;
 
 using Pixel4u8 = Pixel<uint8_t, 4>;
 using Pixel4u16 = Pixel<uint16_t, 4>;
-using Pixel4h = Pixel<half_t, 4>;
+using Pixel4h = Pixel<half, 4>;
 using Pixel4f = Pixel<float, 4>;
 
 /// @}

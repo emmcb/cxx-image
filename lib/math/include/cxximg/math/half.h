@@ -6,7 +6,7 @@ namespace cxximg {
 
 #if defined(CXXIMG_HAVE_FLOAT16)
 
-using half_t = _Float16;
+using half = _Float16;
 
 // Until we support C++23, std::is_floating_point_v and std::is_arithmetic_v do not handle _Float16 type, thus we have
 // to use our own values.
@@ -26,7 +26,7 @@ inline constexpr bool is_arithmetic_v = std::is_arithmetic_v<T> ||
 #else
 
 // Fallback to single precision float if half precision is not supported.
-using half_t = float;
+using half = float;
 
 namespace math {
 
@@ -42,8 +42,8 @@ inline constexpr bool is_arithmetic_v = std::is_arithmetic_v<T>;
 
 namespace literal {
 
-constexpr half_t operator""_h(long double val) {
-    return static_cast<half_t>(val);
+constexpr half operator""_h(long double val) {
+    return static_cast<half>(val);
 }
 
 } // namespace literal

@@ -429,7 +429,7 @@ using ImageView8u = ImageView<uint8_t>;
 using ImageView16u = ImageView<uint16_t>;
 using ImageView32u = ImageView<uint32_t>;
 
-using ImageViewh = ImageView<half_t>;
+using ImageViewh = ImageView<half>;
 using ImageViewf = ImageView<float>;
 using ImageViewd = ImageView<double>;
 
@@ -444,7 +444,7 @@ extern template class ImageView<uint16_t>;
 extern template class ImageView<uint32_t>;
 
 #ifdef CXXIMG_HAVE_FLOAT16
-extern template class ImageView<half_t>;
+extern template class ImageView<half>;
 #endif
 extern template class ImageView<float>;
 extern template class ImageView<double>;

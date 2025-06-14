@@ -177,7 +177,7 @@ using Image8u = Image<uint8_t>;
 using Image16u = Image<uint16_t>;
 using Image32u = Image<uint32_t>;
 
-using Imageh = Image<half_t>;
+using Imageh = Image<half>;
 using Imagef = Image<float>;
 using Imaged = Image<double>;
 
@@ -192,7 +192,7 @@ extern template class Image<uint16_t>;
 extern template class Image<uint32_t>;
 
 #ifdef CXXIMG_HAVE_FLOAT16
-extern template class Image<half_t>;
+extern template class Image<half>;
 #endif
 extern template class Image<float>;
 extern template class Image<double>;

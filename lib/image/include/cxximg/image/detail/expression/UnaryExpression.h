@@ -32,8 +32,8 @@ namespace detail {
 /// expression.
 template <typename Expr, class UnaryOp>
 struct UnaryExpression final : public Expression {
-    view_t<Expr> expr; ///< Child expression.
-    UnaryOp unaryOp;   ///< Unary operator to apply.
+    ViewType<Expr> expr; ///< Child expression.
+    UnaryOp unaryOp;     ///< Unary operator to apply.
 
     /// Constructs expression from child.
     explicit UnaryExpression(Expr &&expr_, UnaryOp unaryOp_ = {})

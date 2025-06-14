@@ -29,7 +29,7 @@ namespace detail {
 /// An expression to handle borders.
 template <typename Expr, BorderMode MODE>
 struct BorderExpression final : public Expression {
-    view_t<Expr> expr; ///< Child expression.
+    ViewType<Expr> expr; ///< Child expression.
 
     /// Constructs expression from child and kernel.
     explicit BorderExpression(Expr &&expr_) : expr(std::forward<Expr>(expr_)) {}

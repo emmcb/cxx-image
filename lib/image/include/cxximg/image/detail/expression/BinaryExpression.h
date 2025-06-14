@@ -29,8 +29,8 @@ namespace detail {
 /// expressions.
 template <typename LeftExpr, class BinaryOp, typename RightExpr>
 struct BinaryExpression final : public Expression {
-    view_t<LeftExpr> left;   ///< Left child.
-    view_t<RightExpr> right; ///< Right child.
+    ViewType<LeftExpr> left;   ///< Left child.
+    ViewType<RightExpr> right; ///< Right child.
 
     /// Constructs expression from two children.
     BinaryExpression(LeftExpr &&left_, RightExpr &&right_)

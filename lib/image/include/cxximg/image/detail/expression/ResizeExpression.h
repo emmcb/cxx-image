@@ -28,7 +28,7 @@ namespace detail {
 /// An expression to resize an another expression.
 template <typename Expr, class Interpolator>
 struct ResizeExpression final : public Expression {
-    view_t<Expr> expr; ///< Child expression.
+    ViewType<Expr> expr; ///< Child expression.
     Interpolator interpolator;
     float offsetX;
     float offsetY;

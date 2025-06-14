@@ -27,7 +27,7 @@ template class Image<uint16_t>;
 template class Image<uint32_t>;
 
 #ifdef CXXIMG_HAVE_FLOAT16
-template class Image<half_t>;
+template class Image<half>;
 #endif
 template class Image<float>;
 template class Image<double>;

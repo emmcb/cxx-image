@@ -199,17 +199,17 @@ using Pixel4View = PixelView<T, 4>;
 
 using Pixel2View8u = PixelView<uint8_t, 2>;
 using Pixel2View16u = PixelView<uint16_t, 2>;
-using Pixel2Viewh = PixelView<half_t, 2>;
+using Pixel2Viewh = PixelView<half, 2>;
 using Pixel2Viewf = PixelView<float, 2>;
 
 using Pixel3View8u = PixelView<uint8_t, 3>;
 using Pixel3View16u = PixelView<uint16_t, 3>;
-using Pixel3Viewh = PixelView<half_t, 3>;
+using Pixel3Viewh = PixelView<half, 3>;
 using Pixel3Viewf = PixelView<float, 3>;
 
 using Pixel4View8u = PixelView<uint8_t, 4>;
 using Pixel4View16u = PixelView<uint16_t, 4>;
-using Pixel4Viewh = PixelView<half_t, 4>;
+using Pixel4Viewh = PixelView<half, 4>;
 using Pixel4Viewf = PixelView<float, 4>;
 
 /// @}
