@@ -69,9 +69,9 @@ struct RawImage {
 
 extern "C" {
 
-RawImage *decode_buffer(const unsigned char *buffer, uintptr_t buffer_size, char **error_msg);
+RawImage *decode_buffer(const unsigned char *buffer, uintptr_t len, char **error_msg);
 
-void free_image(RawImage *decoded_image);
+void free_image(RawImage *image);
 
 }  // extern "C"
 

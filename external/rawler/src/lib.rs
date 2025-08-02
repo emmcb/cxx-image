@@ -89,28 +89,22 @@ pub struct RawImage {
 }
 
 // Main function to decode raw image from a buffer
-#[no_mangle]
-pub unsafe extern "C" fn decode_buffer(
+#[unsafe(no_mangle)]
+pub extern "C" fn decode_buffer(
     buffer: *const c_uchar,
-    buffer_size: usize,
+    len: usize,
     error_msg: *mut *mut c_char,
 ) -> *mut RawImage {
-    // Set default error and result
-    let mut result = std::ptr::null_mut();
-
-    // Input validation
-    if buffer.is_null() || buffer_size == 0 {
-        if !error_msg.is_null() {
-            *error_msg = string_to_c_char("Empty buffer provided");
+    let result = std::panic::catch_unwind(|| {
+        // Input validation
+        if buffer.is_null() || len == 0 {
+            return Err("Empty buffer provided".to_string());
         }
-        return result;
-    }
 
-    let data_slice = slice::from_raw_parts(buffer, buffer_size);
-    let buf = RawSource::new_from_slice(data_slice);
-    let params = RawDecodeParams::default();
+        let data_slice = unsafe { slice::from_raw_parts(buffer, len) };
+        let buf = RawSource::new_from_slice(data_slice);
+        let params = RawDecodeParams::default();
 
-    let decode_result = std::panic::catch_unwind(|| {
         // Handle each operation manually with proper error conversion
         let decoder = match rawler::get_decoder(&buf) {
             Ok(decoder) => decoder,
@@ -179,7 +173,7 @@ pub unsafe extern "C" fn decode_buffer(
             &mut decoded_image.clean_model,
         );
 
-        // Fill in the cfa pattern
+        // Fill in the CFA pattern
         string_to_fixed_c_chars(&raw_image.camera.cfa.name, &mut decoded_image.cfa);
 
         // Fill in the color matrix
@@ -229,45 +223,52 @@ pub unsafe extern "C" fn decode_buffer(
         Ok(Box::into_raw(decoded_image))
     });
 
-    // Handle the result of decoding
-    if !error_msg.is_null() {
-        *error_msg = match decode_result {
-            Ok(Ok(image)) => {
-                result = image;
-                std::ptr::null_mut()
-            }
-            Ok(Err(err)) => string_to_c_char(&err),
-            Err(_) => string_to_c_char("Panic occurred during decoding"),
-        };
-    } else if let Ok(Ok(image)) = decode_result {
-        result = image;
-    }
+    // Handle the result of decoding by flattening the nested result from catch_unwind
+    let final_result = result.unwrap_or_else(|_| Err("Panic occurred during decoding".to_string()));
 
-    result
+    match final_result {
+        Ok(image) => {
+            if !error_msg.is_null() {
+                unsafe { *error_msg = std::ptr::null_mut() };
+            }
+            image
+        }
+        Err(err) => {
+            if !error_msg.is_null() {
+                unsafe { *error_msg = string_to_c_char(&err) };
+            }
+            std::ptr::null_mut()
+        }
+    }
 }
 
 // Free raw decoded image allocated by Rust
-#[no_mangle]
-pub unsafe extern "C" fn free_image(decoded_image: *mut RawImage) {
-    if !decoded_image.is_null() {
-        let decoded_image = Box::from_raw(decoded_image);
+#[unsafe(no_mangle)]
+pub extern "C" fn free_image(image: *mut RawImage) {
+    if image.is_null() {
+        return;
+    }
+    let decoded_image = unsafe { Box::from_raw(image) };
 
-        // Free the image data
-        match decoded_image.data_type {
-            DataType::Integer => {
-                drop(Vec::from_raw_parts(
+    // Free the image data
+    match decoded_image.data_type {
+        DataType::Integer => {
+            drop(unsafe {
+                Vec::from_raw_parts(
                     decoded_image.data_ptr as *mut u16,
                     decoded_image.data_len,
                     decoded_image.data_len,
-                ));
-            }
-            DataType::Float => {
-                drop(Vec::from_raw_parts(
+                )
+            });
+        }
+        DataType::Float => {
+            drop(unsafe {
+                Vec::from_raw_parts(
                     decoded_image.data_ptr as *mut f32,
                     decoded_image.data_len,
                     decoded_image.data_len,
-                ));
-            }
+                )
+            });
         }
     }
 }

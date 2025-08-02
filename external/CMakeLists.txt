@@ -32,7 +32,7 @@ if(HAVE_DNG)
     FetchContent_Declare(
         adobe-dng-sdk
         GIT_REPOSITORY "https://github.com/emmcb/adobe-dng-sdk.git"
-        GIT_TAG "d83821f555c3cb746aaf97d19c404045307b850c"
+        GIT_TAG "962a7028efdc8f8a651cf6335c3ec53053472339"
     )
     FetchContent_MakeAvailable(adobe-dng-sdk)
 
