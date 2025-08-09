@@ -79,7 +79,15 @@ enum class PixelType {
     /// G G B B
     /// R R G G
     /// R R G G
-    QUADBAYER_GBRG
+    QUADBAYER_GBRG,
+
+    /// R B G B R G
+    /// G G R G G B
+    /// G G B G G R
+    /// B R G R B G
+    /// G G B G G R
+    /// G G R G G B
+    X_TRANS
 };
 
 /// Bayer components.
@@ -116,6 +124,8 @@ inline const char *toString(PixelType pixelType) {
             return "quadbayer_grbg";
         case PixelType::QUADBAYER_GBRG:
             return "quadbayer_gbrg";
+        case PixelType::X_TRANS:
+            return "x_trans";
     }
     return "undefined";
 }
@@ -163,6 +173,9 @@ inline std::optional<PixelType> parsePixelType(const std::string &pixelType) {
     if (pixelType == "quadbayer_gbrg") {
         return PixelType::QUADBAYER_GBRG;
     }
+    if (pixelType == "x_trans") {
+        return PixelType::X_TRANS;
+    }
     return std::nullopt;
 }
 
@@ -180,6 +193,7 @@ inline int pixelNumPlanes(PixelType pixelType) {
         case PixelType::QUADBAYER_BGGR:
         case PixelType::QUADBAYER_GRBG:
         case PixelType::QUADBAYER_GBRG:
+        case PixelType::X_TRANS:
             return 1;
         case PixelType::GRAY_ALPHA:
             return 2;

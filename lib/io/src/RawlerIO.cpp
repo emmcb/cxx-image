@@ -51,6 +51,11 @@ void RawlerReader::initialize() {
         builder.pixelType(PixelType::BAYER_GBRG);
     } else if (mRawImage->cfa == "BGGR"s) {
         builder.pixelType(PixelType::BAYER_BGGR);
+    } else if ((mRawImage->cfa == "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB"s && mRawImage->active_area[0] == 0 &&
+                mRawImage->active_area[1] == 0) ||
+               (mRawImage->cfa == "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"s && mRawImage->active_area[0] == 0 &&
+                mRawImage->active_area[1] == 5)) {
+        builder.pixelType(PixelType::X_TRANS);
     } else {
         throw IOError(MODULE, "Unsupported CFA pattern: "s + mRawImage->cfa);
     }

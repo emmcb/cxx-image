@@ -6,7 +6,7 @@ use std::os::raw::{c_char, c_uchar, c_uint};
 use std::slice;
 
 // Convert a Rust string to a fixed-size C char array
-fn string_to_fixed_c_chars(s: &str, out: &mut [c_char; 32]) {
+fn string_to_fixed_c_chars(s: &str, out: &mut [c_char]) {
     let cstring = std::ffi::CString::new(s).unwrap_or_default();
     let bytes = cstring.as_bytes_with_nul();
     let copy_len = std::cmp::min(bytes.len(), out.len());
@@ -69,7 +69,7 @@ pub struct RawImage {
     /// bits per pixel
     bps: c_uint,
     /// cfa pattern as a string
-    cfa: [c_char; 32],
+    cfa: [c_char; 37],
     /// how much to crop the image to get all the usable (non-black) area
     active_area: [c_uint; 4],
     /// image black level
@@ -144,7 +144,7 @@ pub extern "C" fn decode_buffer(
             height: raw_image.height as c_uint,
             cpp: raw_image.cpp as c_uint,
             bps: raw_image.bps as c_uint,
-            cfa: [0; 32],
+            cfa: [0; 37],
             active_area: [0, 0, raw_image.width as c_uint, raw_image.height as c_uint],
             black_levels: raw_image.blacklevel.as_bayer_array(),
             white_levels: raw_image.whitelevel.as_bayer_array(),

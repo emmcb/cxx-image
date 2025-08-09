@@ -48,7 +48,7 @@ struct RawImage {
     /// bits per pixel
     unsigned int bps;
     /// cfa pattern as a string
-    char cfa[32];
+    char cfa[37];
     /// how much to crop the image to get all the usable (non-black) area
     unsigned int active_area[4];
     /// image black level
