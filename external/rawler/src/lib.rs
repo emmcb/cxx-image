@@ -70,6 +70,8 @@ pub struct RawImage {
     bps: c_uint,
     /// cfa pattern as a string
     cfa: [c_char; 32],
+    /// how much to crop the image to get all the usable (non-black) area
+    active_area: [c_uint; 4],
     /// image black level
     black_levels: [f32; 4],
     /// image white levels
@@ -143,6 +145,7 @@ pub extern "C" fn decode_buffer(
             cpp: raw_image.cpp as c_uint,
             bps: raw_image.bps as c_uint,
             cfa: [0; 32],
+            active_area: [0, 0, raw_image.width as c_uint, raw_image.height as c_uint],
             black_levels: raw_image.blacklevel.as_bayer_array(),
             white_levels: raw_image.whitelevel.as_bayer_array(),
             wb_coeffs: raw_image.wb_coeffs,
@@ -175,6 +178,16 @@ pub extern "C" fn decode_buffer(
 
         // Fill in the CFA pattern
         string_to_fixed_c_chars(&raw_image.camera.cfa.name, &mut decoded_image.cfa);
+
+        // Fill in the active area
+        if let Some(active_area) = raw_image.active_area {
+            decoded_image.active_area = [
+                active_area.p.x as c_uint,
+                active_area.p.y as c_uint,
+                active_area.d.w as c_uint,
+                active_area.d.h as c_uint,
+            ];
+        }
 
         // Fill in the color matrix
         if let Some(color_matrix) = raw_image.color_matrix.get(&Illuminant::D65) {

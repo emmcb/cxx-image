@@ -42,7 +42,7 @@ void RawlerReader::initialize() {
         throw IOError(MODULE, "Unsupported number of channels: " + std::to_string(mRawImage->cpp));
     }
 
-    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(mRawImage->width, mRawImage->height);
+    LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(mRawImage->active_area[2], mRawImage->active_area[3]);
     if (mRawImage->cfa == "RGGB"s) {
         builder.pixelType(PixelType::BAYER_RGGB);
     } else if (mRawImage->cfa == "GRBG"s) {
@@ -85,15 +85,27 @@ template <typename T>
 Image<T> RawlerReader::read() {
     validateType<T>();
 
-    Image<T> image(layoutDescriptor());
-    if (static_cast<int64_t>(mRawImage->data_len) != image.size()) {
+    LayoutDescriptor srcDescriptor = LayoutDescriptor::Builder(layoutDescriptor())
+                                             .width(mRawImage->width)
+                                             .height(mRawImage->height)
+                                             .build();
+
+    if (static_cast<int64_t>(mRawImage->data_len) != srcDescriptor.requiredBufferSize()) {
         throw IOError(MODULE,
-                      "Data length does not match expected buffer size (expected " + std::to_string(image.size()) +
-                              ", got " + std::to_string(mRawImage->data_len) + ")");
+                      "Data length does not match expected buffer size (expected " +
+                              std::to_string(srcDescriptor.requiredBufferSize()) + ", got " +
+                              std::to_string(mRawImage->data_len) + ")");
     }
 
+    Image<T> image(layoutDescriptor());
+    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t *>(const_cast<void *>(mRawImage->data_ptr)));
+    Rect crop{.x = static_cast<int>(mRawImage->active_area[0]),
+              .y = static_cast<int>(mRawImage->active_area[1]),
+              .width = static_cast<int>(mRawImage->active_area[2]),
+              .height = static_cast<int>(mRawImage->active_area[3])};
+
     // Copy raw data to the image
-    memcpy(image.data(), mRawImage->data_ptr, image.size() * sizeof(T));
+    image = srcImage[crop];
 
     return image;
 }
