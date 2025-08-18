@@ -95,7 +95,7 @@ struct ImageDescriptor final {
         buffer = buffer_;
 
 #ifdef CXXIMG_HAVE_HALIDE
-        resetHalideDescriptor();
+        halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
 #endif
 
         return *this;
@@ -106,18 +106,17 @@ struct ImageDescriptor final {
 
 private:
 #ifdef CXXIMG_HAVE_HALIDE
-    template <typename U = T, std::enable_if_t<math::is_arithmetic_v<U>, bool> = true>
     void resetHalideDescriptor() {
-        halide->buffer.type = halide_type_of<T>();
+        if constexpr (math::is_arithmetic_v<T>) {
+            halide->buffer.type = halide_type_of<T>();
+        }
+
         halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
         halide->buffer.device = 0;
         halide->buffer.device_interface = nullptr;
         halide->buffer.flags = 0;
         halide->syncDims(layout);
     }
-
-    template <typename U = T, std::enable_if_t<!math::is_arithmetic_v<U>, bool> = true>
-    void resetHalideDescriptor() {}
 #endif
 };
 
