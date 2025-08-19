@@ -93,6 +93,9 @@ public:
     /// Encode and write the given image view into stream.
     template <typename T>
     void write(const ImageView<T> &imageView) {
+        static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, float>,
+                      "Unsupported image type");
+
         return write(image::clone(imageView));
     }
 
