@@ -8,4 +8,4 @@ name = "rawler_ffi"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-rawler = { git = "https://github.com/dnglab/dnglab.git", rev = "9643ec9fc58a35ab1f40b4a906fbd9ac73a34c12" }
+rawler = { git = "https://github.com/dnglab/dnglab.git", rev = "a5e8e2e34b0cf40f78e09f86275f79b656ce791f" }
