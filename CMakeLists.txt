@@ -35,6 +35,7 @@ option(CXXIMG_WITH_FLOAT16 "Enable float16 image support" OFF)
 option(CXXIMG_WITH_DNG "Enable DNG format IO" ON)
 option(CXXIMG_WITH_JPEG "Enable JPEG format IO" ON)
 option(CXXIMG_WITH_JPEGXL "Enable JPEG XL format IO" ON)
+option(CXXIMG_WITH_LENSFUN "Enable reading of lensfun database for lens correction metadata" ON)
 option(CXXIMG_WITH_PNG "Enable PNG format IO" ON)
 option(CXXIMG_WITH_RAWLER "Enable reading of various RAW image formats supported by Rawler library" ON)
 option(CXXIMG_WITH_TIFF "Enable TIFF format IO" ON)
@@ -116,6 +117,17 @@ if(CXXIMG_WITH_JPEGXL)
     endif()
 endif()
 
+set(HAVE_LENSFUN 0)
+if(CXXIMG_WITH_LENSFUN)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LENSFUN IMPORTED_TARGET lensfun)
+    if(LENSFUN_FOUND)
+        set(HAVE_LENSFUN 1)
+    else()
+        message(WARNING "Disabling Lensfun support because lensfun is not found")
+    endif()
+endif()
+
 set(HAVE_PNG 0)
 if(CXXIMG_WITH_PNG)
     find_package(PNG)
@@ -131,7 +143,7 @@ if(CXXIMG_WITH_RAWLER)
     FetchContent_Declare(
         corrosion
         GIT_REPOSITORY "https://github.com/corrosion-rs/corrosion.git"
-        GIT_TAG "v0.5.1"
+        GIT_TAG "v0.6.1"
         SOURCE_SUBDIR "dummy"
     )
     FetchContent_MakeAvailable(corrosion)

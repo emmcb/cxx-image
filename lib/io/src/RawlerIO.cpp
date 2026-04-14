@@ -2,6 +2,10 @@
 
 #include "cxximg/math/ColorSpace.h"
 
+#ifdef HAVE_LENSFUN
+#include "cxximg/io/LensfunDatabase.h"
+#endif
+
 #include <rawler_ffi.h>
 #include <loguru.hpp>
 
@@ -11,7 +15,7 @@ namespace cxximg {
 
 static const std::string MODULE = "RAWLER";
 
-RawlerReader::RawlerReader(const std::string &path, std::istream *stream, const Options &options)
+RawlerReader::RawlerReader(const std::string& path, std::istream* stream, const Options& options)
     : ImageReader(path, stream, options) {
 }
 
@@ -29,10 +33,10 @@ void RawlerReader::initialize() {
 
     // Read stream content
     std::vector<uint8_t> data(fileSize);
-    mStream->read(reinterpret_cast<char *>(data.data()), data.size());
+    mStream->read(reinterpret_cast<char*>(data.data()), data.size());
 
     // Decode raw data
-    char *errorMsg = nullptr;
+    char* errorMsg = nullptr;
     mRawImage = rawler::decode_buffer(data.data(), data.size(), &errorMsg);
     if (!mRawImage) {
         throw IOError(MODULE, errorMsg);
@@ -103,7 +107,7 @@ Image<T> RawlerReader::read() {
     }
 
     Image<T> image(layoutDescriptor());
-    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t *>(const_cast<void *>(mRawImage->data_ptr)));
+    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t*>(const_cast<void*>(mRawImage->data_ptr)));
     Rect crop{.x = static_cast<int>(mRawImage->active_area[0]),
               .y = static_cast<int>(mRawImage->active_area[1]),
               .width = static_cast<int>(mRawImage->active_area[2]),
@@ -154,7 +158,95 @@ std::optional<ExifMetadata> RawlerReader::readExif() const {
     return exif;
 }
 
-std::optional<ImageMetadata> RawlerReader::readMetadata(const std::optional<ImageMetadata> &baseMetadata) const {
+namespace {
+
+#ifdef HAVE_LENSFUN
+
+void readLensfunMetadata(ImageMetadata& metadata) {
+    const ExifMetadata& exif = metadata.exifMetadata;
+
+    if (!exif.make || !exif.model) {
+        LOG_S(INFO) << "Skipping lens correction: no camera make/model in metadata";
+        return;
+    }
+
+    if (!exif.focalLength) {
+        LOG_S(INFO) << "Skipping lens correction: no focal length in metadata";
+        return;
+    }
+
+    lfDatabase* db = io::lensfunDatabase();
+    if (!db) {
+        LOG_S(WARNING) << "Skipping lens correction: lensfun database not available";
+        return;
+    }
+
+    // Find camera
+    const lfCamera** cameras = db->FindCameras(exif.make->c_str(), exif.model->c_str());
+    if (!cameras) {
+        LOG_S(INFO) << "Skipping lens correction: camera not found in lensfun database (" << *exif.make << " "
+                    << *exif.model << ")";
+        return;
+    }
+    if (cameras[1] != nullptr) {
+        LOG_S(INFO) << "Skipping lens correction: multiple cameras found in lensfun database";
+        lf_free(cameras);
+        return;
+    }
+    const lfCamera* camera = cameras[0];
+    const float cropFactor = camera->CropFactor;
+    LOG_S(INFO) << "Lensfun camera: " << lf_mlstr_get(camera->Maker) << " " << lf_mlstr_get(camera->Model) << " (crop "
+                << cropFactor << ")";
+
+    // Find lens
+    const char* lensMaker = exif.lensMake ? exif.lensMake->c_str() : nullptr;
+    const char* lensModel = exif.lensModel ? exif.lensModel->c_str() : nullptr;
+    const lfLens** lenses = db->FindLenses(camera, lensMaker, lensModel);
+    if (!lenses) {
+        LOG_S(INFO) << "Skipping lens correction: lens not found in lensfun database";
+        lf_free(cameras);
+        return;
+    }
+    if (lenses[1] != nullptr) {
+        LOG_S(INFO) << "Skipping lens correction: multiple lenses found in lensfun database";
+        lf_free(cameras);
+        lf_free(lenses);
+        return;
+    }
+    const lfLens* lens = lenses[0];
+    LOG_S(INFO) << "Lensfun lens: " << lf_mlstr_get(lens->Maker) << " " << lf_mlstr_get(lens->Model);
+
+    const int width = 17;
+    const int height = 13;
+    const float focal = exif.focalLength->asFloat();
+    const float aperture = exif.fNumber ? exif.fNumber->asFloat() : 8.0f;
+
+    // Create modifier for distortion and TCA correction
+    lfModifier modifier(lens, cropFactor, width, height);
+    modifier.Initialize(lens,
+                        LF_PF_F32,
+                        focal,
+                        aperture,
+                        1000.0f, // focus distance (approximation)
+                        0.0f,    // auto scale
+                        lens->Type,
+                        LF_MODIFY_VIGNETTING,
+                        false);
+
+    DynamicMatrix gainMap(height, width, 1.0f);
+    modifier.ApplyColorModification(gainMap.data(), 0, 0, width, height, LF_CR_1(GREEN), width * sizeof(float));
+
+    metadata.calibrationData.vignetting = std::move(gainMap);
+
+    lf_free(cameras);
+    lf_free(lenses);
+}
+
+#endif // HAVE_LENSFUN
+
+} // namespace
+
+std::optional<ImageMetadata> RawlerReader::readMetadata(const std::optional<ImageMetadata>& baseMetadata) const {
     ImageMetadata metadata = ImageReader::readMetadata(baseMetadata).value();
 
     metadata.cameraControls.whiteBalance = {mRawImage->wb_coeffs[0], mRawImage->wb_coeffs[2]};
@@ -179,6 +271,10 @@ std::optional<ImageMetadata> RawlerReader::readMetadata(const std::optional<Imag
 
     const float invScale = (adaptedMatrix * colorspace::D50_WHITE_XYZ).maximum();
     metadata.calibrationData.colorMatrix = invScale * forwardMatrix;
+
+#ifdef HAVE_LENSFUN
+    readLensfunMetadata(metadata);
+#endif
 
     return metadata;
 }
