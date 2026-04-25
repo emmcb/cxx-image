@@ -161,7 +161,7 @@ endif()
 
 set(HAVE_TIFF 0)
 if(CXXIMG_WITH_TIFF)
-    find_package(TIFF COMPONENTS CXX)
+    find_package(TIFF)
     if(TIFF_FOUND)
         set(HAVE_TIFF 1)
     else()

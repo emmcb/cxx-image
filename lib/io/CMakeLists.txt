@@ -69,7 +69,7 @@ endif()
 
 if(HAVE_TIFF)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/TiffIO.cpp)
-    target_link_libraries(${TARGET} PRIVATE TIFF::TIFF TIFF::CXX $<BUILD_INTERFACE:tiff-rational>)
+    target_link_libraries(${TARGET} PRIVATE TIFF::TIFF tiffxx $<BUILD_INTERFACE:tiff-rational>)
     target_compile_definitions(${TARGET} PRIVATE HAVE_TIFF)
 endif()
 
