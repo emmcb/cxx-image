@@ -38,12 +38,13 @@ enum class RgbColorSpace {
 
 /// RGB transfer functions.
 enum class RgbTransferFunction {
-    GAMMA22, ///< Gamma 2.2 transfer function.
-    LINEAR,  ///< Linear transfer function.
-    SRGB     ///< sRGB transfer function.
+    GAMMA22,    ///< Gamma 2.2 transfer function.
+    LINEAR,     ///< Linear transfer function.
+    SRGB,       ///< sRGB transfer function.
+    REC2020_HLG ///< Rec. 2020 hybrid log–gamma (HLG).
 };
 
-inline const char *toString(RgbColorSpace colorSpace) {
+inline const char* toString(RgbColorSpace colorSpace) {
     switch (colorSpace) {
         case RgbColorSpace::ADOBE_RGB:
             return "adobe_rgb";
@@ -61,7 +62,7 @@ inline const char *toString(RgbColorSpace colorSpace) {
     return "undefined";
 }
 
-inline const char *toString(RgbTransferFunction transferFunction) {
+inline const char* toString(RgbTransferFunction transferFunction) {
     switch (transferFunction) {
         case RgbTransferFunction::GAMMA22:
             return "gamma22";
@@ -69,11 +70,13 @@ inline const char *toString(RgbTransferFunction transferFunction) {
             return "linear";
         case RgbTransferFunction::SRGB:
             return "srgb";
+        case RgbTransferFunction::REC2020_HLG:
+            return "rec2020_hlg";
     }
     return "undefined";
 }
 
-inline std::optional<RgbColorSpace> parseRgbColorSpace(const std::string &colorSpace) {
+inline std::optional<RgbColorSpace> parseRgbColorSpace(const std::string& colorSpace) {
     if (colorSpace == "adobe_rgb") {
         return RgbColorSpace::ADOBE_RGB;
     }
@@ -95,7 +98,7 @@ inline std::optional<RgbColorSpace> parseRgbColorSpace(const std::string &colorS
     return std::nullopt;
 }
 
-inline std::optional<RgbTransferFunction> parseRgbTransferFunction(const std::string &transferFunction) {
+inline std::optional<RgbTransferFunction> parseRgbTransferFunction(const std::string& transferFunction) {
     if (transferFunction == "gamma22") {
         return RgbTransferFunction::GAMMA22;
     }
@@ -104,6 +107,9 @@ inline std::optional<RgbTransferFunction> parseRgbTransferFunction(const std::st
     }
     if (transferFunction == "srgb") {
         return RgbTransferFunction::SRGB;
+    }
+    if (transferFunction == "rec2020_hlg") {
+        return RgbTransferFunction::REC2020_HLG;
     }
     return std::nullopt;
 }
@@ -172,7 +178,7 @@ static constexpr Matrix3 XYZ_D65_TO_XYZ_D50 = {{1.0478112, 0.0228866, -0.0501270
 } // namespace detail
 
 /// Compute the linear Bradford adaptation matrix to convert from an illuminant to another.
-inline Matrix3 linearBradfordAdaptation(const Pixel3f &srcWhiteXYZ, const Pixel3f &dstWhiteXYZ) {
+inline Matrix3 linearBradfordAdaptation(const Pixel3f& srcWhiteXYZ, const Pixel3f& dstWhiteXYZ) {
     // Use the linearized Bradford adaptation matrix.
     constexpr Matrix3 M_A{{0.8951000f, 0.2664000f, -0.1614000f},
                           {-0.7502000f, 1.7135000f, 0.0367000f},
@@ -258,6 +264,32 @@ inline float srgbEotf(float x) {
     return std::pow((x + 0.055f) / 1.055f, 2.4f);
 }
 
+/// Apply the Rec.2020 HLG OETF on value x in [0, 1].
+inline float rec2020HlgOetf(float x) {
+    const float a = 0.17883277f;
+    const float b = 0.28466892f;
+    const float c = 0.55991073f;
+
+    if (x <= 1.0f / 12.0f) {
+        return std::sqrt(3.0f * x);
+    }
+
+    return a * std::log(12.0f * x - b) + c;
+}
+
+/// Apply the Rec.2020 HLG EOTF on value x in [0, 1].
+inline float rec2020HlgEotf(float x) {
+    const float a = 0.17883277f;
+    const float b = 0.28466892f;
+    const float c = 0.55991073f;
+
+    if (x <= 0.5f) {
+        return x * x / 3.0f;
+    }
+
+    return (std::exp((x - c) / a) + b) / 12.0f;
+}
+
 /// Apply RGB encoding function on value x in [0, 1].
 inline float encodingFunction(float x, RgbTransferFunction transferFunction) {
     switch (transferFunction) {
@@ -267,6 +299,8 @@ inline float encodingFunction(float x, RgbTransferFunction transferFunction) {
             return std::pow(x, 1.0f / 2.2f);
         case RgbTransferFunction::SRGB:
             return srgbOetf(x);
+        case RgbTransferFunction::REC2020_HLG:
+            return rec2020HlgOetf(x);
     }
 
     return x; // not reachable
@@ -281,6 +315,8 @@ inline float decodingFunction(float x, RgbTransferFunction transferFunction) {
             return std::pow(x, 2.2f);
         case RgbTransferFunction::SRGB:
             return srgbEotf(x);
+        case RgbTransferFunction::REC2020_HLG:
+            return rec2020HlgEotf(x);
     }
 
     return x; // not reachable
