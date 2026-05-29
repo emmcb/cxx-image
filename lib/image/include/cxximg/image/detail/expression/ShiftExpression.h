@@ -32,7 +32,7 @@ struct ShiftExpression final : public Expression {
     int shiftY;
 
     /// Constructs expression from child, shift X and shift Y.
-    ShiftExpression(Expr &&expr_, int shiftX_, int shiftY_)
+    ShiftExpression(Expr&& expr_, int shiftX_, int shiftY_)
         : expr(std::forward<Expr>(expr_)), shiftX(shiftX_), shiftY(shiftY_) {}
 
     /// Evaluates expression at position (x, y).
@@ -46,7 +46,7 @@ struct ShiftExpression final : public Expression {
 
 /// Shift expression.
 template <typename Expr>
-decltype(auto) shift(Expr &&expr, int x, int y) {
+decltype(auto) shift(Expr&& expr, int x, int y) {
     return detail::ShiftExpression<Expr>(std::forward<Expr>(expr), x, y);
 }
 

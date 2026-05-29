@@ -35,7 +35,7 @@ template <typename T>
 class PlaneView final : public expr::Expression {
 public:
     /// Constructs plane view from specified image plane.
-    PlaneView(const ImageDescriptor<T> &imageDescriptor, int index)
+    PlaneView(const ImageDescriptor<T>& imageDescriptor, int index)
         : mLayoutDescriptor(imageDescriptor.layout),
           mPlaneDescriptor(imageDescriptor.layout.planes[index]),
           mBuffer(imageDescriptor.buffer + mPlaneDescriptor.offset),
@@ -43,8 +43,8 @@ public:
           mHeight((imageDescriptor.layout.height + mPlaneDescriptor.subsample) >> mPlaneDescriptor.subsample) {}
 
     ~PlaneView() = default;
-    PlaneView(const PlaneView<T> &) noexcept = default;
-    PlaneView(PlaneView<T> &&) noexcept = default;
+    PlaneView(const PlaneView<T>&) noexcept = default;
+    PlaneView(PlaneView<T>&&) noexcept = default;
 
     /// Returns value at position (x, y).
     UTIL_ALWAYS_INLINE T operator()(int x, int y) const noexcept {
@@ -53,13 +53,13 @@ public:
     }
 
     /// Returns reference at position (x, y).
-    UTIL_ALWAYS_INLINE T &operator()(int x, int y) noexcept {
+    UTIL_ALWAYS_INLINE T& operator()(int x, int y) noexcept {
         assert(x >= 0 && x < width() && y >= 0 && y < height());
         return mBuffer[y * mPlaneDescriptor.rowStride + x * mPlaneDescriptor.pixelStride];
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator=(const PlaneView<T> &other) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator=(const PlaneView<T>& other) noexcept {
         if (this != &other) {
             operator= <PlaneView<T>>(other);
         }
@@ -67,42 +67,42 @@ public:
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator=(PlaneView<T> &&other) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator=(PlaneView<T>&& other) noexcept {
         operator= <PlaneView<T>>(other);
         return *this;
     }
 
     /// Expression assignment.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) = expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator+=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator+=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) += expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator-=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator-=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) -= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator*=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator*=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) *= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PlaneView<T> &operator/=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PlaneView<T>& operator/=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { (*this)(x, y) /= expr::evaluate(expr, x, y); });
         return *this;
     }
@@ -121,19 +121,19 @@ public:
     }
 
     /// Returns plane descriptor.
-    const PlaneDescriptor &descriptor() const noexcept { return mPlaneDescriptor; }
+    const PlaneDescriptor& descriptor() const noexcept { return mPlaneDescriptor; }
 
     /// Returns layout descriptor.
-    const LayoutDescriptor &layoutDescriptor() const noexcept { return mLayoutDescriptor; }
+    const LayoutDescriptor& layoutDescriptor() const noexcept { return mLayoutDescriptor; }
 
     /// Returns plane index in the underlying image.
     int index() const noexcept { return mPlaneDescriptor.index; }
 
     /// Returns pointer to the first plane element.
-    T *buffer() const { return mBuffer; }
+    T* buffer() const { return mBuffer; }
 
     /// Returns pointer to the first element of given row.
-    T *buffer(int y) const { return mBuffer + y * mPlaneDescriptor.rowStride; }
+    T* buffer(int y) const { return mBuffer + y * mPlaneDescriptor.rowStride; }
 
     /// Returns pixel type.
     PixelType pixelType() const noexcept { return mLayoutDescriptor.pixelType; }
@@ -217,7 +217,7 @@ public:
 private:
     LayoutDescriptor mLayoutDescriptor;
     PlaneDescriptor mPlaneDescriptor;
-    T *mBuffer;
+    T* mBuffer;
     int mWidth;
     int mHeight;
 };

@@ -37,13 +37,13 @@ public:
     class PlaneIterable;
 
     /// Constructs image view from image descriptor.
-    explicit ImageView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
+    explicit ImageView(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
 
     /// Constructs image view from layout descriptor and buffer.
-    ImageView(const LayoutDescriptor &layout, T *buffer) : mDescriptor(layout, buffer) {}
+    ImageView(const LayoutDescriptor& layout, T* buffer) : mDescriptor(layout, buffer) {}
 
     /// Constructs one-plane image view from plane view.
-    ImageView(const PlaneView<T> &planeView) // NOLINT(google-explicit-constructor)
+    ImageView(const PlaneView<T>& planeView) // NOLINT(google-explicit-constructor)
         : ImageView(LayoutDescriptor::Builder(planeView.width(), planeView.height())
                             .numPlanes(1)
                             .imageLayout(ImageLayout::CUSTOM)
@@ -52,18 +52,18 @@ public:
                     planeView.buffer()) {}
 
     ~ImageView() = default;
-    ImageView(const ImageView<T> &) noexcept = default;
-    ImageView(ImageView<T> &&) noexcept = default;
+    ImageView(const ImageView<T>&) noexcept = default;
+    ImageView(ImageView<T>&&) noexcept = default;
 
     /// Returns corresponding plane to an other image plane.
     template <typename U>
-    UTIL_ALWAYS_INLINE PlaneView<T> operator[](const PlaneView<U> &plane) const {
+    UTIL_ALWAYS_INLINE PlaneView<T> operator[](const PlaneView<U>& plane) const {
         assert(plane.index() >= 0 && plane.index() < numPlanes());
         return PlaneView<T>(mDescriptor, plane.index());
     }
 
     /// Subset image with the given roi.
-    UTIL_ALWAYS_INLINE ImageView<T> operator[](const Rect &roi) const {
+    UTIL_ALWAYS_INLINE ImageView<T> operator[](const Rect& roi) const {
         return ImageView<T>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 
@@ -71,22 +71,22 @@ public:
     UTIL_ALWAYS_INLINE T operator()(int x, int y, int n) const noexcept {
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
-        const auto &planeDescriptor = mDescriptor.layout.planes[n];
+        const auto& planeDescriptor = mDescriptor.layout.planes[n];
         return mDescriptor
                 .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
     /// Returns reference at position (x, y, n).
-    UTIL_ALWAYS_INLINE T &operator()(int x, int y, int n) noexcept {
+    UTIL_ALWAYS_INLINE T& operator()(int x, int y, int n) noexcept {
         // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
 
-        const auto &planeDescriptor = mDescriptor.layout.planes[n];
+        const auto& planeDescriptor = mDescriptor.layout.planes[n];
         return mDescriptor
                 .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
     }
 
 #ifdef CXXIMG_HAVE_HALIDE
-    operator halide_buffer_t *() const { // NOLINT(google-explicit-constructor)
+    operator halide_buffer_t*() const { // NOLINT(google-explicit-constructor)
         // A same Halide descriptor may be shared by multiple Image descriptors with same strides, but different
         // extents. We must ensure that the two dimensions are synchronized. This is a workaround to the fact that some
         // fields like dirty flag or device ptr are internally managed by Halide, thus we cannot have two copies with
@@ -99,7 +99,7 @@ public:
 #endif
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE ImageView<T> &operator=(const ImageView<T> &other) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator=(const ImageView<T>& other) noexcept {
         if (this != &other) {
             operator= <ImageView<T>>(other);
         }
@@ -107,42 +107,42 @@ public:
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE ImageView<T> &operator=(ImageView<T> &&other) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator=(ImageView<T>&& other) noexcept {
         operator= <ImageView<T>>(other);
         return *this;
     }
 
     /// Expression assignment.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE ImageView<T> &operator=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator=(const Expr& expr) noexcept {
         forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) = expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE ImageView<T> &operator+=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator+=(const Expr& expr) noexcept {
         forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) += expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE ImageView<T> &operator-=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator-=(const Expr& expr) noexcept {
         forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) -= expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE ImageView<T> &operator*=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator*=(const Expr& expr) noexcept {
         forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) *= expr::evaluate(expr, x, y, n); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE ImageView<T> &operator/=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE ImageView<T>& operator/=(const Expr& expr) noexcept {
         forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) /= expr::evaluate(expr, x, y, n); });
         return *this;
     }
@@ -166,10 +166,10 @@ public:
     }
 
     /// Returns image descriptor.
-    const ImageDescriptor<T> &descriptor() const noexcept { return mDescriptor; }
+    const ImageDescriptor<T>& descriptor() const noexcept { return mDescriptor; }
 
     /// Returns layout descriptor.
-    const LayoutDescriptor &layoutDescriptor() const noexcept { return mDescriptor.layout; }
+    const LayoutDescriptor& layoutDescriptor() const noexcept { return mDescriptor.layout; }
 
     /// Returns image layout.
     ImageLayout imageLayout() const noexcept { return mDescriptor.layout.imageLayout; }
@@ -197,13 +197,13 @@ public:
     int numPlanes() const noexcept { return mDescriptor.layout.numPlanes; }
 
     /// Returns raw pointer to begin of image data.
-    T *buffer() const { return mDescriptor.buffer; }
+    T* buffer() const { return mDescriptor.buffer; }
 
     /// Returns pointer to the first element of given plane.
-    T *buffer(int n) const { return mDescriptor.buffer + mDescriptor.layout.planes[n].offset; }
+    T* buffer(int n) const { return mDescriptor.buffer + mDescriptor.layout.planes[n].offset; }
 
     /// Returns pointer to the first element of given row.
-    T *buffer(int n, int y) const {
+    T* buffer(int n, int y) const {
         return mDescriptor.buffer + mDescriptor.layout.planes[n].offset + y * mDescriptor.layout.planes[n].rowStride;
     }
 
@@ -364,10 +364,10 @@ public:
 
 protected:
     /// Set view descriptor.
-    void setDescriptor(const ImageDescriptor<T> &descriptor) noexcept { mDescriptor = descriptor; }
+    void setDescriptor(const ImageDescriptor<T>& descriptor) noexcept { mDescriptor = descriptor; }
 
     /// Map view descriptor to another buffer.
-    void mapBuffer(T *buffer) { mDescriptor.map(buffer); }
+    void mapBuffer(T* buffer) { mDescriptor.map(buffer); }
 
 private:
     ImageDescriptor<T> mDescriptor;
@@ -379,7 +379,7 @@ public:
     class Iterator;
 
     /// Constructor.
-    explicit PlaneIterable(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
+    explicit PlaneIterable(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
 
     /// Returns plane at position i.
     PlaneView<T> operator[](int i) const { return PlaneView<T>(mDescriptor, i); }
@@ -398,14 +398,14 @@ template <typename T>
 class ImageView<T>::PlaneIterable::Iterator final {
 public:
     /// Prefix increment.
-    Iterator &operator++() noexcept {
+    Iterator& operator++() noexcept {
         ++mIndex;
         return *this;
     }
 
     /// Equality test.
-    bool operator==(const Iterator &iterator) const noexcept { return mIndex == iterator.mIndex; }
-    bool operator!=(const Iterator &iterator) const noexcept { return !operator==(iterator); }
+    bool operator==(const Iterator& iterator) const noexcept { return mIndex == iterator.mIndex; }
+    bool operator!=(const Iterator& iterator) const noexcept { return !operator==(iterator); }
 
     /// Gets the value.
     PlaneView<T> operator*() const { return PlaneView<T>(mDescriptor, mIndex); }
@@ -414,7 +414,7 @@ private:
     friend class PlaneIterable;
 
     /// Constructor.
-    explicit Iterator(const ImageDescriptor<T> &imageDescriptor, int index = 0)
+    explicit Iterator(const ImageDescriptor<T>& imageDescriptor, int index = 0)
         : mDescriptor(imageDescriptor), mIndex(index) {}
 
     ImageDescriptor<T> mDescriptor;

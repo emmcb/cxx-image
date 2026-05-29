@@ -49,7 +49,7 @@ static_assert(sizeof(BmpHeader) == 54, "BmpHeader must by 54 bytes");
 
 class BmpReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+    static bool accept(const std::string& path, const uint8_t* signature, bool signatureValid) {
         if (!signatureValid) {
             return file::extension(path) == "bmp";
         }
@@ -68,16 +68,16 @@ private:
 
 class BmpWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) { return file::extension(path) == "bmp"; }
+    static bool accept(const std::string& path) { return file::extension(path) == "bmp"; }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||
                descriptor.pixelType == PixelType::RGBA;
     }
 
-    void write(const Image8u &image) override;
+    void write(const Image8u& image) override;
 };
 
 } // namespace cxximg

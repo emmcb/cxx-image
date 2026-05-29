@@ -23,11 +23,11 @@ namespace memory {
 namespace detail {
 
 class AllocatorManager {
-    static Allocator *sCurrentAllocator;
+    static Allocator* sCurrentAllocator;
 
 public:
-    static Allocator &current() { return *sCurrentAllocator; }
-    static void setCurrent(Allocator &allocator) { sCurrentAllocator = &allocator; }
+    static Allocator& current() { return *sCurrentAllocator; }
+    static void setCurrent(Allocator& allocator) { sCurrentAllocator = &allocator; }
 };
 
 } // namespace detail

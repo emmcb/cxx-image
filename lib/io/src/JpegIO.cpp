@@ -40,20 +40,20 @@ struct JpegErrorMgr {
 
 struct JpegReadStream {
     jpeg_source_mgr pub;        ///< "public" fields
-    std::istream *stream;       ///< source stream
+    std::istream* stream;       ///< source stream
     uint8_t buffer[CHUNK_SIZE]; ///< start of buffer
     bool start_of_file;         ///< have we gotten any data yet?
 };
 
 struct JpegWriteStream {
     jpeg_destination_mgr pub;   ///< "public" fields
-    std::ostream *stream;       ///< destination stream
+    std::ostream* stream;       ///< destination stream
     uint8_t buffer[CHUNK_SIZE]; ///< start of buffer
 };
 
 void errorExit(j_common_ptr info) {
     // info->err really points to a CustomErrorMgr struct, so coerce pointer
-    auto *jerr = reinterpret_cast<JpegErrorMgr *>(info->err);
+    auto* jerr = reinterpret_cast<JpegErrorMgr*>(info->err);
 
     // Return control to the setjmp point
     longjmp(jerr->setjmp_buffer, 1); // NOLINT(cert-err52-cpp)
@@ -69,13 +69,13 @@ void outputMessage(j_common_ptr info) {
 }
 
 void initSource(j_decompress_ptr dinfo) {
-    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
+    auto* src = reinterpret_cast<JpegReadStream*>(dinfo->src);
     src->start_of_file = true;
 }
 
 boolean fillInputBuffer(j_decompress_ptr dinfo) {
-    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
-    src->stream->read(reinterpret_cast<char *>(src->buffer), sizeof(src->buffer));
+    auto* src = reinterpret_cast<JpegReadStream*>(dinfo->src);
+    src->stream->read(reinterpret_cast<char*>(src->buffer), sizeof(src->buffer));
 
     src->pub.next_input_byte = src->buffer;
     src->pub.bytes_in_buffer = src->stream->gcount();
@@ -96,7 +96,7 @@ void skipInputData(j_decompress_ptr dinfo, long numBytes) { // NOLINT(google-run
         return;
     }
 
-    auto *src = reinterpret_cast<JpegReadStream *>(dinfo->src);
+    auto* src = reinterpret_cast<JpegReadStream*>(dinfo->src);
 
     if (static_cast<uint64_t>(numBytes) <= src->pub.bytes_in_buffer) {
         src->pub.next_input_byte += numBytes;
@@ -113,15 +113,15 @@ void termSource([[maybe_unused]] j_decompress_ptr dinfo) {
 }
 
 void initDestination(j_compress_ptr cinfo) {
-    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+    auto* dest = reinterpret_cast<JpegWriteStream*>(cinfo->dest);
     dest->pub.next_output_byte = dest->buffer;
     dest->pub.free_in_buffer = sizeof(dest->buffer);
 }
 
 boolean emptyOutputBuffer(j_compress_ptr cinfo) {
-    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+    auto* dest = reinterpret_cast<JpegWriteStream*>(cinfo->dest);
 
-    dest->stream->write(reinterpret_cast<const char *>(dest->buffer), sizeof(dest->buffer));
+    dest->stream->write(reinterpret_cast<const char*>(dest->buffer), sizeof(dest->buffer));
 
     dest->pub.next_output_byte = dest->buffer;
     dest->pub.free_in_buffer = sizeof(dest->buffer);
@@ -130,19 +130,19 @@ boolean emptyOutputBuffer(j_compress_ptr cinfo) {
 }
 
 void termDestination(j_compress_ptr cinfo) {
-    auto *dest = reinterpret_cast<JpegWriteStream *>(cinfo->dest);
+    auto* dest = reinterpret_cast<JpegWriteStream*>(cinfo->dest);
     int64_t datacount = sizeof(dest->buffer) - dest->pub.free_in_buffer;
 
     // Write any data remaining in the buffer
     if (datacount > 0) {
-        dest->stream->write(reinterpret_cast<const char *>(dest->buffer), datacount);
+        dest->stream->write(reinterpret_cast<const char*>(dest->buffer), datacount);
     }
 }
 
 } // namespace
 
-static void setupJpegSourceStream(j_decompress_ptr dinfo, std::istream *stream) {
-    auto *src = static_cast<JpegReadStream *>(
+static void setupJpegSourceStream(j_decompress_ptr dinfo, std::istream* stream) {
+    auto* src = static_cast<JpegReadStream*>(
             (*dinfo->mem->alloc_small)(reinterpret_cast<j_common_ptr>(dinfo), JPOOL_PERMANENT, sizeof(JpegReadStream)));
     dinfo->src = &src->pub;
     src->pub.init_source = initSource;
@@ -155,8 +155,8 @@ static void setupJpegSourceStream(j_decompress_ptr dinfo, std::istream *stream) 
     src->stream = stream;
 }
 
-static void setupJpegDestinationStream(j_compress_ptr cinfo, std::ostream *stream) {
-    auto *dest = static_cast<JpegWriteStream *>((*cinfo->mem->alloc_small)(
+static void setupJpegDestinationStream(j_compress_ptr cinfo, std::ostream* stream) {
+    auto* dest = static_cast<JpegWriteStream*>((*cinfo->mem->alloc_small)(
             reinterpret_cast<j_common_ptr>(cinfo), JPOOL_PERMANENT, sizeof(JpegWriteStream)));
     cinfo->dest = &dest->pub;
     dest->pub.init_destination = initDestination;
@@ -165,10 +165,10 @@ static void setupJpegDestinationStream(j_compress_ptr cinfo, std::ostream *strea
     dest->stream = stream;
 }
 
-void JpegDecompressDeleter::operator()(jpeg_decompress_struct *dinfo) const {
+void JpegDecompressDeleter::operator()(jpeg_decompress_struct* dinfo) const {
     jpeg_destroy_decompress(dinfo);
 
-    auto *jerr = reinterpret_cast<JpegErrorMgr *>(dinfo->err);
+    auto* jerr = reinterpret_cast<JpegErrorMgr*>(dinfo->err);
     delete jerr;
 
     delete dinfo;
@@ -176,9 +176,9 @@ void JpegDecompressDeleter::operator()(jpeg_decompress_struct *dinfo) const {
 
 void JpegReader::initialize() {
     mInfo.reset(new jpeg_decompress_struct());
-    jpeg_decompress_struct *dinfo = mInfo.get();
+    jpeg_decompress_struct* dinfo = mInfo.get();
 
-    auto *jerr = new JpegErrorMgr();
+    auto* jerr = new JpegErrorMgr();
     dinfo->err = jpeg_std_error(&jerr->pub);
     jerr->pub.error_exit = errorExit;
     jerr->pub.output_message = outputMessage;
@@ -220,9 +220,9 @@ Image8u JpegReader::read8u() {
 
     Image8u image(layoutDescriptor());
 
-    jpeg_decompress_struct *dinfo = mInfo.get();
+    jpeg_decompress_struct* dinfo = mInfo.get();
 
-    auto *jerr = reinterpret_cast<JpegErrorMgr *>(dinfo->err);
+    auto* jerr = reinterpret_cast<JpegErrorMgr*>(dinfo->err);
     if (setjmp(jerr->setjmp_buffer)) { // NOLINT(cert-err52-cpp)
         throw IOError(MODULE, "Reading failed");
     }
@@ -230,7 +230,7 @@ Image8u JpegReader::read8u() {
     jpeg_start_decompress(dinfo);
 
     for (int y = 0; y < image.height(); ++y) {
-        auto *row = image.buffer(0, y);
+        auto* row = image.buffer(0, y);
         jpeg_read_scanlines(dinfo, &row, 1);
     }
 
@@ -241,7 +241,7 @@ Image8u JpegReader::read8u() {
 
 #ifdef HAVE_EXIF
 std::optional<ExifMetadata> JpegReader::readExif() const {
-    jpeg_decompress_struct *dinfo = mInfo.get();
+    jpeg_decompress_struct* dinfo = mInfo.get();
     if (!dinfo->marker_list) {
         return std::nullopt;
     }
@@ -250,7 +250,7 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
 }
 #endif
 
-void JpegWriter::write(const Image8u &image) {
+void JpegWriter::write(const Image8u& image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
         write(image::convertLayout(image, ImageLayout::INTERLEAVED));
@@ -310,14 +310,14 @@ void JpegWriter::write(const Image8u &image) {
 
 #ifdef HAVE_EXIF
     // Write EXIF
-    const auto &metadata = options().metadata;
+    const auto& metadata = options().metadata;
     if (metadata) {
-        ExifMem *mem = exif_mem_new_default();
-        ExifData *data = exif_data_new();
+        ExifMem* mem = exif_mem_new_default();
+        ExifData* data = exif_data_new();
 
         detail::populateExif(mem, data, metadata->exifMetadata);
 
-        uint8_t *exifBuffer = nullptr;
+        uint8_t* exifBuffer = nullptr;
         uint32_t exifLength = 0;
         exif_data_save_data(data, &exifBuffer, &exifLength);
 
@@ -330,11 +330,11 @@ void JpegWriter::write(const Image8u &image) {
 #endif
 
     if (image.imageLayout() == ImageLayout::YUV_420) {
-        uint8_t *yRows[16];
-        uint8_t *uRows[8];
-        uint8_t *vRows[8];
+        uint8_t* yRows[16];
+        uint8_t* uRows[8];
+        uint8_t* vRows[8];
 
-        uint8_t **rows[3] = {yRows, uRows, vRows};
+        uint8_t** rows[3] = {yRows, uRows, vRows};
         for (int y = 0; y < image.height(); y += 16) {
             // Jpeg library ignores the rows whose indices are greater than height
             for (int i = 0; i < 16; i++) {
@@ -349,7 +349,7 @@ void JpegWriter::write(const Image8u &image) {
         }
     } else {
         for (int y = 0; y < image.height(); ++y) {
-            auto *row = image.buffer(0, y);
+            auto* row = image.buffer(0, y);
             jpeg_write_scanlines(&cinfo, &row, 1);
         }
     }
@@ -359,7 +359,7 @@ void JpegWriter::write(const Image8u &image) {
 }
 
 #ifdef HAVE_EXIF
-void JpegWriter::writeExif(const ExifMetadata &exif) {
+void JpegWriter::writeExif(const ExifMetadata& exif) {
     std::ifstream ifs(path(), std::ios::binary);
     if (!ifs) {
         throw IOError(MODULE, "Cannot open file for reading: " + path());
@@ -399,7 +399,7 @@ void JpegWriter::writeExif(const ExifMetadata &exif) {
 
     // Read source DCT coefficients
     jpeg_read_header(&dinfo, TRUE);
-    jvirt_barray_ptr *coefficients = jpeg_read_coefficients(&dinfo);
+    jvirt_barray_ptr* coefficients = jpeg_read_coefficients(&dinfo);
 
     // Initialize destination compression parameters from source values
     jpeg_copy_critical_parameters(&dinfo, &cinfo);
@@ -412,12 +412,12 @@ void JpegWriter::writeExif(const ExifMetadata &exif) {
     jpeg_write_coefficients(&cinfo, coefficients);
 
     // Write EXIF
-    ExifMem *mem = exif_mem_new_default();
-    ExifData *data = exif_data_new();
+    ExifMem* mem = exif_mem_new_default();
+    ExifData* data = exif_data_new();
 
     detail::populateExif(mem, data, exif);
 
-    uint8_t *exifBuffer = nullptr;
+    uint8_t* exifBuffer = nullptr;
     uint32_t exifLength = 0;
     exif_data_save_data(data, &exifBuffer, &exifLength);
 

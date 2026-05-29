@@ -36,7 +36,7 @@ struct UnaryExpression final : public Expression {
     UnaryOp unaryOp;     ///< Unary operator to apply.
 
     /// Constructs expression from child.
-    explicit UnaryExpression(Expr &&expr_, UnaryOp unaryOp_ = {})
+    explicit UnaryExpression(Expr&& expr_, UnaryOp unaryOp_ = {})
         : expr(std::forward<Expr>(expr_)), unaryOp(std::move(unaryOp_)) {}
 
     /// Evaluates expression at position (x, y).
@@ -50,20 +50,20 @@ struct UnaryExpression final : public Expression {
 
 /// Absolute value expression.
 template <typename Expr>
-decltype(auto) abs(Expr &&expr) {
+decltype(auto) abs(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::AbsOperator>(std::forward<Expr>(expr));
 }
 
 /// Absolute value expression.
 template <typename T, typename Expr>
-decltype(auto) cast(Expr &&expr) {
+decltype(auto) cast(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::CastOperator<T>>(std::forward<Expr>(expr));
 }
 
 /// Conditionally round to integer if target type is integer, but do nothing if
 /// target type is float.
 template <typename T, typename Expr>
-decltype(auto) conditionalRound(Expr &&expr) {
+decltype(auto) conditionalRound(Expr&& expr) {
     if constexpr (math::is_floating_point_v<T>) {
         return std::forward<Expr>(expr);
     } else {
@@ -73,13 +73,13 @@ decltype(auto) conditionalRound(Expr &&expr) {
 
 /// Inverse expression.
 template <typename Expr>
-decltype(auto) inv(Expr &&expr) {
+decltype(auto) inv(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::InvOperator>(std::forward<Expr>(expr));
 }
 
 /// Lookup table expression.
 template <typename T, typename Expr>
-decltype(auto) lut(Expr &&expr, const std::vector<T> &lut) {
+decltype(auto) lut(Expr&& expr, const std::vector<T>& lut) {
 #if !defined(NDEBUG)
     return detail::UnaryExpression<Expr, detail::LutOperator<T>>(std::forward<Expr>(expr),
                                                                  {lut.data(), static_cast<int>(lut.size())});
@@ -90,31 +90,31 @@ decltype(auto) lut(Expr &&expr, const std::vector<T> &lut) {
 
 /// Round to long expression.
 template <typename Expr>
-decltype(auto) lround(Expr &&expr) {
+decltype(auto) lround(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::LRoundOperator>(std::forward<Expr>(expr));
 }
 
 /// Saturate expression.
 template <typename T, typename Expr>
-decltype(auto) saturate(Expr &&expr, T min, T max) {
+decltype(auto) saturate(Expr&& expr, T min, T max) {
     return detail::UnaryExpression<Expr, detail::SaturateOperator<T>>(std::forward<Expr>(expr), {min, max});
 }
 
 /// Sign expression.
 template <typename Expr>
-decltype(auto) sign(Expr &&expr) {
+decltype(auto) sign(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::SignOperator>(std::forward<Expr>(expr));
 }
 
 /// Square root expression.
 template <typename Expr>
-decltype(auto) sqrt(Expr &&expr) {
+decltype(auto) sqrt(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::SqrtOperator>(std::forward<Expr>(expr));
 }
 
 /// Square expression.
 template <typename Expr>
-decltype(auto) sq(Expr &&expr) {
+decltype(auto) sq(Expr&& expr) {
     return detail::UnaryExpression<Expr, detail::SquareOperator>(std::forward<Expr>(expr));
 }
 

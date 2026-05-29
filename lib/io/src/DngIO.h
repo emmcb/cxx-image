@@ -28,7 +28,7 @@ namespace cxximg {
 
 class DngReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+    static bool accept(const std::string& path, const uint8_t* signature, bool signatureValid) {
         if (!signatureValid) {
             return file::extension(path) == "dng";
         }
@@ -39,7 +39,7 @@ public:
                file::extension(path) == "dng";
     }
 
-    DngReader(const std::string &path, std::istream *stream, const Options &options);
+    DngReader(const std::string& path, std::istream* stream, const Options& options);
     ~DngReader() override;
 
     void initialize() override;
@@ -48,7 +48,7 @@ public:
     Imagef readf() override;
 
     std::optional<ExifMetadata> readExif() const override;
-    std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata> &baseMetadata) const override;
+    std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata>& baseMetadata) const override;
 
 private:
     template <typename T>
@@ -62,24 +62,24 @@ private:
 
 class DngWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         std::string ext = file::extension(path);
         return ext == "dng";
     }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return model::isBayerPixelType(descriptor.pixelType) || model::isQuadBayerPixelType(descriptor.pixelType) ||
                descriptor.pixelType == PixelType::RGB;
     }
 
-    void write(const Image16u &image) override;
-    void write(const Imagef &image) override;
+    void write(const Image16u& image) override;
+    void write(const Imagef& image) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image);
+    void writeImpl(const Image<T>& image);
 };
 
 } // namespace cxximg

@@ -23,7 +23,7 @@ namespace cxximg {
 namespace detail {
 
 /// Guesses the pixel size that matches the given file size.
-inline int guessPixelSize(const LayoutDescriptor::Builder &builder, const int64_t fileSize) {
+inline int guessPixelSize(const LayoutDescriptor::Builder& builder, const int64_t fileSize) {
     LayoutDescriptor::Builder localBuilder(builder);
 
     const int64_t refBufferSize = localBuilder.widthAlignment(1).build().requiredBufferSize();
@@ -36,7 +36,7 @@ inline int guessPixelSize(const LayoutDescriptor::Builder &builder, const int64_
 }
 
 /// Guesses the width alignment, if it exists, that matches the given file size.
-inline std::optional<int> guessWidthAlignment(const LayoutDescriptor::Builder &builder, const int64_t fileSize) {
+inline std::optional<int> guessWidthAlignment(const LayoutDescriptor::Builder& builder, const int64_t fileSize) {
     LayoutDescriptor::Builder localBuilder(builder);
 
     const int pixelSize = guessPixelSize(builder, fileSize);

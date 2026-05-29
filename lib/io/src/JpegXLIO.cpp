@@ -28,7 +28,7 @@ namespace cxximg {
 
 static const std::string MODULE = "JPEGXL";
 
-void JxlDecoderDeleter::operator()(JxlDecoder *decoder) const {
+void JxlDecoderDeleter::operator()(JxlDecoder* decoder) const {
     JxlDecoderDestroy(decoder);
 }
 
@@ -45,7 +45,7 @@ void JpegXLReader::initialize() {
     size_t exifPos = 0;
 
     while (true) {
-        mStream->read(reinterpret_cast<char *>(mBuffer.data() + mRemainingBytes), CHUNK_SIZE - mRemainingBytes);
+        mStream->read(reinterpret_cast<char*>(mBuffer.data() + mRemainingBytes), CHUNK_SIZE - mRemainingBytes);
         const std::streamsize bytesRead = mStream->gcount();
 
         if (bytesRead <= 0 && mRemainingBytes == 0) {
@@ -167,7 +167,7 @@ Image<T> JpegXLReader::read() {
 
     Image<T> image(layoutDescriptor());
     while (true) {
-        mStream->read(reinterpret_cast<char *>(mBuffer.data() + mRemainingBytes), CHUNK_SIZE - mRemainingBytes);
+        mStream->read(reinterpret_cast<char*>(mBuffer.data() + mRemainingBytes), CHUNK_SIZE - mRemainingBytes);
         std::streamsize bytesRead = mStream->gcount();
 
         if (bytesRead <= 0 && mRemainingBytes == 0) {
@@ -224,21 +224,21 @@ std::optional<ExifMetadata> JpegXLReader::readExif() const {
 }
 #endif
 
-void JpegXLWriter::write(const Image8u &image) {
+void JpegXLWriter::write(const Image8u& image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void JpegXLWriter::write(const Image16u &image) {
+void JpegXLWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void JpegXLWriter::write(const Imagef &image) {
+void JpegXLWriter::write(const Imagef& image) {
     LOG_SCOPE_F(INFO, "Write JPEG XL (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -246,7 +246,7 @@ void JpegXLWriter::write(const Imagef &image) {
 }
 
 template <typename T>
-void JpegXLWriter::writeImpl(const Image<T> &image) {
+void JpegXLWriter::writeImpl(const Image<T>& image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
@@ -285,7 +285,7 @@ void JpegXLWriter::writeImpl(const Image<T> &image) {
         info.num_extra_channels = 1;
     }
 
-    const auto &metadata = options().metadata;
+    const auto& metadata = options().metadata;
     if (metadata && metadata->exifMetadata.orientation) {
         info.orientation = static_cast<JxlOrientation>(*metadata->exifMetadata.orientation);
     }
@@ -303,12 +303,12 @@ void JpegXLWriter::writeImpl(const Image<T> &image) {
 #ifdef HAVE_EXIF
     // Write EXIF
     if (metadata) {
-        ExifMem *mem = exif_mem_new_default();
-        ExifData *data = exif_data_new();
+        ExifMem* mem = exif_mem_new_default();
+        ExifData* data = exif_data_new();
 
         detail::populateExif(mem, data, metadata->exifMetadata);
 
-        uint8_t *exifBuffer = nullptr;
+        uint8_t* exifBuffer = nullptr;
         uint32_t exifLength = 0;
         exif_data_save_data(data, &exifBuffer, &exifLength);
 
@@ -321,19 +321,19 @@ void JpegXLWriter::writeImpl(const Image<T> &image) {
     }
 #endif
 
-    JxlEncoderFrameSettings *frameSettings = JxlEncoderFrameSettingsCreate(encoder.get(), nullptr);
+    JxlEncoderFrameSettings* frameSettings = JxlEncoderFrameSettingsCreate(encoder.get(), nullptr);
 
     const float distance = JxlEncoderDistanceFromQuality(options().jpegQuality);
     JxlEncoderSetFrameDistance(frameSettings, distance);
 
     JxlEncoderFrameSettingsSetOption(frameSettings, JXL_ENC_FRAME_SETTING_EFFORT, options().compressionLevel);
 
-    JxlEncoderAddImageFrame(frameSettings, &format, static_cast<const void *>(image.data()), image.size() * sizeof(T));
+    JxlEncoderAddImageFrame(frameSettings, &format, static_cast<const void*>(image.data()), image.size() * sizeof(T));
     JxlEncoderCloseInput(encoder.get());
 
     std::array<uint8_t, CHUNK_SIZE> buffer = {};
     while (true) {
-        uint8_t *nextOut = buffer.data();
+        uint8_t* nextOut = buffer.data();
         size_t availOut = CHUNK_SIZE;
 
         JxlEncoderStatus status = JxlEncoderProcessOutput(encoder.get(), &nextOut, &availOut);
@@ -342,7 +342,7 @@ void JpegXLWriter::writeImpl(const Image<T> &image) {
             throw IOError(MODULE, "Encoder error");
         }
 
-        stream()->write(reinterpret_cast<const char *>(buffer.data()), CHUNK_SIZE - availOut);
+        stream()->write(reinterpret_cast<const char*>(buffer.data()), CHUNK_SIZE - availOut);
 
         if (status == JXL_ENC_SUCCESS) {
             break;

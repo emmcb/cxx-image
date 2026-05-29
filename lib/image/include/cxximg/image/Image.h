@@ -50,22 +50,22 @@ public:
     Image() : ImageView<T>(LayoutDescriptor::EMPTY, nullptr) {};
 
     /// Constructs from layout descriptor.
-    explicit Image(const LayoutDescriptor &layout) : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr) {
+    explicit Image(const LayoutDescriptor& layout) : ImageView<T>(LayoutDescriptor::Builder(layout).build(), nullptr) {
         allocate();
     }
 
     /// Constructs by copying an existing buffer.
-    Image(const LayoutDescriptor &layout, const T *buffer) : Image<T>(layout) {
+    Image(const LayoutDescriptor& layout, const T* buffer) : Image<T>(layout) {
         memcpy(mData.get(), buffer, mSize * sizeof(T));
     }
 
     /// Constructs by evaluating an expression.
     template <typename Expr, typename = std::enable_if_t<!std::is_pointer_v<std::decay_t<Expr>>>>
-    Image(const LayoutDescriptor &layout, const Expr &expr) : Image<T>(layout) {
-        static_cast<ImageView<T> &>(*this) = expr;
+    Image(const LayoutDescriptor& layout, const Expr& expr) : Image<T>(layout) {
+        static_cast<ImageView<T>&>(*this) = expr;
     }
 
-    Image(Image<T> &&) noexcept = default;
+    Image(Image<T>&&) noexcept = default;
 
     /// Returns value at position i.
     UTIL_ALWAYS_INLINE T operator[](int64_t i) const noexcept {
@@ -74,13 +74,13 @@ public:
     }
 
     /// Returns reference at position i.
-    UTIL_ALWAYS_INLINE T &operator[](int64_t i) noexcept {
+    UTIL_ALWAYS_INLINE T& operator[](int64_t i) noexcept {
         assert(i >= 0 && i < size());
         return mData[i];
     }
 
     /// Move assignment operator.
-    Image<T> &operator=(Image<T> &&other) noexcept {
+    Image<T>& operator=(Image<T>&& other) noexcept {
         // This operator needs a custom implementation here because the default one
         // will call ImageView<T>::operator=(ImageView<T>&&), that is already used
         // for expression assignment.
@@ -99,20 +99,20 @@ public:
             return;
         }
 
-        auto &allocator = memory::detail::AllocatorManager::current();
+        auto& allocator = memory::detail::AllocatorManager::current();
 
         mSize = this->layoutDescriptor().requiredBufferSize();
-        mData.reset(static_cast<T *>(allocator.allocate(mSize * sizeof(T))));
+        mData.reset(static_cast<T*>(allocator.allocate(mSize * sizeof(T))));
         mData.get_deleter().size = mSize;
 
         this->mapBuffer(mData.get());
     }
 
     /// Returns raw pointer to image data.
-    T *data() noexcept { return mData.get(); }
+    T* data() noexcept { return mData.get(); }
 
     /// Returns raw pointer to image data.
-    const T *data() const noexcept { return mData.get(); }
+    const T* data() const noexcept { return mData.get(); }
 
     /// Returns image size, that is the number of values that can be stored.
     int64_t size() const noexcept { return mSize; }
@@ -124,12 +124,12 @@ public:
     bool allocated() const noexcept { return mSize > 0; }
 
     /// Re-assign image ROI.
-    void setRoi(const Rect &roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
+    void setRoi(const Rect& roi) { this->setDescriptor(image::computeRoiDescriptor(this->descriptor(), roi)); }
 
     /// Copy data from another image.
     template <typename U>
-    void copyFrom(const Image<U> &image) {
-        static_cast<ImageView<T> &>(*this) = expr::cast<T>(image);
+    void copyFrom(const Image<U>& image) {
+        static_cast<ImageView<T>&>(*this) = expr::cast<T>(image);
     }
 
     /// Allocates a new image with the same characteritics, then copy the data.
@@ -139,7 +139,7 @@ public:
     }
 
     /// Constructs an image instance that references an already allocated image, without owning any data.
-    static Image<T> borrowed(const ImageView<T> &imageView) {
+    static Image<T> borrowed(const ImageView<T>& imageView) {
         Image<T> unallocated;
         unallocated.setDescriptor(imageView.descriptor());
 
@@ -148,7 +148,7 @@ public:
 
     /// Constructs an image instance but without allocating the data.
     /// The user will be responsible for calling allocate() method before actually using the image.
-    static Image<T> unallocated(const LayoutDescriptor &layout) {
+    static Image<T> unallocated(const LayoutDescriptor& layout) {
         Image<T> unallocated;
         unallocated.setDescriptor(ImageDescriptor<T>(layout, nullptr));
 
@@ -159,8 +159,8 @@ private:
     struct Deleter final {
         int64_t size = 0;
 
-        void operator()(T *ptr) const {
-            auto &allocator = memory::detail::AllocatorManager::current();
+        void operator()(T* ptr) const {
+            auto& allocator = memory::detail::AllocatorManager::current();
             allocator.deallocate(ptr, size * sizeof(T));
         }
     };

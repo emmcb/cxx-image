@@ -46,17 +46,17 @@ public:
 
     /// Constructs pixel from another pixel.
     template <typename U>
-    explicit constexpr Pixel(const Pixel<U, N> &other) {
+    explicit constexpr Pixel(const Pixel<U, N>& other) {
         for (int n = 0; n < N; ++n) {
             mPixel[n] = other[n];
         }
     }
 
     /// Constructs pixel from brace initializer.
-    constexpr Pixel(const std::initializer_list<T> &initializer) {
+    constexpr Pixel(const std::initializer_list<T>& initializer) {
         assert(initializer.size() == N);
 
-        const T *data = initializer.begin();
+        const T* data = initializer.begin();
         for (int n = 0; n < N; ++n) {
             mPixel[n] = data[n];
         }
@@ -69,7 +69,7 @@ public:
     }
 
     /// Gets reference at position n.
-    UTIL_ALWAYS_INLINE constexpr T &operator[](int n) {
+    UTIL_ALWAYS_INLINE constexpr T& operator[](int n) {
         assert(n < N);
         return mPixel[n];
     }
@@ -85,7 +85,7 @@ public:
     /// Get tuple reference at position I.
     /// This allows for C++17 structured binding.
     template <std::size_t I>
-    UTIL_ALWAYS_INLINE constexpr T &get() {
+    UTIL_ALWAYS_INLINE constexpr T& get() {
         static_assert(I < N);
         return mPixel[I];
     }
@@ -129,7 +129,7 @@ using Pixel4f = Pixel<float, 4>;
 /// Element-wise pixel addition.
 /// @relates Pixel
 template <typename T, typename U, int N>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N>& lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] + rhs[n];
@@ -141,7 +141,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, const
 /// Addition with scalar (left side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator+(T lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator+(T lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs + rhs[n];
@@ -153,7 +153,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator+(T lhs, const Pixel<U, N> &rhs
 /// Addition with scalar (right side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, U rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N>& lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] + rhs;
@@ -165,7 +165,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator+(const Pixel<T, N> &lhs, U rhs
 /// Element-wise pixel subtraction.
 /// @relates Pixel
 template <typename T, typename U, int N>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N>& lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] - rhs[n];
@@ -177,7 +177,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, const
 /// Subtraction with scalar (left side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator-(T lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator-(T lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs - rhs[n];
@@ -189,7 +189,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator-(T lhs, const Pixel<U, N> &rhs
 /// Subtraction with scalar (right side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, U rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N>& lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] - rhs;
@@ -201,7 +201,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator-(const Pixel<T, N> &lhs, U rhs
 /// Element-wise pixel multiplication.
 /// @relates Pixel
 template <typename T, typename U, int N>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N>& lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] * rhs[n];
@@ -213,7 +213,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, const
 /// Multiplication with scalar (left side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator*(T lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator*(T lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs * rhs[n];
@@ -225,7 +225,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator*(T lhs, const Pixel<U, N> &rhs
 /// Multiplication with scalar (right side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, U rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N>& lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] * rhs;
@@ -237,7 +237,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator*(const Pixel<T, N> &lhs, U rhs
 /// Element-wise pixel division.
 /// @relates Pixel
 template <typename T, typename U, int N>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N> &lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N>& lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] / rhs[n];
@@ -249,7 +249,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N> &lhs, const
 /// Division with scalar (left side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<T>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator/(T lhs, const Pixel<U, N> &rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator/(T lhs, const Pixel<U, N>& rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs / rhs[n];
@@ -261,7 +261,7 @@ UTIL_ALWAYS_INLINE inline decltype(auto) operator/(T lhs, const Pixel<U, N> &rhs
 /// Division with scalar (right side).
 /// @relates Pixel
 template <typename T, typename U, int N, typename = typename std::enable_if_t<math::is_arithmetic_v<U>>>
-UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N> &lhs, U rhs) {
+UTIL_ALWAYS_INLINE inline decltype(auto) operator/(const Pixel<T, N>& lhs, U rhs) {
     Pixel<std::common_type_t<T, U>, N> pixel;
     for (int n = 0; n < N; ++n) {
         pixel[n] = lhs[n] / rhs;
@@ -274,7 +274,7 @@ namespace math {
 
 /// Returns the linear interpolation between p1 and p2 at position t, where t is in [0,1].
 template <typename T, int N>
-UTIL_ALWAYS_INLINE inline Pixel<float, N> lerp(const Pixel<T, N> &p1, const Pixel<T, N> &p2, float t) {
+UTIL_ALWAYS_INLINE inline Pixel<float, N> lerp(const Pixel<T, N>& p1, const Pixel<T, N>& p2, float t) {
     Pixel<float, N> outPixel;
     for (int n = 0; n < N; ++n) {
         outPixel[n] = lerp(p1[n], p2[n], t);
@@ -285,10 +285,10 @@ UTIL_ALWAYS_INLINE inline Pixel<float, N> lerp(const Pixel<T, N> &p1, const Pixe
 
 /// Returns the bilinear interpolation between p11, p21, p12, p22 at position (tx, ty), where tx and ty are in [0,1].
 template <typename T, int N>
-UTIL_ALWAYS_INLINE inline Pixel<float, N> bilinearInterpolation(const Pixel<T, N> &p11,
-                                                                const Pixel<T, N> &p21,
-                                                                const Pixel<T, N> &p12,
-                                                                const Pixel<T, N> &p22,
+UTIL_ALWAYS_INLINE inline Pixel<float, N> bilinearInterpolation(const Pixel<T, N>& p11,
+                                                                const Pixel<T, N>& p21,
+                                                                const Pixel<T, N>& p12,
+                                                                const Pixel<T, N>& p22,
                                                                 float tx,
                                                                 float ty) {
     return lerp(lerp(p11, p21, tx), lerp(p12, p22, tx), ty);

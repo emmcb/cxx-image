@@ -33,14 +33,14 @@ template <typename T, int N>
 class PixelView final : public expr::Expression {
 public:
     /// Constructs image from a given descriptor.
-    explicit PixelView(const ImageDescriptor<T> &imageDescriptor) : mDescriptor(imageDescriptor) {}
+    explicit PixelView(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
 
     ~PixelView() = default;
-    PixelView(const PixelView<T, N> &) noexcept = default;
-    PixelView(PixelView<T, N> &&) noexcept = default;
+    PixelView(const PixelView<T, N>&) noexcept = default;
+    PixelView(PixelView<T, N>&&) noexcept = default;
 
     /// Subset image with the given roi.
-    UTIL_ALWAYS_INLINE Pixel<T, N> operator[](const Rect &roi) const {
+    UTIL_ALWAYS_INLINE Pixel<T, N> operator[](const Rect& roi) const {
         return Pixel<T, N>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 
@@ -50,7 +50,7 @@ public:
 
         Pixel<T, N> pixel;
         for (int n = 0; n < N; ++n) {
-            const auto &planeDescriptor = mDescriptor.layout.planes[n];
+            const auto& planeDescriptor = mDescriptor.layout.planes[n];
             pixel[n] = mDescriptor.buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                                           x * planeDescriptor.pixelStride];
         }
@@ -59,7 +59,7 @@ public:
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(const PixelView<T, N> &other) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator=(const PixelView<T, N>& other) noexcept {
         if (this != &other) {
             operator= <PixelView<T, N>>(other);
         }
@@ -67,19 +67,19 @@ public:
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(PixelView<T, N> &&other) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator=(PixelView<T, N>&& other) noexcept {
         operator= <PixelView<T, N>>(other);
         return *this;
     }
 
     /// Expression assignment.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
-            T *buffer = mDescriptor.buffer;
+            T* buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
-                const auto &planeDescriptor = mDescriptor.layout.planes[n];
+                const auto& planeDescriptor = mDescriptor.layout.planes[n];
                 buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                        x * planeDescriptor.pixelStride] = pixel[n];
             }
@@ -89,12 +89,12 @@ public:
 
     /// Expression add-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator+=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator+=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
-            T *buffer = mDescriptor.buffer;
+            T* buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
-                const auto &planeDescriptor = mDescriptor.layout.planes[n];
+                const auto& planeDescriptor = mDescriptor.layout.planes[n];
                 buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                        x * planeDescriptor.pixelStride] += pixel[n];
             }
@@ -104,12 +104,12 @@ public:
 
     /// Expression subtract-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator-=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator-=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
-            T *buffer = mDescriptor.buffer;
+            T* buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
-                const auto &planeDescriptor = mDescriptor.layout.planes[n];
+                const auto& planeDescriptor = mDescriptor.layout.planes[n];
                 buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                        x * planeDescriptor.pixelStride] -= pixel[n];
             }
@@ -119,12 +119,12 @@ public:
 
     /// Expression multiply-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator*=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator*=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
-            T *buffer = mDescriptor.buffer;
+            T* buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
-                const auto &planeDescriptor = mDescriptor.layout.planes[n];
+                const auto& planeDescriptor = mDescriptor.layout.planes[n];
                 buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                        x * planeDescriptor.pixelStride] *= pixel[n];
             }
@@ -134,12 +134,12 @@ public:
 
     /// Expression divide-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE PixelView<T, N> &operator/=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE PixelView<T, N>& operator/=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
             const auto pixel = expr::evaluate(expr, x, y);
-            T *buffer = mDescriptor.buffer;
+            T* buffer = mDescriptor.buffer;
             for (int n = 0; n < N; ++n) {
-                const auto &planeDescriptor = mDescriptor.layout.planes[n];
+                const auto& planeDescriptor = mDescriptor.layout.planes[n];
                 buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
                        x * planeDescriptor.pixelStride] /= pixel[n];
             }
@@ -161,10 +161,10 @@ public:
     }
 
     /// Returns image descriptor.
-    const ImageDescriptor<T> &descriptor() const noexcept { return mDescriptor; }
+    const ImageDescriptor<T>& descriptor() const noexcept { return mDescriptor; }
 
     /// Returns layout descriptor.
-    const LayoutDescriptor &layoutDescriptor() const noexcept { return mDescriptor.layout; }
+    const LayoutDescriptor& layoutDescriptor() const noexcept { return mDescriptor.layout; }
 
     /// Returns image layout.
     ImageLayout imageLayout() const noexcept { return mDescriptor.layout.imageLayout; }

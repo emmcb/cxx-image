@@ -38,7 +38,7 @@ enum class ImageLayout {
     NV12
 };
 
-inline const char *toString(ImageLayout imageLayout) {
+inline const char* toString(ImageLayout imageLayout) {
     switch (imageLayout) {
         case ImageLayout::CUSTOM:
             return "custom";
@@ -54,7 +54,7 @@ inline const char *toString(ImageLayout imageLayout) {
     return "undefined";
 }
 
-inline std::optional<ImageLayout> parseImageLayout(const std::string &imageLayout) {
+inline std::optional<ImageLayout> parseImageLayout(const std::string& imageLayout) {
     if (imageLayout == "custom") {
         return ImageLayout::CUSTOM;
     }

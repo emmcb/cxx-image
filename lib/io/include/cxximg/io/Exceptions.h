@@ -21,10 +21,10 @@ namespace cxximg {
 
 class IOError : public std::exception {
 public:
-    explicit IOError(const std::string &message) : mErrorMessage("[IO] " + message) {}
-    IOError(const std::string &module, const std::string &message) : mErrorMessage("[" + module + "] " + message) {}
+    explicit IOError(const std::string& message) : mErrorMessage("[IO] " + message) {}
+    IOError(const std::string& module, const std::string& message) : mErrorMessage("[" + module + "] " + message) {}
 
-    const char *what() const noexcept override { return mErrorMessage.c_str(); }
+    const char* what() const noexcept override { return mErrorMessage.c_str(); }
 
 private:
     std::string mErrorMessage;

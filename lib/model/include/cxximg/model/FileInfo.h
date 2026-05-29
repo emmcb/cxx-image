@@ -43,7 +43,7 @@ struct FileInfo final {
     std::optional<uint16_t> sizeAlignment;                  ///< Buffer size alignment (must be a power of 2).
 };
 
-inline const char *toString(FileFormat fileFormat) {
+inline const char* toString(FileFormat fileFormat) {
     switch (fileFormat) {
         case FileFormat::PLAIN:
             return "plain";
@@ -55,7 +55,7 @@ inline const char *toString(FileFormat fileFormat) {
     return "undefined";
 }
 
-inline const char *toString(PixelRepresentation pixelRepresentation) {
+inline const char* toString(PixelRepresentation pixelRepresentation) {
     switch (pixelRepresentation) {
         case PixelRepresentation::UINT8:
             return "uint8";
@@ -67,7 +67,7 @@ inline const char *toString(PixelRepresentation pixelRepresentation) {
     return "undefined";
 }
 
-inline std::optional<FileFormat> parseFileFormat(const std::string &fileFormat) {
+inline std::optional<FileFormat> parseFileFormat(const std::string& fileFormat) {
     if (fileFormat == "plain") {
         return FileFormat::PLAIN;
     }
@@ -80,7 +80,7 @@ inline std::optional<FileFormat> parseFileFormat(const std::string &fileFormat) 
     return std::nullopt;
 }
 
-inline std::optional<PixelRepresentation> parsePixelRepresentation(const std::string &pixelRepresentation) {
+inline std::optional<PixelRepresentation> parsePixelRepresentation(const std::string& pixelRepresentation) {
     if (pixelRepresentation == "uint8") {
         return PixelRepresentation::UINT8;
     }

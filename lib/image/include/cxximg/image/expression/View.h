@@ -32,13 +32,13 @@ struct View {
 };
 
 template <typename T>
-struct View<Image<T> &> {
-    using Type = ImageView<T> &;
+struct View<Image<T>&> {
+    using Type = ImageView<T>&;
 };
 
 template <typename T>
-struct View<const Image<T> &> {
-    using Type = const ImageView<T> &;
+struct View<const Image<T>&> {
+    using Type = const ImageView<T>&;
 };
 
 } // namespace detail

@@ -37,7 +37,7 @@ public:
 
     /// Constructs diagonal matrix from given values.
     template <typename T>
-    static constexpr Matrix<M, N> diag(const Pixel<T, M> &values) {
+    static constexpr Matrix<M, N> diag(const Pixel<T, M>& values) {
         static_assert(M == N, "Matrix must be square");
 
         Matrix<M, N> mat(0.0f);
@@ -52,24 +52,24 @@ public:
 
     /// Constructs value-initialized matrix with specified dimensions.
     explicit constexpr Matrix(float value) {
-        for (float &v : mData) {
+        for (float& v : mData) {
             v = value;
         }
     }
 
     /// Constructs matrix from brace initializer.
     template <typename T>
-    constexpr Matrix(const std::initializer_list<std::initializer_list<T>> &initializer) {
+    constexpr Matrix(const std::initializer_list<std::initializer_list<T>>& initializer) {
         if (static_cast<int>(initializer.size()) != M) {
             throw std::invalid_argument("Mismatch between matrix number of rows");
         }
 
-        const std::initializer_list<T> *rows = initializer.begin();
+        const std::initializer_list<T>* rows = initializer.begin();
         for (int i = 0; i < M; ++i) {
             if (static_cast<int>(rows[i].size()) != N) {
                 throw std::invalid_argument("Mismatch between matrix number of columns");
             }
-            const T *cols = rows[i].begin();
+            const T* cols = rows[i].begin();
             for (int j = 0; j < N; ++j) {
                 (*this)(i, j) = static_cast<float>(cols[j]);
             }
@@ -78,7 +78,7 @@ public:
 
     /// Constructs matrix from buffer.
     template <typename T>
-    explicit Matrix(const T *buffer) {
+    explicit Matrix(const T* buffer) {
         for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] = static_cast<float>(buffer[i]);
         }
@@ -88,7 +88,7 @@ public:
     constexpr float operator()(int row, int col) const noexcept { return mData[row * N + col]; }
 
     /// Returns value at specified position.
-    constexpr float &operator()(int row, int col) noexcept { return mData[row * N + col]; }
+    constexpr float& operator()(int row, int col) noexcept { return mData[row * N + col]; }
 
     /// Returns matrix number of rows.
     constexpr int numRows() const noexcept { return M; }
@@ -97,10 +97,10 @@ public:
     constexpr int numCols() const noexcept { return N; }
 
     /// Returns raw pointer to matrix data.
-    float *data() noexcept { return mData.data(); }
+    float* data() noexcept { return mData.data(); }
 
     /// Returns raw pointer to matrix data.
-    const float *data() const noexcept { return mData.data(); }
+    const float* data() const noexcept { return mData.data(); }
 
     /// Computes the minimum matrix value.
     float minimum() const { return *std::min_element(mData.begin(), mData.end()); }
@@ -112,7 +112,7 @@ public:
     Matrix<M, N> inverse() const {
         static_assert(M == 3 && N == 3, "Inverse is only implemented for 3x3 matrix.");
 
-        const Matrix<M, N> &m = *this;
+        const Matrix<M, N>& m = *this;
 
         const float det = m(0, 0) * (m(1, 1) * m(2, 2) - m(2, 1) * m(1, 2)) -
                           m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
@@ -161,7 +161,7 @@ const Matrix<M, N> Matrix<M, N>::IDENTITY = []() {
 /// Multiplication with other matrix.
 /// @relates Matrix
 template <int M, int N, int O>
-Matrix<M, O> operator*(const Matrix<M, N> &lhs, const Matrix<N, O> &rhs) {
+Matrix<M, O> operator*(const Matrix<M, N>& lhs, const Matrix<N, O>& rhs) {
     Matrix<M, O> result(0);
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < O; ++j) {
@@ -176,7 +176,7 @@ Matrix<M, O> operator*(const Matrix<M, N> &lhs, const Matrix<N, O> &rhs) {
 /// Multiplication with pixel.
 /// @relates Matrix
 template <typename T, int M, int N>
-Pixel<float, M> operator*(const Matrix<M, N> &lhs, const Pixel<T, N> &rhs) {
+Pixel<float, M> operator*(const Matrix<M, N>& lhs, const Pixel<T, N>& rhs) {
     Pixel<float, M> pixel(0.0f);
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < N; ++j) {
@@ -189,7 +189,7 @@ Pixel<float, M> operator*(const Matrix<M, N> &lhs, const Pixel<T, N> &rhs) {
 /// Multiplication with scalar.
 /// @relates Matrix
 template <int M, int N>
-Matrix<M, N> operator*(float lhs, const Matrix<M, N> &rhs) {
+Matrix<M, N> operator*(float lhs, const Matrix<M, N>& rhs) {
     Matrix<M, N> result;
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < N; ++j) {

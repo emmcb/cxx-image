@@ -28,13 +28,13 @@ typedef struct png_info_def png_info;
 namespace cxximg {
 
 struct PngReadDeleter final {
-    png_info *info = nullptr;
-    void operator()(png_struct *png);
+    png_info* info = nullptr;
+    void operator()(png_struct* png);
 };
 
 class PngReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+    static bool accept(const std::string& path, const uint8_t* signature, bool signatureValid) {
         if (!signatureValid) {
             return file::extension(path) == "png";
         }
@@ -58,21 +58,21 @@ private:
 
 class PngWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) { return file::extension(path) == "png"; }
+    static bool accept(const std::string& path) { return file::extension(path) == "png"; }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::GRAY_ALPHA ||
                descriptor.pixelType == PixelType::RGB || descriptor.pixelType == PixelType::RGBA;
     }
 
-    void write(const Image8u &image) override;
-    void write(const Image16u &image) override;
+    void write(const Image8u& image) override;
+    void write(const Image16u& image) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image);
+    void writeImpl(const Image<T>& image);
 };
 
 } // namespace cxximg

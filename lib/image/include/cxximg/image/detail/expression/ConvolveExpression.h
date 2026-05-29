@@ -37,7 +37,7 @@ struct ConvolveExpression1D final : public Expression {
     std::array<T, N> kernel; ///< kernel to convolve.
 
     /// Constructs expression from child and kernel.
-    ConvolveExpression1D(Expr &&expr_, std::array<T, N> kernel_)
+    ConvolveExpression1D(Expr&& expr_, std::array<T, N> kernel_)
         : expr(std::forward<Expr>(expr_)), kernel(std::move(kernel_)) {}
 
     /// Evaluates expression at position (x, y).
@@ -61,7 +61,7 @@ struct ConvolveExpression1D final : public Expression {
 
 /// Convolve with 1D kernel expression.
 template <ConvolveDirection DIR, typename T, std::size_t N, typename Expr>
-decltype(auto) convolve1d(Expr &&expr, std::array<T, N> kernel) {
+decltype(auto) convolve1d(Expr&& expr, std::array<T, N> kernel) {
     return detail::ConvolveExpression1D<Expr, T, N, DIR>(std::forward<Expr>(expr), std::move(kernel));
 }
 

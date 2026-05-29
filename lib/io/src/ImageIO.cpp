@@ -49,17 +49,17 @@ namespace cxximg {
 
 namespace io {
 
-std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageReader::Options &options) {
+std::unique_ptr<ImageReader> makeReader(const std::string& path, const ImageReader::Options& options) {
     return makeReader(path, nullptr, options);
 }
 
-std::unique_ptr<ImageReader> makeReader(std::istream *stream, const ImageReader::Options &options) {
+std::unique_ptr<ImageReader> makeReader(std::istream* stream, const ImageReader::Options& options) {
     return makeReader("<data>", stream, options);
 }
 
-std::unique_ptr<ImageReader> makeReader(const std::string &path,
-                                        std::istream *stream,
-                                        const ImageReader::Options &options) {
+std::unique_ptr<ImageReader> makeReader(const std::string& path,
+                                        std::istream* stream,
+                                        const ImageReader::Options& options) {
     auto reader = [&]() -> std::unique_ptr<ImageReader> {
         // First: formats that need an extension to be identified
         if (MipiRaw10Reader::accept(path)) {
@@ -84,8 +84,8 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
         uint8_t signature[12] = {0};
         bool signatureValid = false;
 
-        const auto readSignature = [&signature, &signatureValid](std::istream *stream) {
-            stream->read(reinterpret_cast<char *>(signature), sizeof(signature));
+        const auto readSignature = [&signature, &signatureValid](std::istream* stream) {
+            stream->read(reinterpret_cast<char*>(signature), sizeof(signature));
             signatureValid = !stream->fail();
             stream->seekg(0);
         };
@@ -166,17 +166,17 @@ std::unique_ptr<ImageReader> makeReader(const std::string &path,
     return reader;
 }
 
-std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWriter::Options &options) {
+std::unique_ptr<ImageWriter> makeWriter(const std::string& path, const ImageWriter::Options& options) {
     return makeWriter(path, nullptr, options);
 }
 
-std::unique_ptr<ImageWriter> makeWriter(std::ostream *stream, const ImageWriter::Options &options) {
+std::unique_ptr<ImageWriter> makeWriter(std::ostream* stream, const ImageWriter::Options& options) {
     return makeWriter("<data>", stream, options);
 }
 
-std::unique_ptr<ImageWriter> makeWriter(const std::string &path,
-                                        std::ostream *stream,
-                                        const ImageWriter::Options &options) {
+std::unique_ptr<ImageWriter> makeWriter(const std::string& path,
+                                        std::ostream* stream,
+                                        const ImageWriter::Options& options) {
     if (BmpWriter::accept(path)) {
         return std::make_unique<BmpWriter>(path, stream, options);
     }

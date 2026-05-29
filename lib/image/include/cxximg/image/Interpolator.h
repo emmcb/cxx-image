@@ -26,7 +26,7 @@ namespace cxximg {
 struct NearestInterpolator final {
     /// Interpolates given expression at position (x, y).
     template <typename Expr, typename... Coord>
-    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr &e, float x, float y, Coord... coords) const noexcept {
+    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr& e, float x, float y, Coord... coords) const noexcept {
         return expr::evaluate(e, std::lround(x), std::lround(y), coords...);
     }
 };
@@ -36,7 +36,7 @@ struct NearestInterpolator final {
 struct BilinearInterpolator final {
     /// Interpolates given expression at position (x, y).
     template <typename Expr, typename... Coord>
-    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr &expr, float x, float y, Coord... coords) const noexcept {
+    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr& expr, float x, float y, Coord... coords) const noexcept {
         const int x1 = static_cast<int>(x);
         const int x2 = std::min(x1 + 1, expr.width() - 1);
 
@@ -57,7 +57,7 @@ struct BilinearInterpolator final {
 struct BicubicInterpolator final {
     /// Interpolates given expression at position (x, y).
     template <typename Expr, typename... Coord>
-    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr &expr, float x, float y, Coord... coords) const noexcept {
+    UTIL_ALWAYS_INLINE decltype(auto) interpolate(const Expr& expr, float x, float y, Coord... coords) const noexcept {
         const int x1 = static_cast<int>(x);
         const int x0 = std::max(x1 - 1, 0);
         const int x2 = std::min(x1 + 1, expr.width() - 1);

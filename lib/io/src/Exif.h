@@ -20,20 +20,20 @@ namespace cxximg {
 
 namespace detail {
 
-inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigned size) {
-    ExifData *data = exif_data_new_from_data(buffer, size);
+inline std::optional<ExifMetadata> readExif(const unsigned char* buffer, unsigned size) {
+    ExifData* data = exif_data_new_from_data(buffer, size);
     if (data == nullptr) {
         return std::nullopt;
     }
 
     ExifMetadata exif;
 
-    ExifContent *ifd0 = data->ifd[EXIF_IFD_0];
+    ExifContent* ifd0 = data->ifd[EXIF_IFD_0];
     exif_content_foreach_entry(
             ifd0,
-            [](ExifEntry *entry, void *userData) {
+            [](ExifEntry* entry, void* userData) {
                 const ExifByteOrder byteOrder = exif_data_get_byte_order(entry->parent->parent);
-                auto *exif = static_cast<ExifMetadata *>(userData);
+                auto* exif = static_cast<ExifMetadata*>(userData);
 
                 switch (entry->tag) {
                     case EXIF_TAG_IMAGE_WIDTH:
@@ -43,19 +43,19 @@ inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigne
                         exif->imageHeight = exif_get_short(entry->data, byteOrder);
                         break;
                     case EXIF_TAG_IMAGE_DESCRIPTION:
-                        exif->imageDescription = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->imageDescription = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     case EXIF_TAG_MAKE:
-                        exif->make = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->make = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     case EXIF_TAG_MODEL:
-                        exif->model = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->model = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     case EXIF_TAG_ORIENTATION:
                         exif->orientation = exif_get_short(entry->data, byteOrder);
                         break;
                     case EXIF_TAG_SOFTWARE:
-                        exif->software = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->software = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     default:
                         break;
@@ -63,12 +63,12 @@ inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigne
             },
             &exif);
 
-    ExifContent *ifdExif = data->ifd[EXIF_IFD_EXIF];
+    ExifContent* ifdExif = data->ifd[EXIF_IFD_EXIF];
     exif_content_foreach_entry(
             ifdExif,
-            [](ExifEntry *entry, void *userData) {
+            [](ExifEntry* entry, void* userData) {
                 const ExifByteOrder byteOrder = exif_data_get_byte_order(entry->parent->parent);
-                auto *exif = static_cast<ExifMetadata *>(userData);
+                auto* exif = static_cast<ExifMetadata*>(userData);
                 ExifRational rational;
                 ExifSRational srational;
 
@@ -85,7 +85,7 @@ inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigne
                         exif->isoSpeedRatings = exif_get_short(entry->data, byteOrder);
                         break;
                     case EXIF_TAG_DATE_TIME_ORIGINAL:
-                        exif->dateTimeOriginal = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->dateTimeOriginal = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     case EXIF_TAG_BRIGHTNESS_VALUE:
                         srational = exif_get_srational(entry->data, byteOrder);
@@ -103,10 +103,10 @@ inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigne
                         exif->focalLengthIn35mmFilm = exif_get_short(entry->data, byteOrder);
                         break;
                     case EXIF_TAG_LENS_MAKE:
-                        exif->lensMake = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->lensMake = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     case EXIF_TAG_LENS_MODEL:
-                        exif->lensModel = std::string(reinterpret_cast<const char *>(entry->data), entry->size);
+                        exif->lensModel = std::string(reinterpret_cast<const char*>(entry->data), entry->size);
                         break;
                     default:
                         break;
@@ -119,8 +119,8 @@ inline std::optional<ExifMetadata> readExif(const unsigned char *buffer, unsigne
     return exif;
 }
 
-static ExifEntry *addExifEntry(ExifContent *ifd, ExifTag tag) {
-    ExifEntry *entry = exif_content_get_entry(ifd, tag);
+static ExifEntry* addExifEntry(ExifContent* ifd, ExifTag tag) {
+    ExifEntry* entry = exif_content_get_entry(ifd, tag);
     if (entry) {
         return entry;
     }
@@ -133,19 +133,19 @@ static ExifEntry *addExifEntry(ExifContent *ifd, ExifTag tag) {
     return entry;
 }
 
-static void exifSetString(ExifMem *mem, ExifEntry *entry, const std::string &str) {
+static void exifSetString(ExifMem* mem, ExifEntry* entry, const std::string& str) {
     if (entry->data) {
         exif_mem_free(mem, entry->data);
     }
 
     entry->components = str.size();
     entry->size = exif_format_get_size(entry->format) * entry->components;
-    entry->data = reinterpret_cast<unsigned char *>(exif_mem_alloc(mem, entry->size));
+    entry->data = reinterpret_cast<unsigned char*>(exif_mem_alloc(mem, entry->size));
 
-    str.copy(reinterpret_cast<char *>(entry->data), entry->size);
+    str.copy(reinterpret_cast<char*>(entry->data), entry->size);
 }
 
-inline void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
+inline void populateExif(ExifMem* mem, ExifData* data, ExifMetadata exif) {
     constexpr ExifByteOrder FILE_BYTE_ORDER = EXIF_BYTE_ORDER_MOTOROLA;
 
     exif_data_set_option(data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);
@@ -153,9 +153,9 @@ inline void populateExif(ExifMem *mem, ExifData *data, ExifMetadata exif) {
     exif_data_set_byte_order(data, FILE_BYTE_ORDER);
     exif_data_fix(data);
 
-    ExifContent *ifd0 = data->ifd[EXIF_IFD_0];
-    ExifContent *ifdExif = data->ifd[EXIF_IFD_EXIF];
-    ExifEntry *entry = nullptr;
+    ExifContent* ifd0 = data->ifd[EXIF_IFD_0];
+    ExifContent* ifdExif = data->ifd[EXIF_IFD_EXIF];
+    ExifEntry* entry = nullptr;
 
     addExifEntry(ifd0, EXIF_TAG_DATE_TIME); // initialized by libexif to current date/time
 

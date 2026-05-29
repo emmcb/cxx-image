@@ -27,40 +27,40 @@ namespace cxximg {
 
 class FileNotFoundError : public std::exception {
 public:
-    explicit FileNotFoundError(const std::string &path) : mErrorMessage("File not found: " + path) {}
+    explicit FileNotFoundError(const std::string& path) : mErrorMessage("File not found: " + path) {}
 
-    const char *what() const noexcept override { return mErrorMessage.c_str(); }
+    const char* what() const noexcept override { return mErrorMessage.c_str(); }
 
 private:
     std::string mErrorMessage;
 };
 
 struct FileDeleter final {
-    void operator()(FILE *fp) const { fclose(fp); }
+    void operator()(FILE* fp) const { fclose(fp); }
 };
 
 namespace file {
 
 /// Returns the file extension converted in lower case.
-inline std::string extension(const std::string &path) {
+inline std::string extension(const std::string& path) {
     std::string ext = path.substr(path.find_last_of('.') + 1);
     std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
     return ext;
 }
 
 /// Reads the first bytes from a file into a buffer.
-inline std::vector<uint8_t> readBinary(const std::string &path, int readSize) {
+inline std::vector<uint8_t> readBinary(const std::string& path, int readSize) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         throw FileNotFoundError(path);
     }
     std::vector<uint8_t> header(readSize);
-    file.rdbuf()->sgetn(reinterpret_cast<char *>(header.data()), readSize);
+    file.rdbuf()->sgetn(reinterpret_cast<char*>(header.data()), readSize);
     return header;
 }
 
 /// Reads an entire file into a buffer.
-inline std::vector<uint8_t> readBinary(const std::string &path) {
+inline std::vector<uint8_t> readBinary(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         throw FileNotFoundError(path);
@@ -69,7 +69,7 @@ inline std::vector<uint8_t> readBinary(const std::string &path) {
 }
 
 /// Reads an entire file into a string.
-inline std::string readContent(const std::string &path) {
+inline std::string readContent(const std::string& path) {
     std::ifstream file(path);
     if (!file) {
         throw FileNotFoundError(path);
@@ -80,7 +80,7 @@ inline std::string readContent(const std::string &path) {
 }
 
 /// Gets file size.
-inline int64_t fileSize(const std::string &path) {
+inline int64_t fileSize(const std::string& path) {
     struct stat sb{};
     const int rc = stat(path.c_str(), &sb);
     if (rc != 0) {

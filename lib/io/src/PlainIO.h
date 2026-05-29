@@ -23,7 +23,7 @@ namespace cxximg {
 
 class PlainReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         std::string extension = file::extension(path);
         return (extension == "nv12" || extension == "y8" || extension == "plain16");
     }
@@ -43,22 +43,22 @@ private:
 
 class PlainWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         std::string extension = file::extension(path);
         return (extension == "nv12" || extension == "y8" || extension == "plain16");
     }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor([[maybe_unused]] const LayoutDescriptor &descriptor) const override { return true; }
+    bool acceptDescriptor([[maybe_unused]] const LayoutDescriptor& descriptor) const override { return true; }
 
-    void write(const Image8u &image) override;
-    void write(const Image16u &image) override;
-    void write(const Imagef &image) override;
+    void write(const Image8u& image) override;
+    void write(const Image16u& image) override;
+    void write(const Imagef& image) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image);
+    void writeImpl(const Image<T>& image);
 };
 
 } // namespace cxximg

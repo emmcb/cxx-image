@@ -53,9 +53,9 @@ struct QuadraticBezier final {
     Point2 p2;
 
     /// First point of the curve.
-    const Point2 &front() const { return p0; }
+    const Point2& front() const { return p0; }
     /// Last point of the curve.
-    const Point2 &back() const { return p2; }
+    const Point2& back() const { return p2; }
 
     /// Evaluate curve X coordinate at parameter t in [0, 1].
     float evaluateX(float t) const { return math::bezierQuadratic(p0.x, p1.x, p2.x, t); }
@@ -116,9 +116,9 @@ struct CubicBezier final {
     Point2 p3;
 
     /// First point of the curve.
-    const Point2 &front() const { return p0; }
+    const Point2& front() const { return p0; }
     /// Last point of the curve.
-    const Point2 &back() const { return p3; }
+    const Point2& back() const { return p3; }
 
     /// Evaluate curve X coordinate at parameter t in [0, 1].
     float evaluateX(float t) const { return math::bezierCubic(p0.x, p1.x, p2.x, p3.x, t); }
@@ -139,9 +139,9 @@ struct QuarticBezier final {
     Point2 p4;
 
     /// First point of the curve.
-    const Point2 &front() const { return p0; }
+    const Point2& front() const { return p0; }
     /// Last point of the curve.
-    const Point2 &back() const { return p4; }
+    const Point2& back() const { return p4; }
 
     /// Evaluate curve X coordinate at parameter t in [0, 1].
     float evaluateX(float t) const { return math::bezierQuartic(p0.x, p1.x, p2.x, p3.x, p4.x, t); }

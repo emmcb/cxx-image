@@ -22,7 +22,7 @@ namespace memory {
 namespace detail {
 
 // Initialize static member to use StandardAllocator by default
-Allocator *AllocatorManager::sCurrentAllocator = &StandardAllocator::instance();
+Allocator* AllocatorManager::sCurrentAllocator = &StandardAllocator::instance();
 
 } // namespace detail
 

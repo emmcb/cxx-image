@@ -139,9 +139,9 @@ struct LayoutDescriptor final {
     }
 
     int maxSubsampleValue() const {
-        const auto &plane = std::max_element(planes.begin(),
+        const auto& plane = std::max_element(planes.begin(),
                                              planes.begin() + numPlanes,
-                                             [](const auto &r, const auto &l) { return r.subsample < l.subsample; });
+                                             [](const auto& r, const auto& l) { return r.subsample < l.subsample; });
 
         return plane->subsample;
     }
@@ -161,7 +161,7 @@ private:
         switch (imageLayout) {
             case ImageLayout::PLANAR:
             case ImageLayout::INTERLEAVED:
-                for (auto &plane : planes) {
+                for (auto& plane : planes) {
                     plane.subsample = 0;
                 }
                 break;
@@ -201,7 +201,7 @@ private:
             switch (imageLayout) {
                 case ImageLayout::PLANAR: {
                     const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
-                    for (auto &plane : planes) {
+                    for (auto& plane : planes) {
                         plane.rowStride = alignedWidth;
                         plane.pixelStride = 1;
                     }
@@ -210,7 +210,7 @@ private:
 
                 case ImageLayout::INTERLEAVED: {
                     const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
-                    for (auto &plane : planes) {
+                    for (auto& plane : planes) {
                         plane.rowStride = alignedWidth;
                         plane.pixelStride = numPlanes;
                     }
@@ -348,7 +348,7 @@ private:
 
 class LayoutDescriptor::Builder final {
 public:
-    explicit Builder(const LayoutDescriptor &descriptor) : mDescriptor(descriptor) {
+    explicit Builder(const LayoutDescriptor& descriptor) : mDescriptor(descriptor) {
         if (mDescriptor.imageLayout != ImageLayout::CUSTOM) {
             invalidatePlanes();
         }
@@ -359,68 +359,68 @@ public:
         mDescriptor.height = height;
     }
 
-    Builder &imageLayout(ImageLayout imageLayout) noexcept {
+    Builder& imageLayout(ImageLayout imageLayout) noexcept {
         mDescriptor.imageLayout = imageLayout;
         return *this;
     }
 
-    Builder &pixelType(PixelType pixelType) noexcept {
+    Builder& pixelType(PixelType pixelType) noexcept {
         mDescriptor.pixelType = pixelType;
         return *this;
     }
 
-    Builder &pixelPrecision(int pixelPrecision) noexcept {
+    Builder& pixelPrecision(int pixelPrecision) noexcept {
         mDescriptor.pixelPrecision = pixelPrecision;
         return *this;
     }
 
-    Builder &width(int width) noexcept {
+    Builder& width(int width) noexcept {
         mDescriptor.width = width;
         invalidatePlanes();
         return *this;
     }
 
-    Builder &height(int height) noexcept {
+    Builder& height(int height) noexcept {
         mDescriptor.height = height;
         return *this;
     }
 
-    Builder &numPlanes(int numPlanes) noexcept {
+    Builder& numPlanes(int numPlanes) noexcept {
         mDescriptor.numPlanes = numPlanes;
         return *this;
     }
 
-    Builder &widthAlignment(int widthAlignment) noexcept {
+    Builder& widthAlignment(int widthAlignment) noexcept {
         mDescriptor.widthAlignment = widthAlignment;
         return *this;
     }
 
-    Builder &heightAlignment(int heightAlignment) noexcept {
+    Builder& heightAlignment(int heightAlignment) noexcept {
         mDescriptor.heightAlignment = heightAlignment;
         return *this;
     }
 
-    Builder &sizeAlignment(int sizeAlignment) noexcept {
+    Builder& sizeAlignment(int sizeAlignment) noexcept {
         mDescriptor.sizeAlignment = sizeAlignment;
         return *this;
     }
 
-    Builder &border(int border) noexcept {
+    Builder& border(int border) noexcept {
         mDescriptor.border = border;
         return *this;
     }
 
-    Builder &planeSubsample(int index, int subsample) {
+    Builder& planeSubsample(int index, int subsample) {
         mDescriptor.planes[index].subsample = subsample;
         return *this;
     }
 
-    Builder &planeOffset(int index, int offset) {
+    Builder& planeOffset(int index, int offset) {
         mDescriptor.planes[index].offset = offset;
         return *this;
     }
 
-    Builder &planeStrides(int index, int rowStride, int pixelStride = 1) {
+    Builder& planeStrides(int index, int rowStride, int pixelStride = 1) {
         mDescriptor.planes[index].rowStride = rowStride;
         mDescriptor.planes[index].pixelStride = pixelStride;
         return *this;

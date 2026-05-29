@@ -36,7 +36,7 @@ inline void useRecyclingAllocator() {
 
 /// Clears all memory cached by the recycling allocator.
 inline void clearAllocatorCache() {
-    if (auto *recyclingAllocator = dynamic_cast<detail::RecyclingAllocator *>(&detail::AllocatorManager::current())) {
+    if (auto* recyclingAllocator = dynamic_cast<detail::RecyclingAllocator*>(&detail::AllocatorManager::current())) {
         recyclingAllocator->clear();
     }
 }

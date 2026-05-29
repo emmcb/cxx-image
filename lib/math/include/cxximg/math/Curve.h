@@ -32,13 +32,13 @@ public:
 
     /// Constructs from a curve to be subdivided.
     template <typename Curve>
-    explicit SubdividedCurve(const Curve &curve) {
+    explicit SubdividedCurve(const Curve& curve) {
         subdivide(curve);
     }
 
     /// Subdivide curve in NUM_SEGMENTS segments of equal parameter t.
     template <typename Curve>
-    void subdivide(const Curve &curve) {
+    void subdivide(const Curve& curve) {
         for (int i = 0; i < NUM_SEGMENTS + 1; ++i) {
             const float t = static_cast<float>(i) / NUM_SEGMENTS;
             mPoints[i] = curve.evaluate(t);
@@ -46,20 +46,20 @@ public:
     }
 
     /// First point of the curve.
-    const Point2 &front() const { return mPoints.front(); }
+    const Point2& front() const { return mPoints.front(); }
     /// Last point of the curve.
-    const Point2 &back() const { return mPoints.back(); }
+    const Point2& back() const { return mPoints.back(); }
 
     /// Interpolates the Y coordinate at the given X coordinate.
     float interpolate(float x) const {
-        const auto &first = mPoints.front();
+        const auto& first = mPoints.front();
         if (x <= first.x) {
             return first.y;
         }
 
         for (int i = 1; i <= NUM_SEGMENTS; ++i) {
-            const auto &prev = mPoints[i - 1];
-            const auto &cur = mPoints[i];
+            const auto& prev = mPoints[i - 1];
+            const auto& cur = mPoints[i];
 
             if (x > prev.x && x <= cur.x) {
                 const float k = (x - prev.x) / (cur.x - prev.x);
@@ -67,7 +67,7 @@ public:
             }
         }
 
-        const auto &last = mPoints.back();
+        const auto& last = mPoints.back();
         return last.y;
     }
 

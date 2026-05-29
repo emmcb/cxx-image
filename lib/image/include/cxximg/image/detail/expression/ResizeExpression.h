@@ -36,7 +36,7 @@ struct ResizeExpression final : public Expression {
     float scaleY;
 
     /// Constructs expression from child, target width, height, and optional crop rectangle.
-    ResizeExpression(Expr &&expr_,
+    ResizeExpression(Expr&& expr_,
                      int width_,
                      int height_,
                      double cropX_ = 0.0,
@@ -63,7 +63,7 @@ struct ResizeExpression final : public Expression {
 
 /// Resize expression.
 template <class Interpolator, typename Expr>
-decltype(auto) resize(Expr &&expr, int width, int height, bool alignCorners = true) {
+decltype(auto) resize(Expr&& expr, int width, int height, bool alignCorners = true) {
     if (alignCorners) {
         return detail::ResizeExpression<Expr, Interpolator>(std::forward<Expr>(expr), width, height);
     }
@@ -85,20 +85,20 @@ decltype(auto) resize(Expr &&expr, int width, int height, bool alignCorners = tr
 
 /// Resize expression, using default bilinear interpolator.
 template <typename Expr>
-decltype(auto) resize(Expr &&expr, int width, int height, bool alignCorners = true) {
+decltype(auto) resize(Expr&& expr, int width, int height, bool alignCorners = true) {
     return expr::resize<BilinearInterpolator>(std::forward<Expr>(expr), width, height, alignCorners);
 }
 
 /// Crop and resize expression.
 template <class Interpolator, typename Expr>
-decltype(auto) resize(Expr &&expr, int width, int height, float cropX, float cropY, float cropWidth, float cropHeight) {
+decltype(auto) resize(Expr&& expr, int width, int height, float cropX, float cropY, float cropWidth, float cropHeight) {
     return detail::ResizeExpression<Expr, Interpolator>(
             std::forward<Expr>(expr), width, height, cropX, cropY, cropWidth, cropHeight);
 }
 
 /// Crop and resize expression, using default bilinear interpolator.
 template <typename Expr>
-decltype(auto) resize(Expr &&expr, int width, int height, float cropX, float cropY, float cropWidth, float cropHeight) {
+decltype(auto) resize(Expr&& expr, int width, int height, float cropX, float cropY, float cropWidth, float cropHeight) {
     return detail::ResizeExpression<Expr, BilinearInterpolator>(
             std::forward<Expr>(expr), width, height, cropX, cropY, cropWidth, cropHeight);
 }

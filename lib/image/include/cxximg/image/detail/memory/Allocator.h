@@ -28,10 +28,10 @@ public:
     virtual ~Allocator() = default;
 
     /// Allocate memory for image of size bytes.
-    virtual void *allocate(int64_t size) = 0;
+    virtual void* allocate(int64_t size) = 0;
 
     /// Deallocate memory previously allocated.
-    virtual void deallocate(void *ptr, int64_t size) = 0;
+    virtual void deallocate(void* ptr, int64_t size) = 0;
 };
 
 } // namespace detail

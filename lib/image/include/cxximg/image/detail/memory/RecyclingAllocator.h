@@ -35,7 +35,7 @@ public:
         clear();
     }
 
-    void *allocate(int64_t size) override {
+    void* allocate(int64_t size) override {
         if (size == 0) {
             return nullptr;
         }
@@ -45,7 +45,7 @@ public:
 
         if (it != mPool.end() && !it->second.empty()) {
             // Found a suitable block in the pool
-            void *ptr = it->second.back();
+            void* ptr = it->second.back();
             it->second.pop_back();
 
             return ptr;
@@ -55,7 +55,7 @@ public:
         return ::operator new[](size, std::align_val_t(CXXIMG_BASE_ALIGNMENT));
     }
 
-    void deallocate(void *ptr, int64_t size) override {
+    void deallocate(void* ptr, int64_t size) override {
         if (ptr == nullptr || size == 0) {
             return;
         }
@@ -67,8 +67,8 @@ public:
     /// Clear all cached memory blocks.
     void clear() {
         std::lock_guard<std::mutex> lock(mMutex);
-        for (const auto &[size, blocks] : mPool) {
-            for (void *block : blocks) {
+        for (const auto& [size, blocks] : mPool) {
+            for (void* block : blocks) {
                 ::operator delete[](block, std::align_val_t(CXXIMG_BASE_ALIGNMENT));
             }
         }
@@ -76,13 +76,13 @@ public:
     }
 
     /// Get the singleton instance.
-    static RecyclingAllocator &instance() {
+    static RecyclingAllocator& instance() {
         static RecyclingAllocator sAllocator;
         return sAllocator;
     }
 
 private:
-    std::unordered_map<int64_t, std::vector<void *>> mPool;
+    std::unordered_map<int64_t, std::vector<void*>> mPool;
     std::mutex mMutex; // Protects access to mPool
 };
 

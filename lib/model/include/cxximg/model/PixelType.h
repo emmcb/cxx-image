@@ -94,7 +94,7 @@ enum class PixelType {
 /// @ingroup image
 enum class Bayer { R, GR, GB, B };
 
-inline const char *toString(PixelType pixelType) {
+inline const char* toString(PixelType pixelType) {
     switch (pixelType) {
         case PixelType::CUSTOM:
             return "custom";
@@ -130,7 +130,7 @@ inline const char *toString(PixelType pixelType) {
     return "undefined";
 }
 
-inline std::optional<PixelType> parsePixelType(const std::string &pixelType) {
+inline std::optional<PixelType> parsePixelType(const std::string& pixelType) {
     if (pixelType == "custom") {
         return PixelType::CUSTOM;
     }

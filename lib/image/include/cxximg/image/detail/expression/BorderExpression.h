@@ -32,7 +32,7 @@ struct BorderExpression final : public Expression {
     ViewType<Expr> expr; ///< Child expression.
 
     /// Constructs expression from child and kernel.
-    explicit BorderExpression(Expr &&expr_) : expr(std::forward<Expr>(expr_)) {}
+    explicit BorderExpression(Expr&& expr_) : expr(std::forward<Expr>(expr_)) {}
 
     /// Evaluates expression at position (x, y).
     template <typename... Coord>
@@ -86,7 +86,7 @@ struct BorderExpression final : public Expression {
 
 /// Border handling expression.
 template <BorderMode MODE, typename Expr>
-decltype(auto) border(Expr &&expr) {
+decltype(auto) border(Expr&& expr) {
     return detail::BorderExpression<Expr, MODE>(std::forward<Expr>(expr));
 }
 

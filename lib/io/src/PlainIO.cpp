@@ -24,7 +24,7 @@ namespace cxximg {
 
 static const std::string MODULE = "PLAIN";
 
-static decltype(auto) guessPixelFromExtension(const std::string &path) {
+static decltype(auto) guessPixelFromExtension(const std::string& path) {
     std::string extension = file::extension(path);
 
     std::optional<ImageLayout> imageLayout;
@@ -46,7 +46,7 @@ void PlainReader::initialize() {
     const int64_t fileSize = mStream->tellg();
     mStream->seekg(0);
 
-    const auto &fileInfo = options().fileInfo;
+    const auto& fileInfo = options().fileInfo;
     if (!fileInfo.width || !fileInfo.height) {
         throw IOError(MODULE, "Unspecified image dimensions");
     }
@@ -154,26 +154,26 @@ Image<T> PlainReader::read() {
                               std::to_string(image.size() * sizeof(T)) + ", got " + std::to_string(fileSize) + ")");
     }
 
-    mStream->read(reinterpret_cast<char *>(image.data()), fileSize);
+    mStream->read(reinterpret_cast<char*>(image.data()), fileSize);
 
     return image;
 }
 
-void PlainWriter::write(const Image8u &image) {
+void PlainWriter::write(const Image8u& image) {
     LOG_SCOPE_F(INFO, "Write plain image (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void PlainWriter::write(const Image16u &image) {
+void PlainWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write plain image (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void PlainWriter::write(const Imagef &image) {
+void PlainWriter::write(const Imagef& image) {
     LOG_SCOPE_F(INFO, "Write plain image (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -181,8 +181,8 @@ void PlainWriter::write(const Imagef &image) {
 }
 
 template <typename T>
-void PlainWriter::writeImpl(const Image<T> &image) {
-    stream()->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(T));
+void PlainWriter::writeImpl(const Image<T>& image) {
+    stream()->write(reinterpret_cast<const char*>(image.data()), image.size() * sizeof(T));
 }
 
 } // namespace cxximg

@@ -23,7 +23,7 @@ namespace cxximg {
 
 static const std::string MODULE = "MIPIRAW";
 
-Raw10Pixel &Raw10Pixel::operator=(const Raw16From10Pixel &pixel) {
+Raw10Pixel& Raw10Pixel::operator=(const Raw16From10Pixel& pixel) {
     p1234 = ((pixel.p4 & 3) << 6) | ((pixel.p3 & 3) << 4) | ((pixel.p2 & 3) << 2) | (pixel.p1 & 3);
     p1 = pixel.p1 >> 2;
     p2 = pixel.p2 >> 2;
@@ -32,14 +32,14 @@ Raw10Pixel &Raw10Pixel::operator=(const Raw16From10Pixel &pixel) {
     return *this;
 }
 
-Raw12Pixel &Raw12Pixel::operator=(const Raw16From12Pixel &pixel) {
+Raw12Pixel& Raw12Pixel::operator=(const Raw16From12Pixel& pixel) {
     p12 = ((pixel.p2 & 15) << 4) | (pixel.p1 & 15);
     p1 = pixel.p1 >> 4;
     p2 = pixel.p2 >> 4;
     return *this;
 }
 
-Raw16From10Pixel &Raw16From10Pixel::operator=(const Raw10Pixel &pixel) {
+Raw16From10Pixel& Raw16From10Pixel::operator=(const Raw10Pixel& pixel) {
     p1 = (pixel.p1 << 2) | (pixel.p1234 & 3);
     p2 = (pixel.p2 << 2) | ((pixel.p1234 >> 2) & 3);
     p3 = (pixel.p3 << 2) | ((pixel.p1234 >> 4) & 3);
@@ -47,7 +47,7 @@ Raw16From10Pixel &Raw16From10Pixel::operator=(const Raw10Pixel &pixel) {
     return *this;
 }
 
-Raw16From12Pixel &Raw16From12Pixel::operator=(const Raw12Pixel &pixel) {
+Raw16From12Pixel& Raw16From12Pixel::operator=(const Raw12Pixel& pixel) {
     p1 = (pixel.p1 << 4) | (pixel.p12 & 15);
     p2 = (pixel.p2 << 4) | (pixel.p12 >> 4);
     return *this;
@@ -55,7 +55,7 @@ Raw16From12Pixel &Raw16From12Pixel::operator=(const Raw12Pixel &pixel) {
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
 void MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::initialize() {
-    const auto &fileInfo = options().fileInfo;
+    const auto& fileInfo = options().fileInfo;
     if (!fileInfo.width || !fileInfo.height) {
         throw IOError(MODULE, "Unspecified image dimensions");
     }
@@ -88,7 +88,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
     mStream->seekg(0);
 
     std::vector<uint8_t> data(fileSize);
-    mStream->read(reinterpret_cast<char *>(data.data()), data.size());
+    mStream->read(reinterpret_cast<char*>(data.data()), data.size());
 
     LayoutDescriptor descriptor = layoutDescriptor();
     LayoutDescriptor::Builder packedBuilder = LayoutDescriptor::Builder(descriptor.width * PIXEL_PRECISION / 8,
@@ -119,20 +119,20 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
                               ", got " + std::to_string(data.size()) + ")");
     }
 
-    const auto unpack = [&](uint8_t *packedData) {
+    const auto unpack = [&](uint8_t* packedData) {
         Image16u image(descriptor);
 
         ImageView<RawXPixel> rawXImage(
                 LayoutDescriptor::Builder(descriptor.width / (sizeof(RawXPixel) - 1), descriptor.height)
                         .numPlanes(1)
                         .build(),
-                reinterpret_cast<RawXPixel *>(packedData));
+                reinterpret_cast<RawXPixel*>(packedData));
 
         ImageView<Raw16FromXPixel> raw16Image(
                 LayoutDescriptor::Builder(descriptor.width / (sizeof(RawXPixel) - 1), descriptor.height)
                         .numPlanes(1)
                         .build(),
-                reinterpret_cast<Raw16FromXPixel *>(image.data()));
+                reinterpret_cast<Raw16FromXPixel*>(image.data()));
 
         // Unpack MIPIRAW
         raw16Image = rawXImage;
@@ -153,7 +153,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
 }
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
-void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Image16u &image) {
+void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write MIPIRAW%d", PIXEL_PRECISION);
     LOG_S(INFO) << "Path: " << path();
 
@@ -174,16 +174,16 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
 
     ImageView<Raw16FromXPixel> raw16Image(
             LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numPlanes(1).build(),
-            const_cast<Raw16FromXPixel *>(reinterpret_cast<const Raw16FromXPixel *>(image.data())));
+            const_cast<Raw16FromXPixel*>(reinterpret_cast<const Raw16FromXPixel*>(image.data())));
 
     ImageView<RawXPixel> rawXImage(
             LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numPlanes(1).build(),
-            reinterpret_cast<RawXPixel *>(packedImage.data()));
+            reinterpret_cast<RawXPixel*>(packedImage.data()));
 
     // Pack to MIPIRAW
     rawXImage = raw16Image;
 
-    stream()->write(reinterpret_cast<const char *>(packedImage.data()), packedImage.size());
+    stream()->write(reinterpret_cast<const char*>(packedImage.data()), packedImage.size());
 }
 
 template class MipiRawReader<10, Raw10Pixel, Raw16From10Pixel>;

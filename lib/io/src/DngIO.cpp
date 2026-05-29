@@ -37,8 +37,8 @@ namespace {
 
 class DngReadStream final : public dng_stream {
 public:
-    explicit DngReadStream(std::istream *stream)
-        : dng_stream(static_cast<dng_abort_sniffer *>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
+    explicit DngReadStream(std::istream* stream)
+        : dng_stream(static_cast<dng_abort_sniffer*>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
 
 protected:
     uint64 DoGetLength() override {
@@ -46,9 +46,9 @@ protected:
         return mStream->tellg();
     }
 
-    void DoRead(void *data, uint32 count, uint64 offset) override {
+    void DoRead(void* data, uint32 count, uint64 offset) override {
         mStream->seekg(offset);
-        mStream->read(reinterpret_cast<char *>(data), count);
+        mStream->read(reinterpret_cast<char*>(data), count);
 
         if (mStream->fail()) {
             ThrowReadFile();
@@ -56,20 +56,20 @@ protected:
     }
 
 private:
-    std::istream *mStream;
+    std::istream* mStream;
 };
 
 class DngWriteStream final : public dng_stream {
 public:
-    explicit DngWriteStream(std::ostream *stream)
-        : dng_stream(static_cast<dng_abort_sniffer *>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
+    explicit DngWriteStream(std::ostream* stream)
+        : dng_stream(static_cast<dng_abort_sniffer*>(nullptr), kDefaultBufferSize, 0), mStream(stream) {}
 
 protected:
     uint64 DoGetLength() override { return 0; }
 
-    void DoWrite(const void *data, uint32 count, uint64 offset) override {
+    void DoWrite(const void* data, uint32 count, uint64 offset) override {
         mStream->seekp(offset);
-        mStream->write(reinterpret_cast<const char *>(data), count);
+        mStream->write(reinterpret_cast<const char*>(data), count);
 
         if (mStream->fail()) {
             ThrowWriteFile();
@@ -77,18 +77,18 @@ protected:
     }
 
 private:
-    std::ostream *mStream;
+    std::ostream* mStream;
 };
 
 } // namespace
 
-DngReader::DngReader(const std::string &path, std::istream *stream, const Options &options)
+DngReader::DngReader(const std::string& path, std::istream* stream, const Options& options)
     : ImageReader(path, stream, options) {
 }
 
 DngReader::~DngReader() = default;
 
-static PixelType cfaPatternToPixelType(const dng_ifd *ifd) {
+static PixelType cfaPatternToPixelType(const dng_ifd* ifd) {
     const uint8_t colorRed = ifd->fCFAPlaneColor[0];
     const uint8_t colorGreen = ifd->fCFAPlaneColor[1];
     const uint8_t colorBlue = ifd->fCFAPlaneColor[2];
@@ -132,11 +132,11 @@ void DngReader::initialize() {
         // Parse image negative.
         mNegative->Parse(*mHost, *mStream, *mInfo);
         mNegative->PostParse(*mHost, *mStream, *mInfo);
-    } catch (const dng_exception &except) {
+    } catch (const dng_exception& except) {
         throw IOError(MODULE, "Reading failed with error code: " + std::to_string(except.ErrorCode()));
     }
 
-    const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
+    const dng_ifd* ifd = mInfo->fIFD[mInfo->fMainIndex];
     LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(ifd->fActiveArea.W(), ifd->fActiveArea.H());
 
     if (ifd->fSamplesPerPixel == 1) {
@@ -202,15 +202,15 @@ Image<T> DngReader::read() {
         // Read stage 1 image from negative
         mNegative->ReadStage1Image(*mHost, *mStream, *mInfo);
 
-        const dng_ifd *ifd = mInfo->fIFD[mInfo->fMainIndex];
-        const dng_linearization_info *linearizationInfo = mNegative->GetLinearizationInfo();
+        const dng_ifd* ifd = mInfo->fIFD[mInfo->fMainIndex];
+        const dng_linearization_info* linearizationInfo = mNegative->GetLinearizationInfo();
         const bool hasLinearizationTable = !std::is_floating_point_v<T> && linearizationInfo &&
                                            linearizationInfo->fLinearizationTable.Get();
 
         Image<T> image(layoutDescriptor());
 
         if (!hasLinearizationTable) {
-            const dng_image *stage1 = mNegative->Stage1Image();
+            const dng_image* stage1 = mNegative->Stage1Image();
             if (stage1->PixelType() != ttShort && stage1->PixelType() != ttFloat) {
                 throw IOError(MODULE, "Unsupported pixel type: " + std::to_string(stage1->PixelType()));
             }
@@ -225,9 +225,9 @@ Image<T> DngReader::read() {
         } else {
             LOG_S(INFO) << "Found DNG linearization table";
 
-            const dng_image *stage1 = mNegative->Stage1Image();
+            const dng_image* stage1 = mNegative->Stage1Image();
             dng_const_tile_buffer srcBuffer(*stage1, stage1->Bounds());
-            void *srcData = const_cast<void *>(srcBuffer.ConstPixel(0, 0, 0));
+            void* srcData = const_cast<void*>(srcBuffer.ConstPixel(0, 0, 0));
 
             std::vector<uint16_t> lut(linearizationInfo->fLinearizationTable->Buffer_uint16(),
                                       linearizationInfo->fLinearizationTable->Buffer_uint16() +
@@ -241,11 +241,11 @@ Image<T> DngReader::read() {
 
             switch (stage1->PixelType()) {
                 case ttByte: {
-                    ImageView8u srcImage(srcDescriptor, reinterpret_cast<uint8_t *>(srcData));
+                    ImageView8u srcImage(srcDescriptor, reinterpret_cast<uint8_t*>(srcData));
                     image = expr::lut(expr::min(srcImage[crop], lut.size() - 1), lut);
                 } break;
                 case ttShort: {
-                    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t *>(srcData));
+                    ImageView16u srcImage(srcDescriptor, reinterpret_cast<uint16_t*>(srcData));
                     image = expr::lut(expr::min(srcImage[crop], lut.size() - 1), lut);
                 } break;
                 default:
@@ -254,13 +254,13 @@ Image<T> DngReader::read() {
         }
 
         return image;
-    } catch (const dng_exception &except) {
+    } catch (const dng_exception& except) {
         throw IOError(MODULE, "Reading failed with error code: " + std::to_string(except.ErrorCode()));
     }
 }
 
 std::optional<ExifMetadata> DngReader::readExif() const {
-    const dng_exif *dngExif = mNegative->GetExif();
+    const dng_exif* dngExif = mNegative->GetExif();
     ExifMetadata exif;
 
     exif.orientation = mNegative->Orientation().GetTIFF();
@@ -287,7 +287,7 @@ std::optional<ExifMetadata> DngReader::readExif() const {
         exif.isoSpeedRatings = dngExif->fISOSpeedRatings[0];
     }
     if (dngExif->fDateTimeOriginal.IsValid()) {
-        const dng_date_time &dateTime = dngExif->fDateTimeOriginal.DateTime();
+        const dng_date_time& dateTime = dngExif->fDateTimeOriginal.DateTime();
         char data[20] = {0};
         snprintf(data,
                  20,
@@ -322,13 +322,13 @@ std::optional<ExifMetadata> DngReader::readExif() const {
     return exif;
 }
 
-std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMetadata> &baseMetadata) const {
+std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMetadata>& baseMetadata) const {
     ImageMetadata metadata = ImageReader::readMetadata(baseMetadata).value();
 
     metadata.shootingParams.ispGain = std::exp2(mNegative->BaselineExposure());
 
     if (mNegative->HasCameraNeutral()) {
-        const dng_vector &neutral = mNegative->CameraNeutral();
+        const dng_vector& neutral = mNegative->CameraNeutral();
         metadata.cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
                                                 static_cast<float>(1.0 / neutral[2])};
     }
@@ -348,7 +348,7 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
             spec->SetWhiteXY(D55_xy_coord());
         }
 
-        const dng_vector &neutral = spec->CameraWhite();
+        const dng_vector& neutral = spec->CameraWhite();
         if (mNegative->HasCameraWhiteXY() && !mNegative->HasCameraNeutral()) {
             metadata.cameraControls.whiteBalance = {static_cast<float>(1.0 / neutral[0]),
                                                     static_cast<float>(1.0 / neutral[2])};
@@ -365,7 +365,7 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
         }
     }
 
-    const dng_linearization_info *linearizationInfo = mNegative->GetLinearizationInfo();
+    const dng_linearization_info* linearizationInfo = mNegative->GetLinearizationInfo();
     if (linearizationInfo) {
         if (mNegative->IsFloatingPoint()) {
             metadata.calibrationData.blackLevel = static_cast<float>(linearizationInfo->MaxBlackLevel(0));
@@ -375,20 +375,20 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
         }
     }
 
-    std::unordered_map<Bayer, const dng_gain_map *> gainMaps;
+    std::unordered_map<Bayer, const dng_gain_map*> gainMaps;
 
     mNegative->ReadOpcodeLists(*mHost, *mStream, *mInfo);
     for (unsigned i = 0; i < mNegative->OpcodeList2().Count(); ++i) {
-        const dng_opcode &opcode = mNegative->OpcodeList2().Entry(i);
+        const dng_opcode& opcode = mNegative->OpcodeList2().Entry(i);
         switch (opcode.OpcodeID()) {
             case dngOpcode_GainMap: {
                 if (!model::isBayerPixelType(layoutDescriptor().pixelType)) {
                     continue;
                 }
 
-                const auto &gainMapOpcode = static_cast<const dng_opcode_GainMap &>(opcode);
-                const dng_gain_map &gainMap = gainMapOpcode.GainMap();
-                const dng_rect &area = gainMapOpcode.AreaSpec().Area();
+                const auto& gainMapOpcode = static_cast<const dng_opcode_GainMap&>(opcode);
+                const dng_gain_map& gainMap = gainMapOpcode.GainMap();
+                const dng_rect& area = gainMapOpcode.AreaSpec().Area();
 
                 if (area.l == model::bayerOffsetX(layoutDescriptor().pixelType, Bayer::R) &&
                     area.t == model::bayerOffsetY(layoutDescriptor().pixelType, Bayer::R)) {
@@ -413,10 +413,10 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
     }
 
     if (gainMaps.size() == 4) {
-        const auto &gainMapR = *gainMaps[Bayer::R];
-        const auto &gainMapGR = *gainMaps[Bayer::GR];
-        const auto &gainMapGB = *gainMaps[Bayer::GB];
-        const auto &gainMapB = *gainMaps[Bayer::B];
+        const auto& gainMapR = *gainMaps[Bayer::R];
+        const auto& gainMapGR = *gainMaps[Bayer::GR];
+        const auto& gainMapGB = *gainMaps[Bayer::GB];
+        const auto& gainMapB = *gainMaps[Bayer::B];
 
         if (gainMapR.Points().h == gainMapGR.Points().h && gainMapR.Points().h == gainMapGB.Points().h &&
             gainMapR.Points().h == gainMapB.Points().h && gainMapR.Points().v == gainMapGR.Points().v &&
@@ -438,7 +438,7 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
     }
 
     for (unsigned i = 0; i < mNegative->NumSemanticMasks(); ++i) {
-        const auto &dngSemanticMask = mNegative->SemanticMask(i);
+        const auto& dngSemanticMask = mNegative->SemanticMask(i);
         ImageMetadata::SemanticMask semanticMask{
                 .name = dngSemanticMask.fName.Get(),
                 .label = SemanticLabel::UNKNOWN,
@@ -458,7 +458,7 @@ std::optional<ImageMetadata> DngReader::readMetadata(const std::optional<ImageMe
     return metadata;
 }
 
-static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
+static void populateExif(dng_exif* dngExif, const ExifMetadata& exif) {
     dngExif->SetVersion0231();
 
     if (exif.imageDescription) {
@@ -508,14 +508,14 @@ static void populateExif(dng_exif *dngExif, const ExifMetadata &exif) {
     }
 }
 
-void DngWriter::write(const Image16u &image) {
+void DngWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write DNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void DngWriter::write(const Imagef &image) {
+void DngWriter::write(const Imagef& image) {
     LOG_SCOPE_F(INFO, "Write DNG (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -523,7 +523,7 @@ void DngWriter::write(const Imagef &image) {
 }
 
 template <typename T>
-void DngWriter::writeImpl(const Image<T> &image) {
+void DngWriter::writeImpl(const Image<T>& image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
@@ -542,7 +542,7 @@ void DngWriter::writeImpl(const Image<T> &image) {
                                 stage1->Planes(),
                                 stage1->PixelType(),
                                 pcInterleaved,
-                                const_cast<void *>(reinterpret_cast<const void *>(image.data())));
+                                const_cast<void*>(reinterpret_cast<const void*>(image.data())));
         stage1->Put(buffer);
 
         AutoPtr<dng_negative> negative(host.Make_dng_negative());
@@ -574,9 +574,9 @@ void DngWriter::writeImpl(const Image<T> &image) {
 
         AutoPtr<dng_camera_profile> profile(new dng_camera_profile());
 
-        const auto &options = this->options();
+        const auto& options = this->options();
         if (options.metadata) {
-            const ImageMetadata &metadata = *options.metadata;
+            const ImageMetadata& metadata = *options.metadata;
 
             if (metadata.cameraControls.whiteBalance) {
                 dng_vector neutral(3);
@@ -621,7 +621,7 @@ void DngWriter::writeImpl(const Image<T> &image) {
                 int numCols = 0;
                 bool valid = true;
 
-                const auto checkMatrix = [&](const DynamicMatrix &map) {
+                const auto checkMatrix = [&](const DynamicMatrix& map) {
                     if (numRows == 0 && numCols == 0) {
                         numRows = map.numRows();
                         numCols = map.numCols();
@@ -689,7 +689,7 @@ void DngWriter::writeImpl(const Image<T> &image) {
         DngWriteStream writeStream(stream());
         dng_image_writer writer;
         writer.WriteDNG(host, writeStream, *negative.Get());
-    } catch (const dng_exception &except) {
+    } catch (const dng_exception& except) {
         throw IOError(MODULE, "Writing failed with error code: " + std::to_string(except.ErrorCode()));
     }
 }

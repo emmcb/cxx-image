@@ -33,14 +33,14 @@ public:
 
     /// Constructs value-initialized matrix with specified dimensions.
     DynamicMatrix(int numRows, int numCols, float value) : DynamicMatrix(numRows, numCols) {
-        for (float &v : mData) {
+        for (float& v : mData) {
             v = value;
         }
     }
 
     /// Constructs matrix from buffer.
     template <typename T>
-    DynamicMatrix(int numRows, int numCols, const T *buffer) : DynamicMatrix(numRows, numCols) {
+    DynamicMatrix(int numRows, int numCols, const T* buffer) : DynamicMatrix(numRows, numCols) {
         for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] = static_cast<float>(buffer[i]);
         }
@@ -48,10 +48,10 @@ public:
 
     /// Constructs matrix from brace initializer.
     template <typename T>
-    DynamicMatrix(const std::initializer_list<std::initializer_list<T>> &initializer) {
+    DynamicMatrix(const std::initializer_list<std::initializer_list<T>>& initializer) {
         const int numRows = initializer.size();
         if (numRows > 0) {
-            const std::initializer_list<T> *rows = initializer.begin();
+            const std::initializer_list<T>* rows = initializer.begin();
             const int numCols = rows[0].size();
             if (numCols > 0) {
                 mData.resize(static_cast<int64_t>(numRows) * numCols);
@@ -61,7 +61,7 @@ public:
                     if (static_cast<int>(rows[i].size()) != numCols) {
                         throw std::invalid_argument("Matrix columns must have the same length");
                     }
-                    const T *cols = rows[i].begin();
+                    const T* cols = rows[i].begin();
                     for (int j = 0; j < numCols; ++j) {
                         (*this)(i, j) = static_cast<float>(cols[j]);
                     }
@@ -74,7 +74,7 @@ public:
     float operator()(int row, int col) const noexcept { return mData[row * mNumCols + col]; }
 
     /// Returns value at specified position.
-    float &operator()(int row, int col) noexcept { return mData[row * mNumCols + col]; }
+    float& operator()(int row, int col) noexcept { return mData[row * mNumCols + col]; }
 
     /// Returns matrix number of rows.
     int numRows() const noexcept { return mNumRows; }
@@ -86,10 +86,10 @@ public:
     bool empty() const noexcept { return mNumRows == 0 || mNumCols == 0; }
 
     /// Returns raw pointer to matrix data.
-    float *data() noexcept { return mData.data(); }
+    float* data() noexcept { return mData.data(); }
 
     /// Returns raw pointer to matrix data.
-    const float *data() const noexcept { return mData.data(); }
+    const float* data() const noexcept { return mData.data(); }
 
 private:
     std::vector<float> mData;

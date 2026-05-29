@@ -32,26 +32,26 @@ namespace cxximg {
 namespace io {
 
 /// Allocates a new ImageReader with the ability to read the given file.
-std::unique_ptr<ImageReader> makeReader(const std::string &path, const ImageReader::Options &options = {});
+std::unique_ptr<ImageReader> makeReader(const std::string& path, const ImageReader::Options& options = {});
 
 /// Allocates a new ImageReader with the ability to read the given stream.
-std::unique_ptr<ImageReader> makeReader(std::istream *stream, const ImageReader::Options &options = {});
+std::unique_ptr<ImageReader> makeReader(std::istream* stream, const ImageReader::Options& options = {});
 
 /// Allocates a new ImageReader with the ability to read the given stream, with path as a file format hint.
-std::unique_ptr<ImageReader> makeReader(const std::string &path,
-                                        std::istream *stream,
-                                        const ImageReader::Options &options = {});
+std::unique_ptr<ImageReader> makeReader(const std::string& path,
+                                        std::istream* stream,
+                                        const ImageReader::Options& options = {});
 
 /// Allocates a new ImageWriter with the ability to write the given file.
-std::unique_ptr<ImageWriter> makeWriter(const std::string &path, const ImageWriter::Options &options = {});
+std::unique_ptr<ImageWriter> makeWriter(const std::string& path, const ImageWriter::Options& options = {});
 
 /// Allocates a new ImageWriter with the ability to write the given stream.
-std::unique_ptr<ImageWriter> makeWriter(std::ostream *stream, const ImageWriter::Options &options = {});
+std::unique_ptr<ImageWriter> makeWriter(std::ostream* stream, const ImageWriter::Options& options = {});
 
 /// Allocates a new ImageWriter with the ability to write the given stream, with path as a file format hint.
-std::unique_ptr<ImageWriter> makeWriter(const std::string &path,
-                                        std::ostream *stream,
-                                        const ImageWriter::Options &options = {});
+std::unique_ptr<ImageWriter> makeWriter(const std::string& path,
+                                        std::ostream* stream,
+                                        const ImageWriter::Options& options = {});
 
 } // namespace io
 

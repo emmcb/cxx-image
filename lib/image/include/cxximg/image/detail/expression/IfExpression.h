@@ -32,7 +32,7 @@ struct IfExpression final : public Expression {
     ViewType<ElseExpr> elseExpr; ///< Else expression.
 
     /// Constructs expression from three expressions.
-    IfExpression(IfExpr &&ifExpr_, ThenExpr &&thenExpr_, ElseExpr &&elseExpr_)
+    IfExpression(IfExpr&& ifExpr_, ThenExpr&& thenExpr_, ElseExpr&& elseExpr_)
         : ifExpr(std::forward<IfExpr>(ifExpr_)),
           thenExpr(std::forward<ThenExpr>(thenExpr_)),
           elseExpr(std::forward<ElseExpr>(elseExpr_)) {}
@@ -48,7 +48,7 @@ struct IfExpression final : public Expression {
 
 /// If - Then - Else expression.
 template <typename IfExpr, typename ThenExpr, typename ElseExpr>
-decltype(auto) iif(IfExpr &&ifExpr, ThenExpr &&thenExpr, ElseExpr &&elseExpr) {
+decltype(auto) iif(IfExpr&& ifExpr, ThenExpr&& thenExpr, ElseExpr&& elseExpr) {
     return detail::IfExpression<IfExpr, ThenExpr, ElseExpr>(
             std::forward<IfExpr>(ifExpr), std::forward<ThenExpr>(thenExpr), std::forward<ElseExpr>(elseExpr));
 }

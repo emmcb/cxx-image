@@ -104,7 +104,7 @@ struct ImageMetadata final {
     }
 };
 
-inline const char *toString(SemanticLabel semanticLabel) {
+inline const char* toString(SemanticLabel semanticLabel) {
     switch (semanticLabel) {
         case SemanticLabel::NONE:
             return "none";
@@ -120,7 +120,7 @@ inline const char *toString(SemanticLabel semanticLabel) {
     return "undefined";
 }
 
-inline std::optional<SemanticLabel> parseSemanticLabel(const std::string &semanticLabel) {
+inline std::optional<SemanticLabel> parseSemanticLabel(const std::string& semanticLabel) {
     if (semanticLabel == "none") {
         return SemanticLabel::NONE;
     }

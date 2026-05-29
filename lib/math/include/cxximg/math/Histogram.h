@@ -33,13 +33,13 @@ public:
     class Iterator;
 
     /// Constructor.
-    explicit IndexedHistogram(Histogram *histogram) : mHistogram(histogram) {}
+    explicit IndexedHistogram(Histogram* histogram) : mHistogram(histogram) {}
 
     Iterator begin() const noexcept { return Iterator(mHistogram); }
     Iterator end() const noexcept { return Iterator(mHistogram, true); }
 
 private:
-    Histogram *mHistogram;
+    Histogram* mHistogram;
 };
 
 template <class Histogram>
@@ -51,7 +51,7 @@ public:
     class Accessor;
 
     /// Prefix increment.
-    Iterator &operator++() {
+    Iterator& operator++() {
         for (int i = 0; i < DIM; ++i) {
             if (mIndex[i] >= mLast[i] && i < DIM - 1) {
                 mIndex[i] = 0;
@@ -65,8 +65,8 @@ public:
     }
 
     /// Equality test.
-    bool operator==(const Iterator &iterator) const noexcept { return mIndex == iterator.mIndex; }
-    bool operator!=(const Iterator &iterator) const noexcept { return !operator==(iterator); }
+    bool operator==(const Iterator& iterator) const noexcept { return mIndex == iterator.mIndex; }
+    bool operator!=(const Iterator& iterator) const noexcept { return !operator==(iterator); }
 
     /// Gets the value.
     Accessor operator*() const noexcept { return Accessor(this); }
@@ -75,16 +75,16 @@ private:
     friend class IndexedHistogram;
 
     /// Constructor.
-    explicit Iterator(Histogram *histogram, bool end = false) : mHistogram(histogram) {
+    explicit Iterator(Histogram* histogram, bool end = false) : mHistogram(histogram) {
         std::fill(mIndex.begin(), mIndex.end(), 0);
-        std::apply([&](const auto &...axis) { mLast = MultiIndex{(axis.size() - 1)...}; }, mHistogram->axes());
+        std::apply([&](const auto&... axis) { mLast = MultiIndex{(axis.size() - 1)...}; }, mHistogram->axes());
 
         if (end) {
             mIndex[DIM - 1] = mLast[DIM - 1] + 1;
         }
     }
 
-    Histogram *mHistogram;
+    Histogram* mHistogram;
     MultiIndex mIndex;
     MultiIndex mLast;
 };
@@ -111,9 +111,9 @@ private:
     friend class Iterator;
 
     /// Constructor.
-    explicit Accessor(const Iterator *iterator) : mIterator(iterator) {}
+    explicit Accessor(const Iterator* iterator) : mIterator(iterator) {}
 
-    const Iterator *mIterator;
+    const Iterator* mIterator;
 };
 
 /// Generic multi-dimensional histogram class.
@@ -130,32 +130,32 @@ public:
     using MultiIndex = std::array<int, DIM>;
 
     /// Constructs an histogram given the provided axes.
-    explicit GenericHistogram(const Axis<T> &...axes) : mAxes{axes...}, mData(size(), U(0)) {}
+    explicit GenericHistogram(const Axis<T>&... axes) : mAxes{axes...}, mData(size(), U(0)) {}
 
     /// Returns the histogram value at the specified 1d index.
-    U &operator[](int index) { return mData[index + UNDERFLOW_BIN]; }
+    U& operator[](int index) { return mData[index + UNDERFLOW_BIN]; }
 
     /// Returns the histogram value at the specified 1d index.
     U operator[](int index) const { return mData[index + UNDERFLOW_BIN]; }
 
     /// Returns the histogram value at the specified index.
-    U &operator[](const MultiIndex &index) { return at(index); }
+    U& operator[](const MultiIndex& index) { return at(index); }
 
     /// Returns the histogram value at the specified index.
-    U operator[](const MultiIndex &index) const { return at(index); }
+    U operator[](const MultiIndex& index) const { return at(index); }
 
     /// Returns the histogram axes.
-    const auto &axes() const { return mAxes; }
+    const auto& axes() const { return mAxes; }
 
     /// Returns the N-th axis.
     template <std::size_t N = 0>
-    const auto &axis() const {
+    const auto& axis() const {
         return std::get<N>(mAxes);
     }
 
     /// Returns the histogram value at the specified index.
     template <typename... Index>
-    U &at(Index... index) {
+    U& at(Index... index) {
         return at({index...});
     }
 
@@ -166,20 +166,20 @@ public:
     }
 
     /// Returns the histogram value at the specified index.
-    U &at(const MultiIndex &index) {
+    U& at(const MultiIndex& index) {
         const int idx = linearizeIndex(index);
         return mData[idx];
     }
 
     /// Returns the histogram value at the specified index.
-    U at(const MultiIndex &index) const {
+    U at(const MultiIndex& index) const {
         const int idx = linearizeIndex(index);
         return mData[idx];
     }
 
     /// Returns the histogram value at the specified coordinate.
     template <typename... Coord>
-    U &count(Coord... coord) {
+    U& count(Coord... coord) {
         return count({static_cast<T>(coord)...});
     }
 
@@ -190,13 +190,13 @@ public:
     }
 
     /// Returns the histogram value at the specified coordinate.
-    U &count(const MultiCoord &coord) {
+    U& count(const MultiCoord& coord) {
         const int idx = coordIndex(coord);
         return mData[idx];
     }
 
     /// Returns the histogram value at the specified coordinate.
-    U count(const MultiCoord &coord) const {
+    U count(const MultiCoord& coord) const {
         const int idx = coordIndex(coord);
         return mData[idx];
     }
@@ -209,8 +209,8 @@ public:
     /// the current bin index in addition to the bin value.
     auto indexed() const { return IndexedHistogram<const GenericHistogram<T, U, Axis...>>(this); }
 
-    std::vector<U> &data() { return mData; }
-    const std::vector<U> &data() const { return mData; }
+    std::vector<U>& data() { return mData; }
+    const std::vector<U>& data() const { return mData; }
 
     typename std::vector<U>::iterator begin() { return mData.begin(); }
     typename std::vector<U>::iterator end() { return mData.end(); }
@@ -225,12 +225,12 @@ protected:
     }
 
     /// Returns the index in storage of the given axis coordinates.
-    int coordIndex(const MultiCoord &coord) const noexcept {
+    int coordIndex(const MultiCoord& coord) const noexcept {
         return coordIndexImpl(coord, std::make_index_sequence<DIM>{});
     }
 
     /// Returns the linearized index of the given axis indices.
-    int linearizeIndex(const MultiIndex &index) const noexcept {
+    int linearizeIndex(const MultiIndex& index) const noexcept {
         return linearizeIndexImpl(index, std::make_index_sequence<DIM>{});
     }
 
@@ -241,13 +241,13 @@ private:
     }
 
     template <std::size_t... I>
-    int coordIndexImpl(const MultiCoord &coord,
+    int coordIndexImpl(const MultiCoord& coord,
                        std::index_sequence<I...>) const noexcept { // NOLINT(readability-named-parameter)
         return (... + (size<std::make_index_sequence<I>>() * (axis<I>().index(coord[I]) + UNDERFLOW_BIN)));
     }
 
     template <std::size_t... I>
-    int linearizeIndexImpl(const MultiIndex &index,
+    int linearizeIndexImpl(const MultiIndex& index,
                            std::index_sequence<I...>) const noexcept { // NOLINT(readability-named-parameter)
         return (... + (size<std::make_index_sequence<I>>() * (index[I] + UNDERFLOW_BIN)));
     }
@@ -271,14 +271,14 @@ public:
 
     /// Interpolates the coordinate corresponding to the given count.
     float coord(float count) const {
-        const auto &axis = this->axis();
+        const auto& axis = this->axis();
         if (count <= this->at(0)) {
             return axis.coord(count / this->at(0));
         }
 
         for (int i = 1; i < axis.size(); ++i) {
-            const U &prev = this->at(i - 1);
-            const U &cur = this->at(i);
+            const U& prev = this->at(i - 1);
+            const U& cur = this->at(i);
             if (count > prev && count <= cur) {
                 const float k = (count - prev) / (cur - prev);
                 return axis.coord(i + k);
@@ -308,7 +308,7 @@ public:
     float mean() const {
         float sum = 0.0f;
         float totalCount = 0.0f;
-        for (const auto &bin : this->indexed()) {
+        for (const auto& bin : this->indexed()) {
             const T coord = bin.template interval<N>().center();
 
             sum += static_cast<float>(coord) * (*bin);
@@ -327,7 +327,7 @@ public:
 
         float sum = 0.0f;
         float totalCount = 0.0f;
-        for (const auto &bin : this->indexed()) {
+        for (const auto& bin : this->indexed()) {
             const T upperRange = bin.template interval<N>().upper();
             const T lowerRange = bin.template interval<N>().lower();
 
@@ -431,21 +431,21 @@ public:
 private:
     friend class RegularAxis;
 
-    Interval(const RegularAxis<T> *axis, int index) : mAxis(axis), mIndex(static_cast<float>(index)) {}
+    Interval(const RegularAxis<T>* axis, int index) : mAxis(axis), mIndex(static_cast<float>(index)) {}
 
-    const RegularAxis<T> *mAxis;
+    const RegularAxis<T>* mAxis;
     float mIndex;
 };
 
 /// Constructs a new histogram from given axes.
 template <typename U, typename T, template <typename> class... Axis>
-Histogram<T, U, Axis...> makeHistogram(const Axis<T> &...axes) {
+Histogram<T, U, Axis...> makeHistogram(const Axis<T>&... axes) {
     return Histogram<T, U, Axis...>(axes...);
 }
 
 /// Constructs a new histogram from given axes, using default unsigned integer type for counts.
 template <typename T, template <typename> class... Axis>
-Histogram<T, unsigned, Axis...> makeHistogram(const Axis<T> &...axes) {
+Histogram<T, unsigned, Axis...> makeHistogram(const Axis<T>&... axes) {
     return Histogram<T, unsigned, Axis...>(axes...);
 }
 

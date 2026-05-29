@@ -50,7 +50,7 @@ static uint16_t pixelTypeToBPP(PixelType pixelType) {
 
 void BmpReader::initialize() {
     BmpHeader header = {};
-    mStream->read(reinterpret_cast<char *>(&header), sizeof(header));
+    mStream->read(reinterpret_cast<char*>(&header), sizeof(header));
 
     if (mStream->fail()) {
         throw IOError(MODULE, "Failed to read header");
@@ -91,7 +91,7 @@ Image8u BmpReader::read8u() {
     }
 
     mStream->seekg(curPos);
-    mStream->read(reinterpret_cast<char *>(alignedImage.data()), alignedImage.size());
+    mStream->read(reinterpret_cast<char*>(alignedImage.data()), alignedImage.size());
 
     // ABGR to RGBA conversion, without alignment
     Image8u image(layoutDescriptor());
@@ -109,7 +109,7 @@ Image8u BmpReader::read8u() {
     return image;
 }
 
-void BmpWriter::write(const Image8u &image) {
+void BmpWriter::write(const Image8u& image) {
     LOG_SCOPE_F(INFO, "Write BMP");
     LOG_S(INFO) << "Path: " << path();
 
@@ -139,8 +139,8 @@ void BmpWriter::write(const Image8u &image) {
         plane = image.plane(image.numPlanes() - plane.index() - 1);
     }
 
-    stream()->write(reinterpret_cast<const char *>(&header), sizeof(header));
-    stream()->write(reinterpret_cast<const char *>(alignedImage.data()), alignedImage.size());
+    stream()->write(reinterpret_cast<const char*>(&header), sizeof(header));
+    stream()->write(reinterpret_cast<const char*>(alignedImage.data()), alignedImage.size());
 }
 
 } // namespace cxximg

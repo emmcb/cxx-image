@@ -58,7 +58,7 @@ static uint8_t pixelTypeToPhase(PixelType pixelType) {
 
 void CfaReader::initialize() {
     CfaHeader header = {};
-    mStream->read(reinterpret_cast<char *>(&header), sizeof(header));
+    mStream->read(reinterpret_cast<char*>(&header), sizeof(header));
 
     if (mStream->fail()) {
         throw IOError(MODULE, "Failed to read header");
@@ -92,12 +92,12 @@ Image16u CfaReader::read16u() {
     }
 
     mStream->seekg(curPos);
-    mStream->read(reinterpret_cast<char *>(image.data()), image.size() * sizeof(uint16_t));
+    mStream->read(reinterpret_cast<char*>(image.data()), image.size() * sizeof(uint16_t));
 
     return image;
 }
 
-void CfaWriter::write(const Image16u &image) {
+void CfaWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write CFA");
     LOG_S(INFO) << "Path: " << path();
 
@@ -109,8 +109,8 @@ void CfaWriter::write(const Image16u &image) {
                         .precision = static_cast<uint8_t>(image.pixelPrecision() > 0 ? image.pixelPrecision() : 16),
                         .padding = {0}};
 
-    stream()->write(reinterpret_cast<const char *>(&header), sizeof(header));
-    stream()->write(reinterpret_cast<const char *>(image.data()), image.size() * sizeof(uint16_t));
+    stream()->write(reinterpret_cast<const char*>(&header), sizeof(header));
+    stream()->write(reinterpret_cast<const char*>(image.data()), image.size() * sizeof(uint16_t));
 }
 
 } // namespace cxximg

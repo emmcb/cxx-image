@@ -27,14 +27,14 @@ namespace detail {
 /// Standard allocator that directly uses operator new/delete.
 class StandardAllocator : public Allocator {
 public:
-    void *allocate(int64_t size) override { return ::operator new[](size, std::align_val_t(CXXIMG_BASE_ALIGNMENT)); }
+    void* allocate(int64_t size) override { return ::operator new[](size, std::align_val_t(CXXIMG_BASE_ALIGNMENT)); }
 
-    void deallocate(void *ptr, [[maybe_unused]] int64_t size) override {
+    void deallocate(void* ptr, [[maybe_unused]] int64_t size) override {
         ::operator delete[](ptr, std::align_val_t(CXXIMG_BASE_ALIGNMENT));
     }
 
     /// Get the singleton instance.
-    static StandardAllocator &instance() {
+    static StandardAllocator& instance() {
         static StandardAllocator sAllocator;
         return sAllocator;
     }

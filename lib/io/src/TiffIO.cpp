@@ -26,21 +26,21 @@ static const std::string MODULE = "TIFF";
 
 namespace {
 
-void tiffWarningHandler(const char *module, const char *fmt, va_list ap) {
+void tiffWarningHandler(const char* module, const char* fmt, va_list ap) {
     LOG_S(INFO) << module << ": " << loguru::vstrprintf(fmt, ap);
 }
 
-void tiffErrorHandler(const char *module, const char *fmt, va_list ap) {
+void tiffErrorHandler(const char* module, const char* fmt, va_list ap) {
     LOG_S(WARNING) << module << ": " << loguru::vstrprintf(fmt, ap);
 }
 
 } // namespace
 
-void TiffDeleter::operator()(TIFF *tif) const {
+void TiffDeleter::operator()(TIFF* tif) const {
     TIFFClose(tif);
 }
 
-static PixelType cfaPatternToPixelType(const uint8_t *cfaPattern) {
+static PixelType cfaPatternToPixelType(const uint8_t* cfaPattern) {
     if (cfaPattern[0] == 0 && cfaPattern[1] == 1) {
         return PixelType::BAYER_RGGB;
     }
@@ -65,7 +65,7 @@ void TiffReader::initialize() {
     if (!mTiff) {
         throw IOError(MODULE, "Cannot open stream for reading");
     }
-    TIFF *tif = mTiff.get();
+    TIFF* tif = mTiff.get();
 
     uint32_t width = 0;
     if (TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width) == 0) {
@@ -96,7 +96,7 @@ void TiffReader::initialize() {
     }
 
     LayoutDescriptor::Builder builder = LayoutDescriptor::Builder(width, height);
-    const auto &fileInfo = options().fileInfo;
+    const auto& fileInfo = options().fileInfo;
 
     if (samplesPerPixel == 1) {
         switch (photoMetric) {
@@ -106,7 +106,7 @@ void TiffReader::initialize() {
                 break;
             case PHOTOMETRIC_CFA: {
                 uint16_t count = 0;
-                uint8_t *cfaPattern = nullptr;
+                uint8_t* cfaPattern = nullptr;
                 if (TIFFGetField(tif, TIFFTAG_CFAPATTERN, &count, &cfaPattern) != 0) {
                     builder.pixelType(cfaPatternToPixelType(cfaPattern));
                 } else if (fileInfo.pixelType && (model::isBayerPixelType(*fileInfo.pixelType) ||
@@ -192,7 +192,7 @@ template <typename T>
 Image<T> TiffReader::read() {
     validateType<T>();
 
-    TIFF *tif = mTiff.get();
+    TIFF* tif = mTiff.get();
     const uint32_t nStrips = TIFFNumberOfStrips(tif);
 
     uint32_t rowsPerStrip = 0;
@@ -204,7 +204,7 @@ Image<T> TiffReader::read() {
     }
 
     Image<T> image(layoutDescriptor());
-    T *pStrip = image.data();
+    T* pStrip = image.data();
 
     // Copy the TIFF image strips data to cxximg image.
     const int64_t rowStride = image.width() * image.numPlanes();
@@ -231,7 +231,7 @@ static ExifMetadata::SRational doubleToSRational(double x) {
 }
 
 std::optional<ExifMetadata> TiffReader::readExif() const {
-    TIFF *tif = mTiff.get();
+    TIFF* tif = mTiff.get();
 
     uint64_t exifOffset = 0;
     if (TIFFGetField(tif, TIFFTAG_EXIFIFD, &exifOffset) == 0) {
@@ -240,17 +240,17 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
 
     ExifMetadata exif;
 
-    char *imageDescription = nullptr;
+    char* imageDescription = nullptr;
     if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &imageDescription) != 0) {
         exif.imageDescription = imageDescription;
     }
 
-    char *make = nullptr;
+    char* make = nullptr;
     if (TIFFGetField(tif, TIFFTAG_MAKE, &make) != 0) {
         exif.make = make;
     }
 
-    char *model = nullptr;
+    char* model = nullptr;
     if (TIFFGetField(tif, TIFFTAG_MODEL, &model) != 0) {
         exif.model = model;
     }
@@ -263,7 +263,7 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
         }
     }
 
-    char *software = nullptr;
+    char* software = nullptr;
     if (TIFFGetField(tif, TIFFTAG_SOFTWARE, &software) != 0) {
         exif.software = software;
     }
@@ -281,12 +281,12 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
     }
 
     uint16_t count = 0;
-    uint16_t *isoSpeedRatings = nullptr;
+    uint16_t* isoSpeedRatings = nullptr;
     if (TIFFGetField(tif, EXIFTAG_ISOSPEEDRATINGS, &count, &isoSpeedRatings) != 0) {
         exif.isoSpeedRatings = isoSpeedRatings[0];
     }
 
-    char *dateTimeOriginal = nullptr;
+    char* dateTimeOriginal = nullptr;
     if (TIFFGetField(tif, EXIFTAG_DATETIMEORIGINAL, &dateTimeOriginal) != 0) {
         exif.dateTimeOriginal = dateTimeOriginal;
     }
@@ -311,12 +311,12 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
         exif.focalLengthIn35mmFilm = focalLengthIn35mmFilm;
     }
 
-    char *lensMake = nullptr;
+    char* lensMake = nullptr;
     if (TIFFGetField(tif, EXIFTAG_LENSMAKE, &lensMake) != 0) {
         exif.lensMake = lensMake;
     }
 
-    char *lensModel = nullptr;
+    char* lensModel = nullptr;
     if (TIFFGetField(tif, EXIFTAG_LENSMODEL, &lensModel) != 0) {
         exif.lensModel = lensModel;
     }
@@ -326,7 +326,7 @@ std::optional<ExifMetadata> TiffReader::readExif() const {
     return exif;
 }
 
-static void populateIfd(TIFF *tif, const ExifMetadata &exif) {
+static void populateIfd(TIFF* tif, const ExifMetadata& exif) {
     const uint64_t exifOffset = 0;
     TIFFSetField(tif, TIFFTAG_EXIFIFD, exifOffset); // reserve space, will be filled in populateExif
 
@@ -347,7 +347,7 @@ static void populateIfd(TIFF *tif, const ExifMetadata &exif) {
     }
 }
 
-static void populateExif(TIFF *tif, const ExifMetadata &exif) {
+static void populateExif(TIFF* tif, const ExifMetadata& exif) {
     const char exifVersion[] = {'0', '2', '3', '1'};
     TIFFSetField(tif, EXIFTAG_EXIFVERSION, exifVersion);
 
@@ -383,21 +383,21 @@ static void populateExif(TIFF *tif, const ExifMetadata &exif) {
     }
 }
 
-void TiffWriter::write(const Image8u &image) {
+void TiffWriter::write(const Image8u& image) {
     LOG_SCOPE_F(INFO, "Write TIFF (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void TiffWriter::write(const Image16u &image) {
+void TiffWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write TIFF (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint16_t>(image);
 }
 
-void TiffWriter::write(const Imagef &image) {
+void TiffWriter::write(const Imagef& image) {
     LOG_SCOPE_F(INFO, "Write TIFF (float)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -405,7 +405,7 @@ void TiffWriter::write(const Imagef &image) {
 }
 
 template <typename T>
-void TiffWriter::writeImpl(const Image<T> &image) {
+void TiffWriter::writeImpl(const Image<T>& image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
@@ -419,7 +419,7 @@ void TiffWriter::writeImpl(const Image<T> &image) {
     if (!tiffPtr) {
         throw IOError(MODULE, "Cannot open stream for writing");
     }
-    TIFF *tif = tiffPtr.get();
+    TIFF* tif = tiffPtr.get();
 
     TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, image.width());
     TIFFSetField(tif, TIFFTAG_IMAGELENGTH, image.height());
@@ -486,13 +486,13 @@ void TiffWriter::writeImpl(const Image<T> &image) {
         TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
     }
 
-    const auto &metadata = options().metadata;
+    const auto& metadata = options().metadata;
     if (metadata) {
         populateIfd(tif, metadata->exifMetadata);
     }
 
     // Write image data.
-    T *pStrip = image.plane(0).buffer();
+    T* pStrip = image.plane(0).buffer();
     const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
     tmsize_t stripSize = TIFFStripSize(tif);
 
@@ -524,7 +524,7 @@ void TiffWriter::writeImpl(const Image<T> &image) {
     }
 }
 
-void TiffWriter::writeExif(const ExifMetadata &exif) {
+void TiffWriter::writeExif(const ExifMetadata& exif) {
     TIFFSetWarningHandler(tiffWarningHandler);
     TIFFSetErrorHandler(tiffErrorHandler);
 
@@ -532,7 +532,7 @@ void TiffWriter::writeExif(const ExifMetadata &exif) {
     if (!tiffPtr) {
         throw IOError(MODULE, "Cannot open stream for writing");
     }
-    TIFF *tif = tiffPtr.get();
+    TIFF* tif = tiffPtr.get();
 
     // Write IFD
     populateIfd(tif, exif);

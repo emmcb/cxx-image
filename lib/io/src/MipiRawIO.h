@@ -31,7 +31,7 @@ struct Raw10Pixel final {
     uint8_t p4;
     uint8_t p1234;
 
-    Raw10Pixel &operator=(const Raw16From10Pixel &pixel);
+    Raw10Pixel& operator=(const Raw16From10Pixel& pixel);
 };
 
 struct Raw12Pixel final {
@@ -39,7 +39,7 @@ struct Raw12Pixel final {
     uint8_t p2;
     uint8_t p12;
 
-    Raw12Pixel &operator=(const Raw16From12Pixel &pixel);
+    Raw12Pixel& operator=(const Raw16From12Pixel& pixel);
 };
 
 struct Raw16From10Pixel final {
@@ -48,14 +48,14 @@ struct Raw16From10Pixel final {
     uint16_t p3;
     uint16_t p4;
 
-    Raw16From10Pixel &operator=(const Raw10Pixel &pixel);
+    Raw16From10Pixel& operator=(const Raw10Pixel& pixel);
 };
 
 struct Raw16From12Pixel final {
     uint16_t p1;
     uint16_t p2;
 
-    Raw16From12Pixel &operator=(const Raw12Pixel &pixel);
+    Raw16From12Pixel& operator=(const Raw12Pixel& pixel);
 };
 
 static_assert(sizeof(Raw10Pixel) == 5, "Raw10Pixel must by 5 bytes");
@@ -77,7 +77,7 @@ class MipiRaw10Reader final : public MipiRawReader<10, Raw10Pixel, Raw16From10Pi
 public:
     using MipiRawReader::MipiRawReader;
 
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         std::string ext = file::extension(path);
         return ext == "rawmipi" || ext == "rawmipi10";
     }
@@ -87,7 +87,7 @@ class MipiRaw12Reader final : public MipiRawReader<12, Raw12Pixel, Raw16From12Pi
 public:
     using MipiRawReader::MipiRawReader;
 
-    static bool accept(const std::string &path) { return file::extension(path) == "rawmipi12"; }
+    static bool accept(const std::string& path) { return file::extension(path) == "rawmipi12"; }
 };
 
 template <int PIXEL_PRECISION, class RawXPixel, class Raw16FromXPixel>
@@ -95,18 +95,18 @@ class MipiRawWriter : public ImageWriter {
 public:
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return model::isBayerPixelType(descriptor.pixelType);
     }
 
-    void write(const Image16u &image) override;
+    void write(const Image16u& image) override;
 };
 
 class MipiRaw10Writer final : public MipiRawWriter<10, Raw10Pixel, Raw16From10Pixel> {
 public:
     using MipiRawWriter::MipiRawWriter;
 
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         std::string ext = file::extension(path);
         return ext == "rawmipi" || ext == "rawmipi10";
     }
@@ -116,7 +116,7 @@ class MipiRaw12Writer final : public MipiRawWriter<12, Raw12Pixel, Raw16From12Pi
 public:
     using MipiRawWriter::MipiRawWriter;
 
-    static bool accept(const std::string &path) { return file::extension(path) == "rawmipi12"; }
+    static bool accept(const std::string& path) { return file::extension(path) == "rawmipi12"; }
 };
 
 extern template class MipiRawReader<10, Raw10Pixel, Raw16From10Pixel>;

@@ -49,7 +49,7 @@ struct HalideDescriptor final {
         }
     }
 
-    void syncDims(const LayoutDescriptor &layout) {
+    void syncDims(const LayoutDescriptor& layout) {
         if (layout.numPlanes > 1) {
             buffer.dimensions = 3;
         } else if (layout.height > 1) {
@@ -78,24 +78,24 @@ struct HalideDescriptor final {
 template <typename T>
 struct ImageDescriptor final {
     LayoutDescriptor layout; ///< Image layout descriptor;
-    T *buffer;               ///< Image buffer.
+    T* buffer;               ///< Image buffer.
 
 #ifdef CXXIMG_HAVE_HALIDE
     std::shared_ptr<HalideDescriptor> halide = std::make_shared<HalideDescriptor>(); ///< Halide descriptor.
 #endif
 
-    ImageDescriptor(const LayoutDescriptor &layout_, T *buffer_) : layout(layout_), buffer(buffer_) {
+    ImageDescriptor(const LayoutDescriptor& layout_, T* buffer_) : layout(layout_), buffer(buffer_) {
 #ifdef CXXIMG_HAVE_HALIDE
         resetHalideDescriptor();
 #endif
     }
 
     /// Map this descriptor to the given buffer.
-    ImageDescriptor<T> &map(T *buffer_) {
+    ImageDescriptor<T>& map(T* buffer_) {
         buffer = buffer_;
 
 #ifdef CXXIMG_HAVE_HALIDE
-        halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
+        halide->buffer.host = reinterpret_cast<uint8_t*>(buffer);
 #endif
 
         return *this;
@@ -111,7 +111,7 @@ private:
             halide->buffer.type = halide_type_of<T>();
         }
 
-        halide->buffer.host = reinterpret_cast<uint8_t *>(buffer);
+        halide->buffer.host = reinterpret_cast<uint8_t*>(buffer);
         halide->buffer.device = 0;
         halide->buffer.device_interface = nullptr;
         halide->buffer.flags = 0;
@@ -124,8 +124,8 @@ namespace image {
 
 /// Computes a four planes (R, Gr, Gb, B) descriptor from a one plane bayer layout.
 template <typename T>
-ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerDescriptor) {
-    const LayoutDescriptor &bayerLayout = bayerDescriptor.layout;
+ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T>& bayerDescriptor) {
+    const LayoutDescriptor& bayerLayout = bayerDescriptor.layout;
     const int64_t rowStride = bayerLayout.planes[0].rowStride;
 
     const auto computeOffset = [&](Bayer bayer) {
@@ -151,12 +151,12 @@ ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T> &bayerD
 
 /// Computes the subset of the input descriptor given the ROI coordinates.
 template <typename T>
-ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T> &descriptor, const Rect &roi) {
+ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T>& descriptor, const Rect& roi) {
     LayoutDescriptor::Builder builder(descriptor.layout);
     builder.width(roi.width).height(roi.height).border(0);
 
     for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
-        const auto &plane = descriptor.layout.planes[i];
+        const auto& plane = descriptor.layout.planes[i];
 
         const int x = roi.x >> plane.subsample;
         const int y = roi.y >> plane.subsample;

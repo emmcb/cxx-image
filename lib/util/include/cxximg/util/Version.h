@@ -18,11 +18,11 @@ namespace cxximg {
 
 namespace version {
 
-const char *gitRevision();
+const char* gitRevision();
 
-const char *buildTimestamp();
+const char* buildTimestamp();
 
-const char *longVersionString();
+const char* longVersionString();
 
 } // namespace version
 

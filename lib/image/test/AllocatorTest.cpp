@@ -41,7 +41,7 @@ TEST(ImageAllocatorTest, RecyclingAllocator) {
     memory::clearAllocatorCache();
 
     // Create and destroy an image
-    uint8_t *ptrA = nullptr;
+    uint8_t* ptrA = nullptr;
     {
         Image8u imageA(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
         ptrA = imageA.data();
@@ -62,7 +62,7 @@ TEST(ImageAllocatorTest, RecyclingAllocatorDifferentSizes) {
     memory::clearAllocatorCache();
 
     // Create and destroy an image
-    uint8_t *ptrA = nullptr;
+    uint8_t* ptrA = nullptr;
     {
         Image8u imageA(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
         ptrA = imageA.data();

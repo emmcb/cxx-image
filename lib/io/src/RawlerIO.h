@@ -14,14 +14,14 @@ namespace cxximg {
 
 class RawlerReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         // Accept files with common raw extensions
         const std::string ext = file::extension(path);
         return ext == "cr2" || ext == "cr3" || ext == "crw" || ext == "nef" || ext == "arw" || ext == "orf" ||
                ext == "rw2" || ext == "pef" || ext == "raf" || ext == "srw";
     }
 
-    RawlerReader(const std::string &path, std::istream *stream, const Options &options);
+    RawlerReader(const std::string& path, std::istream* stream, const Options& options);
     ~RawlerReader() override;
 
     void initialize() override;
@@ -30,13 +30,13 @@ public:
     Imagef readf() override;
 
     std::optional<ExifMetadata> readExif() const override;
-    std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata> &baseMetadata) const override;
+    std::optional<ImageMetadata> readMetadata(const std::optional<ImageMetadata>& baseMetadata) const override;
 
 private:
     template <typename T>
     Image<T> read();
 
-    rawler::RawImage *mRawImage = nullptr;
+    rawler::RawImage* mRawImage = nullptr;
 };
 
 } // namespace cxximg

@@ -45,8 +45,8 @@ public:
           mYOffset(model::bayerOffsetY(pixelType, bayer)) {}
 
     ~BayerView() = default;
-    BayerView(const BayerView<T> &) noexcept = default;
-    BayerView(BayerView<T> &&) noexcept = default;
+    BayerView(const BayerView<T>&) noexcept = default;
+    BayerView(BayerView<T>&&) noexcept = default;
 
     /// Returns value at position (x, y).
     UTIL_ALWAYS_INLINE T operator()(int x, int y) const noexcept {
@@ -55,13 +55,13 @@ public:
     }
 
     /// Returns reference at position (x, y).
-    UTIL_ALWAYS_INLINE T &operator()(int x, int y) noexcept {
+    UTIL_ALWAYS_INLINE T& operator()(int x, int y) noexcept {
         assert(x >= 0 && x < width() && y >= 0 && y < height());
         return mRawView(2 * x + mXOffset, 2 * y + mYOffset);
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE BayerView<T> &operator=(const BayerView<T> &other) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator=(const BayerView<T>& other) noexcept {
         if (this != &other) {
             operator= <BayerView<T>>(other);
         }
@@ -69,42 +69,42 @@ public:
     }
 
     /// Expression assignment.
-    UTIL_ALWAYS_INLINE BayerView<T> &operator=(BayerView<T> &&other) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator=(BayerView<T>&& other) noexcept {
         operator= <BayerView<T>>(other);
         return *this;
     }
 
     /// Expression assignment.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE BayerView<T> &operator=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { mRawView(x, y) = expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE BayerView<T> &operator+=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator+=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { mRawView(x, y) += expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE BayerView<T> &operator-=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator-=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { mRawView(x, y) -= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE BayerView<T> &operator*=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator*=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { mRawView(x, y) *= expr::evaluate(expr, x, y); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
-    UTIL_ALWAYS_INLINE BayerView<T> &operator/=(const Expr &expr) noexcept {
+    UTIL_ALWAYS_INLINE BayerView<T>& operator/=(const Expr& expr) noexcept {
         forEach([&](int x, int y) UTIL_ALWAYS_INLINE { mRawView(x, y) /= expr::evaluate(expr, x, y); });
         return *this;
     }

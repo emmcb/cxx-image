@@ -24,7 +24,7 @@ namespace image {
 /// Updates the image border values.
 /// The borders must already have been allocated with the makeBorders() function.
 template <BorderMode MODE, typename T>
-void updateBorders(const ImageView<T> &img, int borderSize) {
+void updateBorders(const ImageView<T>& img, int borderSize) {
     Rect leftRoi = {-borderSize, 0, borderSize, img.height()};
     Rect rightRoi = {img.width(), 0, borderSize, img.height()};
     Rect topRoi = {0, -borderSize, img.width(), borderSize};
@@ -152,7 +152,7 @@ void updateBorders(const ImageView<T> &img, int borderSize) {
 
 /// Allocates a new image from an existing one, with borders initialized using the given border mode.
 template <BorderMode MODE, typename T>
-Image<T> makeBorders(const ImageView<T> &img, int borderSize) {
+Image<T> makeBorders(const ImageView<T>& img, int borderSize) {
     Image<T> copy(LayoutDescriptor::Builder(img.layoutDescriptor()).border(borderSize).build(), img);
     updateBorders<MODE>(copy, borderSize);
 

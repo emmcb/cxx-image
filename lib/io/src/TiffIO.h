@@ -27,14 +27,14 @@ typedef struct tiff TIFF;
 namespace cxximg {
 
 struct TiffDeleter final {
-    void operator()(TIFF *tif) const;
+    void operator()(TIFF* tif) const;
 };
 
 using TiffPtr = std::unique_ptr<TIFF, TiffDeleter>;
 
 class TiffReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+    static bool accept(const std::string& path, const uint8_t* signature, bool signatureValid) {
         if (!signatureValid) {
             const std::string ext = file::extension(path);
             return ext == "tiff" || ext == "tif";
@@ -65,27 +65,27 @@ private:
 
 class TiffWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         const std::string ext = file::extension(path);
         return ext == "tiff" || ext == "tif";
     }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||
                model::isBayerPixelType(descriptor.pixelType) || model::isQuadBayerPixelType(descriptor.pixelType);
     }
 
-    void write(const Image8u &image) override;
-    void write(const Image16u &image) override;
-    void write(const Imagef &image) override;
+    void write(const Image8u& image) override;
+    void write(const Image16u& image) override;
+    void write(const Imagef& image) override;
 
-    void writeExif(const ExifMetadata &exif) override;
+    void writeExif(const ExifMetadata& exif) override;
 
 private:
     template <typename T>
-    void writeImpl(const Image<T> &image);
+    void writeImpl(const Image<T>& image);
 };
 
 } // namespace cxximg

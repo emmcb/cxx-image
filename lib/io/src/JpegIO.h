@@ -24,12 +24,12 @@ struct jpeg_decompress_struct;
 namespace cxximg {
 
 struct JpegDecompressDeleter final {
-    void operator()(jpeg_decompress_struct *dinfo) const;
+    void operator()(jpeg_decompress_struct* dinfo) const;
 };
 
 class JpegReader final : public ImageReader {
 public:
-    static bool accept(const std::string &path, const uint8_t *signature, bool signatureValid) {
+    static bool accept(const std::string& path, const uint8_t* signature, bool signatureValid) {
         if (!signatureValid) {
             const std::string ext = file::extension(path);
             return ext == "jpeg" || ext == "jpg";
@@ -54,22 +54,22 @@ private:
 
 class JpegWriter final : public ImageWriter {
 public:
-    static bool accept(const std::string &path) {
+    static bool accept(const std::string& path) {
         const std::string ext = file::extension(path);
         return ext == "jpeg" || ext == "jpg";
     }
 
     using ImageWriter::ImageWriter;
 
-    bool acceptDescriptor(const LayoutDescriptor &descriptor) const override {
+    bool acceptDescriptor(const LayoutDescriptor& descriptor) const override {
         return descriptor.pixelType == PixelType::GRAYSCALE || descriptor.pixelType == PixelType::RGB ||
                descriptor.pixelType == PixelType::YUV;
     }
 
-    void write(const Image8u &image) override;
+    void write(const Image8u& image) override;
 
 #ifdef HAVE_EXIF
-    void writeExif(const ExifMetadata &exif) override;
+    void writeExif(const ExifMetadata& exif) override;
 #endif
 };
 

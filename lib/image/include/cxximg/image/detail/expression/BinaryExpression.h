@@ -33,7 +33,7 @@ struct BinaryExpression final : public Expression {
     ViewType<RightExpr> right; ///< Right child.
 
     /// Constructs expression from two children.
-    BinaryExpression(LeftExpr &&left_, RightExpr &&right_)
+    BinaryExpression(LeftExpr&& left_, RightExpr&& right_)
         : left(std::forward<LeftExpr>(left_)), right(std::forward<RightExpr>(right_)) {}
 
     /// Evaluates expression at position (x, y).
@@ -47,21 +47,21 @@ struct BinaryExpression final : public Expression {
 
 /// Max expression.
 template <typename RightExpr, typename LeftExpr>
-decltype(auto) max(LeftExpr &&left, RightExpr &&right) {
+decltype(auto) max(LeftExpr&& left, RightExpr&& right) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::MaxOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(left), std::forward<RightExpr>(right));
 }
 
 /// Min expression.
 template <typename RightExpr, typename LeftExpr>
-decltype(auto) min(LeftExpr &&left, RightExpr &&right) {
+decltype(auto) min(LeftExpr&& left, RightExpr&& right) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::MinOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(left), std::forward<RightExpr>(right));
 }
 
 /// Pow expression.
 template <typename RightExpr, typename LeftExpr>
-decltype(auto) pow(LeftExpr &&left, RightExpr &&right) {
+decltype(auto) pow(LeftExpr&& left, RightExpr&& right) {
     using BinaryExpression = detail::BinaryExpression<LeftExpr, detail::PowOperator, RightExpr>;
     return BinaryExpression(std::forward<LeftExpr>(left), std::forward<RightExpr>(right));
 }

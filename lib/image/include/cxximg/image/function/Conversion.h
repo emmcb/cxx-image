@@ -24,24 +24,24 @@ namespace image {
 
 /// Allocates an uninitialized image that has the same layout than the input image.
 template <typename T>
-Image<T> like(const ImageView<T> &img) {
+Image<T> like(const ImageView<T>& img) {
     return Image<T>(img.layoutDescriptor());
 }
 
 /// Allocates an uninitialized image that has the same layout than the input image, but with different data type.
 template <typename U, typename T, typename = std::enable_if_t<!std::is_same_v<T, U>>>
-Image<U> like(const ImageView<T> &img) {
+Image<U> like(const ImageView<T>& img) {
     return Image<U>(img.layoutDescriptor());
 }
 
 /// Allocates a new image that is identical to the input image.
 template <typename T>
-Image<T> clone(const ImageView<T> &img) {
+Image<T> clone(const ImageView<T>& img) {
 #ifdef CXXIMG_HAVE_HALIDE
     // If we have device allocation, we must call Halide method for device to device copy
-    if (static_cast<halide_buffer_t *>(img)->device != 0) {
+    if (static_cast<halide_buffer_t*>(img)->device != 0) {
         Image<T> copy = image::like(img);
-        halide_buffer_copy(nullptr, img, static_cast<halide_buffer_t *>(img)->device_interface, copy);
+        halide_buffer_copy(nullptr, img, static_cast<halide_buffer_t*>(img)->device_interface, copy);
         return copy;
     }
 #endif
@@ -51,13 +51,13 @@ Image<T> clone(const ImageView<T> &img) {
 
 /// Allocates a new image that is identical to the input image, but with different data type.
 template <typename U, typename T, typename = std::enable_if_t<!std::is_same_v<T, U>>>
-Image<U> clone(const ImageView<T> &img) {
+Image<U> clone(const ImageView<T>& img) {
     return Image<U>(img.layoutDescriptor(), img);
 }
 
 /// Allocates a new image and copy data with image layout conversion.
 template <typename T>
-Image<T> convertLayout(const ImageView<T> &img, ImageLayout imageLayout, int widthAlignment = -1) {
+Image<T> convertLayout(const ImageView<T>& img, ImageLayout imageLayout, int widthAlignment = -1) {
     LayoutDescriptor::Builder builder(img.layoutDescriptor());
     builder.imageLayout(imageLayout);
 
@@ -70,7 +70,7 @@ Image<T> convertLayout(const ImageView<T> &img, ImageLayout imageLayout, int wid
 
 /// Allocates a new image and copy data with image layout and pixel precision conversion.
 template <typename U, typename T>
-Image<U> convertPixelPrecision(const ImageView<T> &img,
+Image<U> convertPixelPrecision(const ImageView<T>& img,
                                ImageLayout imageLayout,
                                int widthAlignment = -1,
                                int pixelPrecision = 0) {
@@ -114,14 +114,14 @@ Image<U> convertPixelPrecision(const ImageView<T> &img,
 
 /// Allocates a new image and copy data with pixel precision conversion.
 template <typename U, typename T>
-Image<U> convertPixelPrecision(const ImageView<T> &img, int pixelPrecision = 0) {
+Image<U> convertPixelPrecision(const ImageView<T>& img, int pixelPrecision = 0) {
     return convertPixelPrecision<U, T>(img, img.layoutDescriptor().imageLayout, pixelPrecision);
 }
 
 /// Allocates a new image and copy data with alignment conversion.
 /// If setting forceCopy to false and new alignment constraints were already respected, then no new allocation is made.
 template <typename T>
-Image<T> convertAlignment(const ImageView<T> &img,
+Image<T> convertAlignment(const ImageView<T>& img,
                           int widthAlignment = -1,
                           int heightAlignment = -1,
                           int sizeAlignment = -1,

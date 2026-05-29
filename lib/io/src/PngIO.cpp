@@ -26,8 +26,8 @@ static const std::string MODULE = "PNG";
 namespace {
 
 void pngReadData(png_structp png, png_bytep data, png_size_t length) {
-    auto *stream = static_cast<std::istream *>(png_get_io_ptr(png));
-    stream->read(reinterpret_cast<char *>(data), length);
+    auto* stream = static_cast<std::istream*>(png_get_io_ptr(png));
+    stream->read(reinterpret_cast<char*>(data), length);
 
     if (stream->fail()) {
         png_error(png, "Read error");
@@ -35,8 +35,8 @@ void pngReadData(png_structp png, png_bytep data, png_size_t length) {
 }
 
 void pngWriteData(png_structp png, png_bytep data, png_size_t length) {
-    auto *stream = static_cast<std::ostream *>(png_get_io_ptr(png));
-    stream->write(reinterpret_cast<const char *>(data), length);
+    auto* stream = static_cast<std::ostream*>(png_get_io_ptr(png));
+    stream->write(reinterpret_cast<const char*>(data), length);
 
     if (stream->fail()) {
         png_error(png, "Write error");
@@ -44,13 +44,13 @@ void pngWriteData(png_structp png, png_bytep data, png_size_t length) {
 }
 
 void pngFlushData(png_structp png) {
-    auto *stream = static_cast<std::ostream *>(png_get_io_ptr(png));
+    auto* stream = static_cast<std::ostream*>(png_get_io_ptr(png));
     stream->flush();
 }
 
 } // namespace
 
-void PngReadDeleter::operator()(png_struct *png) {
+void PngReadDeleter::operator()(png_struct* png) {
     if (info) {
         png_destroy_read_struct(&png, &info, nullptr);
     } else {
@@ -185,14 +185,14 @@ Image<T> PngReader::read() {
     return image;
 }
 
-void PngWriter::write(const Image8u &image) {
+void PngWriter::write(const Image8u& image) {
     LOG_SCOPE_F(INFO, "Write PNG (8 bits)");
     LOG_S(INFO) << "Path: " << path();
 
     writeImpl<uint8_t>(image);
 }
 
-void PngWriter::write(const Image16u &image) {
+void PngWriter::write(const Image16u& image) {
     LOG_SCOPE_F(INFO, "Write PNG (16 bits)");
     LOG_S(INFO) << "Path: " << path();
 
@@ -200,7 +200,7 @@ void PngWriter::write(const Image16u &image) {
 }
 
 template <typename T>
-void PngWriter::writeImpl(const Image<T> &image) {
+void PngWriter::writeImpl(const Image<T>& image) {
     if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));

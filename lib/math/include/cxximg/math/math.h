@@ -86,10 +86,10 @@ inline constexpr void cubicFit2Points2Slopes(float x1,
                                              float y2,
                                              float m1,
                                              float m2,
-                                             float &a,
-                                             float &b,
-                                             float &c,
-                                             float &d) {
+                                             float& a,
+                                             float& b,
+                                             float& c,
+                                             float& d) {
     a = (m2 + m1 - 2.0f * (y2 - y1) / (x2 - x1)) / ((x2 - x1) * (x2 - x1));
     b = (m2 - m1) / (2.0f * (x2 - x1)) - (3.0f / 2.0f) * (x1 + x2) * a;
     c = m1 - 3.0f * x1 * x1 * a - 2 * x1 * b;

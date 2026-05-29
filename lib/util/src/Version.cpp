@@ -19,15 +19,15 @@ namespace cxximg {
 
 namespace version {
 
-const char *gitRevision() {
+const char* gitRevision() {
     return GIT_REVISION;
 }
 
-const char *buildTimestamp() {
+const char* buildTimestamp() {
     return BUILD_TIMESTAMP;
 }
 
-const char *longVersionString() {
+const char* longVersionString() {
     return GIT_DESCRIBE_LONG " built on " BUILD_TIMESTAMP;
 }
 
