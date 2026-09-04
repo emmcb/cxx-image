@@ -20,7 +20,7 @@
 #include "cxximg/util/File.h"
 
 // from jxl/decode.h
-typedef struct JxlDecoderStruct JxlDecoder; // NOLINT
+typedef struct JxlDecoder JxlDecoder; // NOLINT
 
 namespace cxximg {
 
