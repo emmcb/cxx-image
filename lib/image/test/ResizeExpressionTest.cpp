@@ -26,18 +26,18 @@ struct ResizeExpressionTest : public ::testing::Test {
     void SetUp() override {
         // Given I have a WxHxN image filled with increasing numbers
         uint8_t i = 1;
-        image.forEach([&](int x, int y, int n) {
-            image(x, y, n) = i;
+        image.forEach([&](int x, int y, int z, int c) {
+            image(x, y, z, c) = i;
             ++i;
         });
     }
 
-    Image8u image = Image8u(LayoutDescriptor::Builder(W, H).numPlanes(N).build());
+    Image8u image = Image8u(LayoutDescriptor::Builder(W, H).numChannels(N).build());
 };
 
 TEST_F(ResizeExpressionTest, TestUpsampleCornerAligned) {
     // When I downsample the image
-    Imagef out(LayoutDescriptor::Builder(4, 4).numPlanes(1).build(), expr::resize(image, 4, 4, true));
+    Imagef out(LayoutDescriptor::Builder(4, 4).numChannels(1).build(), expr::resize(image, 4, 4, true));
 
     // Then values are correct
     ASSERT_FLOAT_EQ(out(0, 0, 0), 1.0f);
@@ -63,7 +63,7 @@ TEST_F(ResizeExpressionTest, TestUpsampleCornerAligned) {
 
 TEST_F(ResizeExpressionTest, TestUpsampleCenterAligned) {
     // When I upsample the image
-    Imagef out(LayoutDescriptor::Builder(4, 4).numPlanes(1).build(), expr::resize(image, 4, 4, false));
+    Imagef out(LayoutDescriptor::Builder(4, 4).numChannels(1).build(), expr::resize(image, 4, 4, false));
 
     // Then values are correct
     ASSERT_FLOAT_EQ(out(0, 0, 0), 1.0f);
@@ -89,7 +89,7 @@ TEST_F(ResizeExpressionTest, TestUpsampleCenterAligned) {
 
 TEST_F(ResizeExpressionTest, TestDownsampleCornerAligned) {
     // When I downsample the image
-    Imagef out(LayoutDescriptor::Builder(2, 2).numPlanes(1).build(), expr::resize(image, 2, 2, true));
+    Imagef out(LayoutDescriptor::Builder(2, 2).numChannels(1).build(), expr::resize(image, 2, 2, true));
 
     // Then values are correct
     ASSERT_FLOAT_EQ(out(0, 0, 0), 1.0f);
@@ -100,7 +100,7 @@ TEST_F(ResizeExpressionTest, TestDownsampleCornerAligned) {
 
 TEST_F(ResizeExpressionTest, TestDownsampleCenterAligned) {
     // When I downsample the image
-    Imagef out(LayoutDescriptor::Builder(2, 2).numPlanes(1).build(), expr::resize(image, 2, 2, false));
+    Imagef out(LayoutDescriptor::Builder(2, 2).numChannels(1).build(), expr::resize(image, 2, 2, false));
 
     // Then values are correct
     ASSERT_FLOAT_EQ(out(0, 0, 0), 2.0f);

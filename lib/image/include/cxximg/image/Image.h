@@ -118,7 +118,7 @@ public:
     int64_t size() const noexcept { return mSize; }
 
     /// Returns whether the image is defined.
-    bool defined() const noexcept { return this->width() > 0 && this->height() > 0 && this->numPlanes() > 0; }
+    bool defined() const noexcept { return this->width() > 0 && this->height() > 0 && this->numChannels() > 0; }
 
     /// Returns whether the image is allocated.
     bool allocated() const noexcept { return mSize > 0; }

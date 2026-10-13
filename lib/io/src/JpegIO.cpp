@@ -251,7 +251,7 @@ std::optional<ExifMetadata> JpegReader::readExif() const {
 #endif
 
 void JpegWriter::write(const Image8u& image) {
-    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numChannels() > 1) {
         // Planar to interleaved conversion
         write(image::convertLayout(image, ImageLayout::INTERLEAVED));
         return;
@@ -283,7 +283,7 @@ void JpegWriter::write(const Image8u& image) {
 
     cinfo.image_width = image.width();
     cinfo.image_height = image.height();
-    cinfo.input_components = image.numPlanes();
+    cinfo.input_components = image.numChannels();
 
     switch (image.pixelType()) {
         case PixelType::GRAYSCALE:

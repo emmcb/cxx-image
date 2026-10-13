@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cxximg/image/expression/Expression.h"
-#include "cxximg/image/view/PlaneView.h"
+#include "cxximg/image/view/ChannelView.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -33,13 +33,13 @@ template <typename T>
 class BayerView final : public expr::Expression {
 public:
     /// Constructs bayer view from specified bayer image and bayer color.
-    BayerView(PlaneView<T> rawView, Bayer bayer)
+    BayerView(ChannelView<T> rawView, Bayer bayer)
         : mRawView(std::move(rawView)),
           mXOffset(model::bayerOffsetX(rawView.pixelType(), bayer)),
           mYOffset(model::bayerOffsetY(rawView.pixelType(), bayer)) {}
 
     /// Constructs bayer view from specified bayer image and bayer color.
-    BayerView(PlaneView<T> rawView, PixelType pixelType, Bayer bayer)
+    BayerView(ChannelView<T> rawView, PixelType pixelType, Bayer bayer)
         : mRawView(std::move(rawView)),
           mXOffset(model::bayerOffsetX(pixelType, bayer)),
           mYOffset(model::bayerOffsetY(pixelType, bayer)) {}
@@ -122,14 +122,14 @@ public:
         }
     }
 
-    /// Returns plane width.
+    /// Returns channel width.
     int width() const noexcept { return mRawView.width() / 2; }
 
-    /// Returns plane height.
+    /// Returns channel height.
     int height() const noexcept { return mRawView.height() / 2; }
 
 private:
-    PlaneView<T> mRawView;
+    ChannelView<T> mRawView;
     int mXOffset;
     int mYOffset;
 };

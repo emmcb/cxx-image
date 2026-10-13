@@ -29,11 +29,11 @@ T alignDimension(T size, int sizeAlignment) {
     return math::roundUp(size, sizeAlignment);
 }
 
-/// Align dimension depending on current plane subsampling value.
+/// Align dimension depending on current channel subsampling value.
 /// @param size dimension to be aligned.
 /// @param sizeAlignment alignement value (shall be a power of 2).
-/// @param subsample subsample of current plane.
-/// @param maxSubsample maximum subsample value defined in the image planes.
+/// @param subsample subsample of current channel.
+/// @param maxSubsample maximum subsample value defined in the image channels.
 /// @return aligned size dimension.
 inline int alignDimension(int size, int sizeAlignment, int subsample, int maxSubsample) {
     return alignDimension(alignDimension(size, 1 << maxSubsample) >> subsample, sizeAlignment);

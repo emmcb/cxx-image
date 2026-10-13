@@ -207,7 +207,7 @@ Image<T> TiffReader::read() {
     T* pStrip = image.data();
 
     // Copy the TIFF image strips data to cxximg image.
-    const int64_t rowStride = image.width() * image.numPlanes();
+    const int64_t rowStride = image.width() * image.numChannels();
     for (tstrip_t strip = 0; strip < nStrips; ++strip) {
         TIFFReadEncodedStrip(tif, strip, pStrip + strip * (rowsPerStrip * rowStride), -1);
     }
@@ -406,7 +406,7 @@ void TiffWriter::write(const Imagef& image) {
 
 template <typename T>
 void TiffWriter::writeImpl(const Image<T>& image) {
-    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numChannels() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
         return;
@@ -423,7 +423,7 @@ void TiffWriter::writeImpl(const Image<T>& image) {
 
     TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, image.width());
     TIFFSetField(tif, TIFFTAG_IMAGELENGTH, image.height());
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, image.numPlanes());
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, image.numChannels());
     TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, sizeof(T) * 8);
 
     if constexpr (std::is_floating_point_v<T>) {
@@ -492,8 +492,8 @@ void TiffWriter::writeImpl(const Image<T>& image) {
     }
 
     // Write image data.
-    T* pStrip = image.plane(0).buffer();
-    const int64_t rowStride = image.layoutDescriptor().planes[0].rowStride;
+    T* pStrip = image.channel(0).buffer();
+    const int64_t rowStride = image.layoutDescriptor().channels[0].rowStride;
     tmsize_t stripSize = TIFFStripSize(tif);
 
     tstrip_t strip = 0;

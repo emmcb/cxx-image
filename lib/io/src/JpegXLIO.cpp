@@ -160,7 +160,7 @@ Image<T> JpegXLReader::read() {
                 throw IOError(MODULE, "Unsupported pixel representation: "s + toString(pixelRepresentation));
         }
     };
-    JxlPixelFormat format = {static_cast<uint32_t>(layoutDescriptor().numPlanes),
+    JxlPixelFormat format = {static_cast<uint32_t>(layoutDescriptor().numChannels),
                              jxlDataType(pixelRepresentation()),
                              JXL_NATIVE_ENDIAN,
                              0};
@@ -247,7 +247,7 @@ void JpegXLWriter::write(const Imagef& image) {
 
 template <typename T>
 void JpegXLWriter::writeImpl(const Image<T>& image) {
-    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numChannels() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
         return;
@@ -267,7 +267,7 @@ void JpegXLWriter::writeImpl(const Image<T>& image) {
         }
     }();
 
-    JxlPixelFormat format = {static_cast<uint32_t>(image.numPlanes()), jxlDataType, JXL_NATIVE_ENDIAN, 0};
+    JxlPixelFormat format = {static_cast<uint32_t>(image.numChannels()), jxlDataType, JXL_NATIVE_ENDIAN, 0};
     const bool isGray = format.num_channels < 3;
 
     JxlBasicInfo info;

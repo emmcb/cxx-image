@@ -27,13 +27,13 @@ struct BorderTest : public ::testing::Test {
     void SetUp() override {
         // Given I have a WxHxN image filled with increasing numbers
         uint8_t i = 1;
-        image.forEach([&](int x, int y, int n) {
-            image(x, y, n) = i;
+        image.forEach([&](int x, int y, int z, int c) {
+            image(x, y, z, c) = i;
             ++i;
         });
     }
 
-    Image8u image = Image8u(LayoutDescriptor::Builder(W, H).numPlanes(N).build());
+    Image8u image = Image8u(LayoutDescriptor::Builder(W, H).numChannels(N).build());
 };
 
 TEST_F(BorderTest, TestMakeBorderConstant) {
@@ -54,7 +54,7 @@ TEST_F(BorderTest, TestMakeBorderConstant) {
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
     ASSERT_EQ(borders.height(), H);
-    ASSERT_EQ(borders.numPlanes(), N);
+    ASSERT_EQ(borders.numChannels(), N);
 
     // Then values are correct
 
@@ -147,7 +147,7 @@ TEST_F(BorderTest, TestMakeBorderMirror) {
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
     ASSERT_EQ(borders.height(), H);
-    ASSERT_EQ(borders.numPlanes(), N);
+    ASSERT_EQ(borders.numChannels(), N);
 
     // Then values are correct
 
@@ -240,7 +240,7 @@ TEST_F(BorderTest, TestMakeBorderNearest) {
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
     ASSERT_EQ(borders.height(), H);
-    ASSERT_EQ(borders.numPlanes(), N);
+    ASSERT_EQ(borders.numChannels(), N);
 
     // Then values are correct
 
@@ -333,7 +333,7 @@ TEST_F(BorderTest, TestMakeBorderReflect) {
     // Then dimensions are correct
     ASSERT_EQ(borders.width(), W);
     ASSERT_EQ(borders.height(), H);
-    ASSERT_EQ(borders.numPlanes(), N);
+    ASSERT_EQ(borders.numChannels(), N);
 
     // Then values are correct
 

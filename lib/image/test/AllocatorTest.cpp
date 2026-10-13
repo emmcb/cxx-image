@@ -24,10 +24,10 @@ TEST(ImageAllocatorTest, StandardAllocator) {
     memory::useStandardAllocator();
 
     // Create and destroy an image
-    Image8u imageA(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
+    Image8u imageA(LayoutDescriptor::Builder(100, 100).numChannels(3).build());
 
     // Create another image (memory should be newly allocated)
-    Image8u imageB(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
+    Image8u imageB(LayoutDescriptor::Builder(100, 100).numChannels(3).build());
 
     // Pointers should be different
     EXPECT_NE(imageA.data(), imageB.data());
@@ -43,12 +43,12 @@ TEST(ImageAllocatorTest, RecyclingAllocator) {
     // Create and destroy an image
     uint8_t* ptrA = nullptr;
     {
-        Image8u imageA(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
+        Image8u imageA(LayoutDescriptor::Builder(100, 100).numChannels(3).build());
         ptrA = imageA.data();
     }
 
     // Create another image with the same size (memory should be reused)
-    Image8u imageB(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
+    Image8u imageB(LayoutDescriptor::Builder(100, 100).numChannels(3).build());
 
     // Pointers should be the same
     EXPECT_EQ(ptrA, imageB.data());
@@ -64,12 +64,12 @@ TEST(ImageAllocatorTest, RecyclingAllocatorDifferentSizes) {
     // Create and destroy an image
     uint8_t* ptrA = nullptr;
     {
-        Image8u imageA(LayoutDescriptor::Builder(100, 100).numPlanes(3).build());
+        Image8u imageA(LayoutDescriptor::Builder(100, 100).numChannels(3).build());
         ptrA = imageA.data();
     }
 
     // Create another image with the different size
-    Image8u imageB(LayoutDescriptor::Builder(200, 200).numPlanes(3).build());
+    Image8u imageB(LayoutDescriptor::Builder(200, 200).numChannels(3).build());
 
     // Pointers should be different
     EXPECT_NE(ptrA, imageB.data());

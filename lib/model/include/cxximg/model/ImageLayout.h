@@ -25,10 +25,10 @@ enum class ImageLayout {
     /// Custom
     CUSTOM,
 
-    /// Contiguous planes of same size
+    /// Contiguous channels of same size
     PLANAR,
 
-    /// Interleaved planes of same size
+    /// Interleaved channels of same size
     INTERLEAVED,
 
     /// YUV 420: planar YUV with full size Y and subsampled UV

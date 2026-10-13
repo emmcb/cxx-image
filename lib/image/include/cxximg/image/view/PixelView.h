@@ -28,31 +28,39 @@ namespace cxximg {
 /// @addtogroup image
 /// @{
 
-/// Pixel manipulation class.
+/// Pixel manipulation class for full-resolution channels. Channels included in the view must not be subsampled.
 template <typename T, int N>
 class PixelView final : public expr::Expression {
 public:
     /// Constructs image from a given descriptor.
-    explicit PixelView(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
+    explicit PixelView(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {
+        assert(N > 0 && N <= mDescriptor.layout.numChannels);
+        for (int c = 0; c < N; ++c) {
+            assert(mDescriptor.layout.channels[c].subsample == 0);
+        }
+    }
 
     ~PixelView() = default;
     PixelView(const PixelView<T, N>&) noexcept = default;
     PixelView(PixelView<T, N>&&) noexcept = default;
 
     /// Subset image with the given roi.
-    UTIL_ALWAYS_INLINE Pixel<T, N> operator[](const Rect& roi) const {
-        return Pixel<T, N>(image::computeRoiDescriptor(mDescriptor, roi));
+    UTIL_ALWAYS_INLINE PixelView<T, N> operator[](const Rect& roi) const {
+        return PixelView<T, N>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 
     /// Returns value at position (x, y).
-    UTIL_ALWAYS_INLINE Pixel<T, N> operator()(int x, int y) const noexcept {
-        assert(x >= 0 && x < width() && y >= 0 && y < height());
+    UTIL_ALWAYS_INLINE Pixel<T, N> operator()(int x, int y) const noexcept { return (*this)(x, y, 0); }
+
+    /// Returns the complete pixel at position (x, y, z).
+    UTIL_ALWAYS_INLINE Pixel<T, N> operator()(int x, int y, int z) const noexcept {
+        assert(x >= 0 && x < width() && y >= 0 && y < height() && z >= 0 && z < depth());
 
         Pixel<T, N> pixel;
-        for (int n = 0; n < N; ++n) {
-            const auto& planeDescriptor = mDescriptor.layout.planes[n];
-            pixel[n] = mDescriptor.buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                                          x * planeDescriptor.pixelStride];
+        for (int c = 0; c < N; ++c) {
+            const auto& channelDescriptor = mDescriptor.layout.channels[c];
+            pixel[c] = mDescriptor.buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride +
+                                          y * channelDescriptor.rowStride + x * channelDescriptor.pixelStride];
         }
 
         return pixel;
@@ -75,13 +83,13 @@ public:
     /// Expression assignment.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N>& operator=(const Expr& expr) noexcept {
-        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
-            const auto pixel = expr::evaluate(expr, x, y);
+        forEach([&](int x, int y, int z) UTIL_ALWAYS_INLINE {
+            const auto pixel = expr::evaluate(expr, x, y, z);
             T* buffer = mDescriptor.buffer;
-            for (int n = 0; n < N; ++n) {
-                const auto& planeDescriptor = mDescriptor.layout.planes[n];
-                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                       x * planeDescriptor.pixelStride] = pixel[n];
+            for (int c = 0; c < N; ++c) {
+                const auto& channelDescriptor = mDescriptor.layout.channels[c];
+                buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride + y * channelDescriptor.rowStride +
+                       x * channelDescriptor.pixelStride] = pixel[c];
             }
         });
         return *this;
@@ -90,13 +98,13 @@ public:
     /// Expression add-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N>& operator+=(const Expr& expr) noexcept {
-        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
-            const auto pixel = expr::evaluate(expr, x, y);
+        forEach([&](int x, int y, int z) UTIL_ALWAYS_INLINE {
+            const auto pixel = expr::evaluate(expr, x, y, z);
             T* buffer = mDescriptor.buffer;
-            for (int n = 0; n < N; ++n) {
-                const auto& planeDescriptor = mDescriptor.layout.planes[n];
-                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                       x * planeDescriptor.pixelStride] += pixel[n];
+            for (int c = 0; c < N; ++c) {
+                const auto& channelDescriptor = mDescriptor.layout.channels[c];
+                buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride + y * channelDescriptor.rowStride +
+                       x * channelDescriptor.pixelStride] += pixel[c];
             }
         });
         return *this;
@@ -105,13 +113,13 @@ public:
     /// Expression subtract-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N>& operator-=(const Expr& expr) noexcept {
-        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
-            const auto pixel = expr::evaluate(expr, x, y);
+        forEach([&](int x, int y, int z) UTIL_ALWAYS_INLINE {
+            const auto pixel = expr::evaluate(expr, x, y, z);
             T* buffer = mDescriptor.buffer;
-            for (int n = 0; n < N; ++n) {
-                const auto& planeDescriptor = mDescriptor.layout.planes[n];
-                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                       x * planeDescriptor.pixelStride] -= pixel[n];
+            for (int c = 0; c < N; ++c) {
+                const auto& channelDescriptor = mDescriptor.layout.channels[c];
+                buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride + y * channelDescriptor.rowStride +
+                       x * channelDescriptor.pixelStride] -= pixel[c];
             }
         });
         return *this;
@@ -120,13 +128,13 @@ public:
     /// Expression multiply-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N>& operator*=(const Expr& expr) noexcept {
-        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
-            const auto pixel = expr::evaluate(expr, x, y);
+        forEach([&](int x, int y, int z) UTIL_ALWAYS_INLINE {
+            const auto pixel = expr::evaluate(expr, x, y, z);
             T* buffer = mDescriptor.buffer;
-            for (int n = 0; n < N; ++n) {
-                const auto& planeDescriptor = mDescriptor.layout.planes[n];
-                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                       x * planeDescriptor.pixelStride] *= pixel[n];
+            for (int c = 0; c < N; ++c) {
+                const auto& channelDescriptor = mDescriptor.layout.channels[c];
+                buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride + y * channelDescriptor.rowStride +
+                       x * channelDescriptor.pixelStride] *= pixel[c];
             }
         });
         return *this;
@@ -135,27 +143,30 @@ public:
     /// Expression divide-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE PixelView<T, N>& operator/=(const Expr& expr) noexcept {
-        forEach([&](int x, int y) UTIL_ALWAYS_INLINE {
-            const auto pixel = expr::evaluate(expr, x, y);
+        forEach([&](int x, int y, int z) UTIL_ALWAYS_INLINE {
+            const auto pixel = expr::evaluate(expr, x, y, z);
             T* buffer = mDescriptor.buffer;
-            for (int n = 0; n < N; ++n) {
-                const auto& planeDescriptor = mDescriptor.layout.planes[n];
-                buffer[planeDescriptor.offset + y * planeDescriptor.rowStride +
-                       x * planeDescriptor.pixelStride] /= pixel[n];
+            for (int c = 0; c < N; ++c) {
+                const auto& channelDescriptor = mDescriptor.layout.channels[c];
+                buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride + y * channelDescriptor.rowStride +
+                       x * channelDescriptor.pixelStride] /= pixel[c];
             }
         });
         return *this;
     }
 
-    /// Applies a function on each (x, y) coordinates.
+    /// Invokes f(x, y, z) for each logical pixel, excluding borders and alignment padding.
     template <typename F>
     UTIL_ALWAYS_INLINE void forEach(F f) const noexcept {
         const int w = width();
         const int h = height();
+        const int numSlices = depth();
 
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                f(x, y);
+        for (int z = 0; z < numSlices; ++z) {
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    f(x, y, z);
+                }
             }
         }
     }
@@ -183,6 +194,9 @@ public:
 
     /// Returns image height.
     int height() const noexcept { return mDescriptor.layout.height; }
+
+    /// Returns image depth.
+    int depth() const noexcept { return mDescriptor.layout.depth; }
 
 private:
     ImageDescriptor<T> mDescriptor;

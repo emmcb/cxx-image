@@ -181,8 +181,8 @@ inline std::optional<PixelType> parsePixelType(const std::string& pixelType) {
 
 namespace model {
 
-/// Returns the number of image planes required by the given pixel type.
-inline int pixelNumPlanes(PixelType pixelType) {
+/// Returns the number of image channels required by the given pixel type.
+inline int pixelNumChannels(PixelType pixelType) {
     switch (pixelType) {
         case PixelType::GRAYSCALE:
         case PixelType::BAYER_RGGB:

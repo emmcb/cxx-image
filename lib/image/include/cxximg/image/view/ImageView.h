@@ -16,7 +16,7 @@
 
 #include "cxximg/image/ImageDescriptor.h"
 #include "cxximg/image/expression/Expression.h"
-#include "cxximg/image/view/PlaneView.h"
+#include "cxximg/image/view/ChannelView.h"
 
 #include "cxximg/util/compiler.h"
 
@@ -34,7 +34,7 @@ namespace cxximg {
 template <typename T>
 class ImageView : public expr::Expression {
 public:
-    class PlaneIterable;
+    class ChannelIterable;
 
     /// Constructs image view from image descriptor.
     explicit ImageView(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
@@ -42,24 +42,27 @@ public:
     /// Constructs image view from layout descriptor and buffer.
     ImageView(const LayoutDescriptor& layout, T* buffer) : mDescriptor(layout, buffer) {}
 
-    /// Constructs one-plane image view from plane view.
-    ImageView(const PlaneView<T>& planeView) // NOLINT(google-explicit-constructor)
-        : ImageView(LayoutDescriptor::Builder(planeView.width(), planeView.height())
-                            .numPlanes(1)
+    /// Constructs one-channel image view from channel view.
+    ImageView(const ChannelView<T>& channelView) // NOLINT(google-explicit-constructor)
+        : ImageView(LayoutDescriptor::Builder(channelView.width(), channelView.height(), channelView.depth())
+                            .numChannels(1)
                             .imageLayout(ImageLayout::CUSTOM)
-                            .planeStrides(0, planeView.descriptor().rowStride, planeView.descriptor().pixelStride)
+                            .channelStrides(0,
+                                            channelView.descriptor().rowStride,
+                                            channelView.descriptor().pixelStride,
+                                            channelView.descriptor().sliceStride)
                             .build(),
-                    planeView.buffer()) {}
+                    channelView.buffer()) {}
 
     ~ImageView() = default;
     ImageView(const ImageView<T>&) noexcept = default;
     ImageView(ImageView<T>&&) noexcept = default;
 
-    /// Returns corresponding plane to an other image plane.
+    /// Returns corresponding channel to an other image channel.
     template <typename U>
-    UTIL_ALWAYS_INLINE PlaneView<T> operator[](const PlaneView<U>& plane) const {
-        assert(plane.index() >= 0 && plane.index() < numPlanes());
-        return PlaneView<T>(mDescriptor, plane.index());
+    UTIL_ALWAYS_INLINE ChannelView<T> operator[](const ChannelView<U>& channel) const {
+        assert(channel.index() >= 0 && channel.index() < numChannels());
+        return ChannelView<T>(mDescriptor, channel.index());
     }
 
     /// Subset image with the given roi.
@@ -67,22 +70,40 @@ public:
         return ImageView<T>(image::computeRoiDescriptor(mDescriptor, roi));
     }
 
-    /// Returns value at position (x, y, n).
-    UTIL_ALWAYS_INLINE T operator()(int x, int y, int n) const noexcept {
-        // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
+    /// Returns value at position (x, y, c).
+    UTIL_ALWAYS_INLINE T operator()(int x, int y, int c) const noexcept {
+        // assert(c >= 0 && c < numChannels() && x >= 0 && x < channel(c).width() && y >= 0 && y < channel(c).height());
 
-        const auto& planeDescriptor = mDescriptor.layout.planes[n];
+        const auto& channelDescriptor = mDescriptor.layout.channels[c];
         return mDescriptor
-                .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+                .buffer[channelDescriptor.offset + y * channelDescriptor.rowStride + x * channelDescriptor.pixelStride];
     }
 
-    /// Returns reference at position (x, y, n).
-    UTIL_ALWAYS_INLINE T& operator()(int x, int y, int n) noexcept {
-        // assert(n >= 0 && n < numPlanes() && x >= 0 && x < plane(n).width() && y >= 0 && y < plane(n).height());
+    /// Returns reference at position (x, y, c).
+    UTIL_ALWAYS_INLINE T& operator()(int x, int y, int c) noexcept {
+        // assert(c >= 0 && c < numChannels() && x >= 0 && x < channel(c).width() && y >= 0 && y < channel(c).height());
 
-        const auto& planeDescriptor = mDescriptor.layout.planes[n];
+        const auto& channelDescriptor = mDescriptor.layout.channels[c];
         return mDescriptor
-                .buffer[planeDescriptor.offset + y * planeDescriptor.rowStride + x * planeDescriptor.pixelStride];
+                .buffer[channelDescriptor.offset + y * channelDescriptor.rowStride + x * channelDescriptor.pixelStride];
+    }
+
+    /// Returns value at position (x, y, z, c).
+    UTIL_ALWAYS_INLINE T operator()(int x, int y, int z, int c) const noexcept {
+        assert(c >= 0 && c < numChannels());
+
+        const auto& channelDescriptor = mDescriptor.layout.channels[c];
+        return mDescriptor.buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride +
+                                  y * channelDescriptor.rowStride + x * channelDescriptor.pixelStride];
+    }
+
+    /// Returns reference at position (x, y, z, c).
+    UTIL_ALWAYS_INLINE T& operator()(int x, int y, int z, int c) noexcept {
+        assert(c >= 0 && c < numChannels());
+
+        const auto& channelDescriptor = mDescriptor.layout.channels[c];
+        return mDescriptor.buffer[channelDescriptor.offset + z * channelDescriptor.sliceStride +
+                                  y * channelDescriptor.rowStride + x * channelDescriptor.pixelStride];
     }
 
 #ifdef CXXIMG_HAVE_HALIDE
@@ -115,51 +136,60 @@ public:
     /// Expression assignment.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T>& operator=(const Expr& expr) noexcept {
-        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) = expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int z, int c)
+                        UTIL_ALWAYS_INLINE { (*this)(x, y, z, c) = expr::evaluate(expr, x, y, z, c); });
         return *this;
     }
 
     /// Expression add-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T>& operator+=(const Expr& expr) noexcept {
-        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) += expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int z, int c)
+                        UTIL_ALWAYS_INLINE { (*this)(x, y, z, c) += expr::evaluate(expr, x, y, z, c); });
         return *this;
     }
 
     /// Expression subtract-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T>& operator-=(const Expr& expr) noexcept {
-        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) -= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int z, int c)
+                        UTIL_ALWAYS_INLINE { (*this)(x, y, z, c) -= expr::evaluate(expr, x, y, z, c); });
         return *this;
     }
 
     /// Expression multiply-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T>& operator*=(const Expr& expr) noexcept {
-        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) *= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int z, int c)
+                        UTIL_ALWAYS_INLINE { (*this)(x, y, z, c) *= expr::evaluate(expr, x, y, z, c); });
         return *this;
     }
 
     /// Expression divide-assign.
     template <typename Expr>
     UTIL_ALWAYS_INLINE ImageView<T>& operator/=(const Expr& expr) noexcept {
-        forEach([&](int x, int y, int n) UTIL_ALWAYS_INLINE { (*this)(x, y, n) /= expr::evaluate(expr, x, y, n); });
+        forEach([&](int x, int y, int z, int c)
+                        UTIL_ALWAYS_INLINE { (*this)(x, y, z, c) /= expr::evaluate(expr, x, y, z, c); });
         return *this;
     }
 
-    /// Applies a function on each (x, y) coordinates.
+    /// Invokes f(x, y, z, c) for each logical pixel, excluding borders and alignment padding.
     template <typename F>
     UTIL_ALWAYS_INLINE void forEach(F f) const noexcept {
-        const int dim = numPlanes();
+        const int dim = numChannels();
 
-        for (int n = 0; n < dim; ++n) {
-            const int subsample = mDescriptor.layout.planes[n].subsample;
-            const int w = (width() + subsample) >> subsample;
-            const int h = (height() + subsample) >> subsample;
+        for (int c = 0; c < dim; ++c) {
+            const int subsample = mDescriptor.layout.channels[c].subsample;
+            const int subsampleFactor = 1 << subsample;
+            const int w = (width() + subsampleFactor - 1) >> subsample;
+            const int h = (height() + subsampleFactor - 1) >> subsample;
+            const int numSlices = (depth() + subsampleFactor - 1) >> subsample;
 
-            for (int y = 0; y < h; ++y) {
-                for (int x = 0; x < w; ++x) {
-                    f(x, y, n);
+            for (int z = 0; z < numSlices; ++z) {
+                for (int y = 0; y < h; ++y) {
+                    for (int x = 0; x < w; ++x) {
+                        f(x, y, z, c);
+                    }
                 }
             }
         }
@@ -193,27 +223,31 @@ public:
     /// Returns image height.
     int height() const noexcept { return mDescriptor.layout.height; }
 
-    /// Returns image number of planes.
-    int numPlanes() const noexcept { return mDescriptor.layout.numPlanes; }
+    /// Returns image depth.
+    int depth() const noexcept { return mDescriptor.layout.depth; }
+
+    /// Returns image number of channels.
+    int numChannels() const noexcept { return mDescriptor.layout.numChannels; }
 
     /// Returns raw pointer to begin of image data.
     T* buffer() const { return mDescriptor.buffer; }
 
-    /// Returns pointer to the first element of given plane.
-    T* buffer(int n) const { return mDescriptor.buffer + mDescriptor.layout.planes[n].offset; }
+    /// Returns pointer to the first element of given channel.
+    T* buffer(int c) const { return mDescriptor.buffer + mDescriptor.layout.channels[c].offset; }
 
     /// Returns pointer to the first element of given row.
-    T* buffer(int n, int y) const {
-        return mDescriptor.buffer + mDescriptor.layout.planes[n].offset + y * mDescriptor.layout.planes[n].rowStride;
+    T* buffer(int c, int y) const {
+        return mDescriptor.buffer + mDescriptor.layout.channels[c].offset +
+               y * mDescriptor.layout.channels[c].rowStride;
     }
 
-    /// Returns an iterable object to image planes.
-    PlaneIterable planes() const noexcept { return PlaneIterable(mDescriptor); }
+    /// Returns an iterable object to image channels.
+    ChannelIterable channels() const noexcept { return ChannelIterable(mDescriptor); }
 
-    /// Returns the given plane.
-    PlaneView<T> plane(int index) const {
-        assert(index < numPlanes());
-        return PlaneView<T>{mDescriptor, index};
+    /// Returns the given channel.
+    ChannelView<T> channel(int index) const {
+        assert(index < numChannels());
+        return ChannelView<T>{mDescriptor, index};
     }
 
     /// Align image width to the given power-of-two alignment.
@@ -273,6 +307,7 @@ public:
                                               .pixelType(PixelType::GRAYSCALE)
                                               .widthAlignment(1)
                                               .heightAlignment(1)
+                                              .depthAlignment(1)
                                               .sizeAlignment(layoutDescriptor().sizeAlignment)
                                               .build(),
                                       buffer());
@@ -291,39 +326,39 @@ public:
         return ImageView<T>(descriptor);
     }
 
-    /// Flatten each image plane to one-dimensional planes.
+    /// Flatten each image channel to a row, retaining padding between logical slices.
     /// @warning This can only be done on planar images.
-    ImageView<T> flattenPlanes() const {
+    ImageView<T> flattenChannels() const {
         if (layoutDescriptor().imageLayout != ImageLayout::PLANAR) {
-            throw std::invalid_argument("Plane flattening is only valid for planar images.");
+            throw std::invalid_argument("Channel flattening is only valid for planar images.");
         }
 
-        const int planeSize = LayoutDescriptor::Builder(layoutDescriptor())
-                                      .pixelType(PixelType::GRAYSCALE)
-                                      .heightAlignment(1)
-                                      .sizeAlignment(1)
-                                      .build()
-                                      .requiredBufferSize();
-        const int planeStride = LayoutDescriptor::Builder(layoutDescriptor())
-                                        .pixelType(PixelType::GRAYSCALE)
-                                        .sizeAlignment(1)
-                                        .build()
-                                        .requiredBufferSize();
+        // Retain internal slice padding and omit only padding after the last logical slice.
+        const auto& layout = layoutDescriptor();
+        const auto& channel = layout.channels[0];
+        const int64_t channelSize = (int64_t(depth()) - 1) * channel.sliceStride +
+                                    (int64_t(height()) + 2 * layout.border) * channel.rowStride;
+        const int64_t channelStride = channel.sliceStride * detail::alignDimension(depth(), layout.depthAlignment);
 
-        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(planeSize, numPlanes())
+        if (channelSize > std::numeric_limits<int>::max()) {
+            throw std::overflow_error("Flattened channel size exceeds the supported image width.");
+        }
+
+        ImageDescriptor<T> descriptor(LayoutDescriptor::Builder(static_cast<int>(channelSize), numChannels())
                                               .pixelType(PixelType::GRAYSCALE)
                                               .widthAlignment(1)
                                               .heightAlignment(1)
+                                              .depthAlignment(1)
                                               .sizeAlignment(layoutDescriptor().sizeAlignment)
-                                              .planeStrides(0, planeStride)
-                                              .planeStrides(1, planeStride)
-                                              .planeStrides(2, planeStride)
-                                              .planeStrides(3, planeStride)
+                                              .channelStrides(0, channelStride)
+                                              .channelStrides(1, channelStride)
+                                              .channelStrides(2, channelStride)
+                                              .channelStrides(3, channelStride)
                                               .build(),
                                       buffer());
 
         if (descriptor.layout.requiredBufferSize() != layoutDescriptor().requiredBufferSize()) {
-            throw std::runtime_error("Expected buffer size should not change when flattening planes.");
+            throw std::runtime_error("Expected buffer size should not change when flattening channels.");
         }
 
 #ifdef CXXIMG_HAVE_HALIDE
@@ -338,10 +373,10 @@ public:
     T minimum() const {
         T min = std::numeric_limits<T>::max();
 
-        for (auto plane : planes()) {
-            T planeMin = plane.minimum();
-            if (planeMin < min) {
-                min = planeMin;
+        for (auto channel : channels()) {
+            T channelMin = channel.minimum();
+            if (channelMin < min) {
+                min = channelMin;
             }
         }
 
@@ -352,10 +387,10 @@ public:
     T maximum() const {
         T max = std::numeric_limits<T>::lowest();
 
-        for (auto plane : planes()) {
-            T planeMax = plane.maximum();
-            if (planeMax > max) {
-                max = planeMax;
+        for (auto channel : channels()) {
+            T channelMax = channel.maximum();
+            if (channelMax > max) {
+                max = channelMax;
             }
         }
 
@@ -374,28 +409,28 @@ private:
 };
 
 template <typename T>
-class ImageView<T>::PlaneIterable final {
+class ImageView<T>::ChannelIterable final {
 public:
     class Iterator;
 
     /// Constructor.
-    explicit PlaneIterable(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
+    explicit ChannelIterable(const ImageDescriptor<T>& imageDescriptor) : mDescriptor(imageDescriptor) {}
 
-    /// Returns plane at position i.
-    PlaneView<T> operator[](int i) const { return PlaneView<T>(mDescriptor, i); }
+    /// Returns channel at position i.
+    ChannelView<T> operator[](int i) const { return ChannelView<T>(mDescriptor, i); }
 
-    /// Returns iterator to first plane in image.
+    /// Returns iterator to first channel in image.
     Iterator begin() const { return Iterator(mDescriptor); }
 
-    /// Returns iterator to past-last plane in image.
-    Iterator end() const { return Iterator(mDescriptor, mDescriptor.layout.numPlanes); }
+    /// Returns iterator to past-last channel in image.
+    Iterator end() const { return Iterator(mDescriptor, mDescriptor.layout.numChannels); }
 
 private:
     ImageDescriptor<T> mDescriptor;
 };
 
 template <typename T>
-class ImageView<T>::PlaneIterable::Iterator final {
+class ImageView<T>::ChannelIterable::Iterator final {
 public:
     /// Prefix increment.
     Iterator& operator++() noexcept {
@@ -408,10 +443,10 @@ public:
     bool operator!=(const Iterator& iterator) const noexcept { return !operator==(iterator); }
 
     /// Gets the value.
-    PlaneView<T> operator*() const { return PlaneView<T>(mDescriptor, mIndex); }
+    ChannelView<T> operator*() const { return ChannelView<T>(mDescriptor, mIndex); }
 
 private:
-    friend class PlaneIterable;
+    friend class ChannelIterable;
 
     /// Constructor.
     explicit Iterator(const ImageDescriptor<T>& imageDescriptor, int index = 0)

@@ -36,7 +36,7 @@ struct BinaryExpression final : public Expression {
     BinaryExpression(LeftExpr&& left_, RightExpr&& right_)
         : left(std::forward<LeftExpr>(left_)), right(std::forward<RightExpr>(right_)) {}
 
-    /// Evaluates expression at position (x, y).
+    /// Applies the binary operator to children evaluated at the supplied coordinates.
     template <typename... Coord>
     UTIL_ALWAYS_INLINE decltype(auto) operator()(Coord... coords) const noexcept {
         return BinaryOp::apply(evaluate(left, coords...), evaluate(right, coords...));

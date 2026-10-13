@@ -16,6 +16,7 @@
 
 #include "cxximg/image/Image.h"
 
+#include <cstring>
 #include <type_traits>
 
 namespace cxximg {
@@ -148,17 +149,31 @@ Image<T> convertAlignment(const ImageView<T>& img,
         return Image<T>::borrowed(ImageView<T>(descriptor));
     }
 
+    // Copy logical slices and rows, grouping packed channels into a single row copy.
     Image<T> aligned(layoutDescriptor);
 
-    int n = 0;
-    while (n < layoutDescriptor.numPlanes) {
-        const int64_t pixelStride = layoutDescriptor.planes[n].pixelStride;
+    int c = 0;
+    while (c < layoutDescriptor.numChannels) {
+        const int64_t pixelStride = layoutDescriptor.channels[c].pixelStride;
+        const auto sourceChannel = img.channel(c);
+        auto destinationChannel = aligned.channel(c);
 
-        for (int y = 0; y < layoutDescriptor.height; ++y) {
-            memcpy(aligned.buffer(n, y), img.buffer(n, y), layoutDescriptor.width * pixelStride * sizeof(T));
+        // Independent strided channels cannot be copied as a packed group.
+        if (sourceChannel.descriptor().pixelStride != pixelStride ||
+            (layoutDescriptor.imageLayout == ImageLayout::CUSTOM && pixelStride != 1)) {
+            destinationChannel = sourceChannel;
+            ++c;
+            continue;
         }
 
-        n += pixelStride;
+        const auto rowBytes = destinationChannel.width() * pixelStride * sizeof(T);
+        for (int z = 0; z < destinationChannel.depth(); ++z) {
+            for (int y = 0; y < destinationChannel.height(); ++y) {
+                std::memcpy(destinationChannel.buffer(y, z), sourceChannel.buffer(y, z), rowBytes);
+            }
+        }
+
+        c += pixelStride;
     }
 
     return aligned;

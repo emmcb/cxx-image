@@ -40,8 +40,8 @@ struct AbsOperator final {
     template <typename T, int N>
     UTIL_ALWAYS_INLINE Pixel<T, N> apply(const Pixel<T, N>& a) const noexcept {
         Pixel<T, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -59,8 +59,8 @@ struct CastOperator final {
     template <typename U, int N>
     UTIL_ALWAYS_INLINE Pixel<T, N> apply(const Pixel<U, N>& a) const noexcept {
         Pixel<T, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -77,8 +77,8 @@ struct InvOperator final {
     template <typename T, int N>
     UTIL_ALWAYS_INLINE Pixel<float, N> apply(const Pixel<T, N>& a) const noexcept {
         Pixel<float, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -102,8 +102,8 @@ struct LutOperator final {
     template <typename U, int N>
     UTIL_ALWAYS_INLINE Pixel<T, N> apply(const Pixel<U, N>& a) const noexcept {
         Pixel<T, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -120,8 +120,8 @@ struct LRoundOperator final {
     template <typename T, int N>
     UTIL_ALWAYS_INLINE Pixel<int, N> apply(const Pixel<T, N>& a) const noexcept {
         Pixel<int, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -142,8 +142,8 @@ struct SaturateOperator final {
     template <typename U, int N>
     UTIL_ALWAYS_INLINE Pixel<U, N> apply(const Pixel<U, N>& a) const noexcept {
         Pixel<U, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -168,8 +168,8 @@ struct SqrtOperator final {
     template <typename T, int N>
     UTIL_ALWAYS_INLINE Pixel<float, N> apply(const Pixel<T, N>& a) const noexcept {
         Pixel<float, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;
@@ -187,8 +187,8 @@ struct SquareOperator final {
     template <typename T, int N>
     UTIL_ALWAYS_INLINE Pixel<float, N> apply(const Pixel<T, N>& a) const noexcept {
         Pixel<float, N> outPixel;
-        for (int n = 0; n < N; ++n) {
-            outPixel[n] = apply(a[n]);
+        for (int c = 0; c < N; ++c) {
+            outPixel[c] = apply(a[c]);
         }
 
         return outPixel;

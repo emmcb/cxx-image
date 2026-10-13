@@ -524,7 +524,7 @@ void DngWriter::write(const Imagef& image) {
 
 template <typename T>
 void DngWriter::writeImpl(const Image<T>& image) {
-    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numChannels() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
         return;
@@ -535,7 +535,7 @@ void DngWriter::writeImpl(const Image<T>& image) {
 
         const uint32 pixelType = std::is_floating_point_v<T> ? ttFloat : ttShort;
         AutoPtr<dng_image> stage1(
-                host.Make_dng_image(dng_rect(image.height(), image.width()), image.numPlanes(), pixelType));
+                host.Make_dng_image(dng_rect(image.height(), image.width()), image.numChannels(), pixelType));
 
         dng_pixel_buffer buffer(stage1->Bounds(),
                                 0,

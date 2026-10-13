@@ -95,14 +95,15 @@ Image8u BmpReader::read8u() {
 
     // ABGR to RGBA conversion, without alignment
     Image8u image(layoutDescriptor());
-    for (auto dstPlane : image.planes()) {
-        const auto srcPlane = alignedImage.plane(alignedImage.numPlanes() - dstPlane.index() - 1);
+    for (auto dstChannel : image.channels()) {
+        const auto srcChannel = alignedImage.channel(alignedImage.numChannels() - dstChannel.index() - 1);
         if (mUpsideDown) {
             // BMP is bottom to top, we need to convert to top to bottom
-            dstPlane = [&](int x, int y)
-                               UTIL_ALWAYS_INLINE { return expr::evaluate(srcPlane, x, srcPlane.height() - y - 1); };
+            dstChannel = [&](int x, int y) UTIL_ALWAYS_INLINE {
+                return expr::evaluate(srcChannel, x, srcChannel.height() - y - 1);
+            };
         } else {
-            dstPlane = srcPlane;
+            dstChannel = srcChannel;
         }
     }
 
@@ -135,8 +136,8 @@ void BmpWriter::write(const Image8u& image) {
                                  .imageLayout(ImageLayout::INTERLEAVED)
                                  .widthAlignment(4)
                                  .build());
-    for (auto plane : alignedImage.planes()) {
-        plane = image.plane(image.numPlanes() - plane.index() - 1);
+    for (auto channel : alignedImage.channels()) {
+        channel = image.channel(image.numChannels() - channel.index() - 1);
     }
 
     stream()->write(reinterpret_cast<const char*>(&header), sizeof(header));

@@ -93,7 +93,7 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
     LayoutDescriptor descriptor = layoutDescriptor();
     LayoutDescriptor::Builder packedBuilder = LayoutDescriptor::Builder(descriptor.width * PIXEL_PRECISION / 8,
                                                                         descriptor.height)
-                                                      .numPlanes(1);
+                                                      .numChannels(1);
     packedBuilder.widthAlignment([&]() -> int {
         if (options().fileInfo.widthAlignment) {
             return *options().fileInfo.widthAlignment;
@@ -124,13 +124,13 @@ Image16u MipiRawReader<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::read16u() {
 
         ImageView<RawXPixel> rawXImage(
                 LayoutDescriptor::Builder(descriptor.width / (sizeof(RawXPixel) - 1), descriptor.height)
-                        .numPlanes(1)
+                        .numChannels(1)
                         .build(),
                 reinterpret_cast<RawXPixel*>(packedData));
 
         ImageView<Raw16FromXPixel> raw16Image(
                 LayoutDescriptor::Builder(descriptor.width / (sizeof(RawXPixel) - 1), descriptor.height)
-                        .numPlanes(1)
+                        .numChannels(1)
                         .build(),
                 reinterpret_cast<Raw16FromXPixel*>(image.data()));
 
@@ -170,14 +170,14 @@ void MipiRawWriter<PIXEL_PRECISION, RawXPixel, Raw16FromXPixel>::write(const Ima
     }
 
     Image8u packedImage(
-            LayoutDescriptor::Builder(image.width() * PIXEL_PRECISION / 8, image.height()).numPlanes(1).build());
+            LayoutDescriptor::Builder(image.width() * PIXEL_PRECISION / 8, image.height()).numChannels(1).build());
 
     ImageView<Raw16FromXPixel> raw16Image(
-            LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numPlanes(1).build(),
+            LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numChannels(1).build(),
             const_cast<Raw16FromXPixel*>(reinterpret_cast<const Raw16FromXPixel*>(image.data())));
 
     ImageView<RawXPixel> rawXImage(
-            LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numPlanes(1).build(),
+            LayoutDescriptor::Builder(image.width() / (sizeof(RawXPixel) - 1), image.height()).numChannels(1).build(),
             reinterpret_cast<RawXPixel*>(packedImage.data()));
 
     // Pack to MIPIRAW

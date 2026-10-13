@@ -52,6 +52,10 @@ set(CXXIMG_DEFAULT_HEIGHT_ALIGNMENT
     "1"
     CACHE STRING "Default height alignment of allocated images (must be a power of two)"
 )
+set(CXXIMG_DEFAULT_DEPTH_ALIGNMENT
+    "1"
+    CACHE STRING "Default depth alignment of allocated images (must be a power of two)"
+)
 set(CXXIMG_DEFAULT_SIZE_ALIGNMENT
     "1"
     CACHE STRING "Default total size alignment of allocated images (must be a power of two)"

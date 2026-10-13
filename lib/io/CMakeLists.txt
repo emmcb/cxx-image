@@ -49,7 +49,7 @@ if(HAVE_JPEGXL)
     target_compile_definitions(${TARGET} PRIVATE HAVE_JPEGXL)
 endif()
 
-if (HAVE_LENSFUN)
+if(HAVE_LENSFUN)
     target_sources(${TARGET} PRIVATE ${SRC_DIR}/LensfunDatabase.cpp)
     target_link_libraries(${TARGET} PRIVATE PkgConfig::LENSFUN)
     target_compile_definitions(${TARGET} PRIVATE HAVE_LENSFUN)

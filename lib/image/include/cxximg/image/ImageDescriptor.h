@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cstdint>
+#include <stdexcept>
 
 #ifdef CXXIMG_HAVE_HALIDE
 #include <memory>
@@ -34,7 +35,7 @@ namespace cxximg {
 #ifdef CXXIMG_HAVE_HALIDE
 struct HalideDescriptor final {
     halide_buffer_t buffer;
-    std::array<halide_dimension_t, 3> dim;
+    std::array<halide_dimension_t, 4> dim;
     bool isCrop = false;
 
     HalideDescriptor() { buffer.dim = dim.data(); }
@@ -49,8 +50,11 @@ struct HalideDescriptor final {
         }
     }
 
+    /// Synchronizes spatial dimensions and channels, using depth as dimension 2 for single-channel volumes.
     void syncDims(const LayoutDescriptor& layout) {
-        if (layout.numPlanes > 1) {
+        if (layout.depth > 1 && layout.numChannels > 1) {
+            buffer.dimensions = 4;
+        } else if (layout.depth > 1 || layout.numChannels > 1) {
             buffer.dimensions = 3;
         } else if (layout.height > 1) {
             buffer.dimensions = 2;
@@ -60,15 +64,24 @@ struct HalideDescriptor final {
 
         dim[0].min = -layout.border;
         dim[0].extent = layout.width + 2 * layout.border;
-        dim[0].stride = layout.planes[0].pixelStride;
+        dim[0].stride = layout.channels[0].pixelStride;
 
         dim[1].min = -layout.border;
         dim[1].extent = layout.height + 2 * layout.border;
-        dim[1].stride = layout.planes[0].rowStride;
+        dim[1].stride = layout.channels[0].rowStride;
 
         dim[2].min = 0;
-        dim[2].extent = layout.numPlanes;
-        dim[2].stride = layout.planes[1].offset - layout.planes[0].offset;
+        if (layout.numChannels > 1) {
+            dim[2].extent = layout.numChannels;
+            dim[2].stride = layout.channels[1].offset - layout.channels[0].offset;
+        } else {
+            dim[2].extent = layout.depth;
+            dim[2].stride = layout.channels[0].sliceStride;
+        }
+
+        dim[3].min = 0;
+        dim[3].extent = layout.depth;
+        dim[3].stride = layout.channels[0].sliceStride;
     }
 };
 #endif
@@ -122,11 +135,11 @@ private:
 
 namespace image {
 
-/// Computes a four planes (R, Gr, Gb, B) descriptor from a one plane bayer layout.
+/// Computes four channels (R, Gr, Gb, B) from a 2D, single-channel Bayer layout.
 template <typename T>
 ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T>& bayerDescriptor) {
     const LayoutDescriptor& bayerLayout = bayerDescriptor.layout;
-    const int64_t rowStride = bayerLayout.planes[0].rowStride;
+    const int64_t rowStride = bayerLayout.channels[0].rowStride;
 
     const auto computeOffset = [&](Bayer bayer) {
         return model::bayerOffsetY(bayerLayout.pixelType, bayer) * rowStride +
@@ -134,17 +147,17 @@ ImageDescriptor<T> computeBayerPlanarDescriptor(const ImageDescriptor<T>& bayerD
     };
 
     return ImageDescriptor<T>(LayoutDescriptor::Builder(bayerLayout.width / 2, bayerLayout.height / 2)
-                                      .numPlanes(4)
+                                      .numChannels(4)
                                       .imageLayout(ImageLayout::CUSTOM)
                                       .pixelPrecision(bayerLayout.pixelPrecision)
-                                      .planeOffset(0, computeOffset(Bayer::R))
-                                      .planeOffset(1, computeOffset(Bayer::GR))
-                                      .planeOffset(2, computeOffset(Bayer::GB))
-                                      .planeOffset(3, computeOffset(Bayer::B))
-                                      .planeStrides(0, 2 * rowStride, 2)
-                                      .planeStrides(1, 2 * rowStride, 2)
-                                      .planeStrides(2, 2 * rowStride, 2)
-                                      .planeStrides(3, 2 * rowStride, 2)
+                                      .channelOffset(0, computeOffset(Bayer::R))
+                                      .channelOffset(1, computeOffset(Bayer::GR))
+                                      .channelOffset(2, computeOffset(Bayer::GB))
+                                      .channelOffset(3, computeOffset(Bayer::B))
+                                      .channelStrides(0, 2 * rowStride, 2, bayerLayout.channels[0].sliceStride)
+                                      .channelStrides(1, 2 * rowStride, 2, bayerLayout.channels[0].sliceStride)
+                                      .channelStrides(2, 2 * rowStride, 2, bayerLayout.channels[0].sliceStride)
+                                      .channelStrides(3, 2 * rowStride, 2, bayerLayout.channels[0].sliceStride)
                                       .build(),
                               bayerDescriptor.buffer);
 }
@@ -155,16 +168,16 @@ ImageDescriptor<T> computeRoiDescriptor(const ImageDescriptor<T>& descriptor, co
     LayoutDescriptor::Builder builder(descriptor.layout);
     builder.width(roi.width).height(roi.height).border(0);
 
-    for (int i = 0; i < descriptor.layout.numPlanes; ++i) {
-        const auto& plane = descriptor.layout.planes[i];
+    for (int i = 0; i < descriptor.layout.numChannels; ++i) {
+        const auto& channel = descriptor.layout.channels[i];
 
-        const int x = roi.x >> plane.subsample;
-        const int y = roi.y >> plane.subsample;
-        const int64_t roiOffset = y * plane.rowStride + x * plane.pixelStride;
+        const int x = roi.x >> channel.subsample;
+        const int y = roi.y >> channel.subsample;
+        const int64_t roiOffset = y * channel.rowStride + x * channel.pixelStride;
 
-        builder.planeSubsample(i, plane.subsample);
-        builder.planeOffset(i, plane.offset + roiOffset);
-        builder.planeStrides(i, plane.rowStride, plane.pixelStride);
+        builder.channelSubsample(i, channel.subsample);
+        builder.channelOffset(i, channel.offset + roiOffset);
+        builder.channelStrides(i, channel.rowStride, channel.pixelStride, channel.sliceStride);
     }
 
     ImageDescriptor<T> crop(builder.build(), descriptor.buffer);

@@ -201,7 +201,7 @@ void PngWriter::write(const Image16u& image) {
 
 template <typename T>
 void PngWriter::writeImpl(const Image<T>& image) {
-    if (image.imageLayout() == ImageLayout::PLANAR && image.numPlanes() > 1) {
+    if (image.imageLayout() == ImageLayout::PLANAR && image.numChannels() > 1) {
         // Planar to interleaved conversion
         writeImpl<T>(image::convertLayout(image, ImageLayout::INTERLEAVED));
         return;

@@ -33,23 +33,24 @@ namespace image {
 
 namespace detail {
 
-/// Maximum number of planes an image can have.
-constexpr int MAX_NUM_PLANES = 4;
+/// Maximum number of channels an image can have.
+constexpr int MAX_NUM_CHANNELS = 4;
 
 } // namespace detail
 
 } // namespace image
 
-/// Structure describing plane layout.
-struct PlaneDescriptor final {
-    int index = 0;           ///< Plane index in image.
-    int subsample = 0;       ///< Plane subsample factor, in power of two.
-    int64_t offset = -1;     ///< Plane offset from start of image, in pixels.
-    int64_t rowStride = 0;   ///< Distance between adjacent plane rows, in pixels.
-    int64_t pixelStride = 1; ///< Distance between adjacent plane pixels, in pixels.
+/// Structure describing channel layout.
+struct ChannelDescriptor final {
+    int index = 0;           ///< Channel index in image.
+    int subsample = 0;       ///< Channel XYZ subsample factor, in power of two.
+    int64_t offset = -1;     ///< Channel offset from start of image, in pixels.
+    int64_t sliceStride = 0; ///< Distance between adjacent channel depth slices, in pixels.
+    int64_t rowStride = 0;   ///< Distance between adjacent channel rows, in pixels.
+    int64_t pixelStride = 1; ///< Distance between adjacent channel pixels, in pixels.
 };
 
-using PlaneDescriptorArray = std::array<PlaneDescriptor, image::detail::MAX_NUM_PLANES>;
+using ChannelDescriptorArray = std::array<ChannelDescriptor, image::detail::MAX_NUM_CHANNELS>;
 
 /// Structure describing image layout.
 /// @ingroup image
@@ -63,13 +64,15 @@ struct LayoutDescriptor final {
     int pixelPrecision = 0;                                ///< Pixel precision.
     int width = 0;                                         ///< Image width in pixels.
     int height = 0;                                        ///< Image height in pixels.
-    int numPlanes = 0;                                     ///< Image number of planes.
+    int depth = 1;                                         ///< Image depth in slices, without border or subsampling.
+    int numChannels = 0;                                   ///< Image number of channels.
     int widthAlignment = CXXIMG_DEFAULT_WIDTH_ALIGNMENT;   ///< Width alignment (must be a power of 2).
     int heightAlignment = CXXIMG_DEFAULT_HEIGHT_ALIGNMENT; ///< Height alignment (must be a power of 2).
+    int depthAlignment = CXXIMG_DEFAULT_DEPTH_ALIGNMENT;   ///< Depth alignment (must be a power of 2).
     int sizeAlignment = CXXIMG_DEFAULT_SIZE_ALIGNMENT;     ///< Total size alignment (must be a power of 2).
     int border = 0;                                        ///< Border around image in pixels.
 
-    PlaneDescriptorArray planes; ///< Planes description.
+    ChannelDescriptorArray channels; ///< Channels description.
 
     /// Compute the maximum value that can be represented by the image pixel precision.
     template <typename T>
@@ -91,40 +94,28 @@ struct LayoutDescriptor final {
         using namespace std::string_literals;
 
         const int64_t bufferSize = [&] {
-            const int totalHeight = height + 2 * border;
-
             switch (imageLayout) {
                 case ImageLayout::PLANAR: {
-                    return planes[0].rowStride * detail::alignDimension(totalHeight, heightAlignment) * numPlanes;
+                    return channelBufferSize(0) * numChannels;
                 }
 
                 case ImageLayout::INTERLEAVED: {
-                    return planes[0].rowStride * detail::alignDimension(totalHeight, heightAlignment);
+                    return channelBufferSize(0);
                 }
 
                 case ImageLayout::YUV_420: {
-                    const int64_t numPixelLumaPlane = planes[0].rowStride *
-                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
-                    const int64_t numPixelChromaPlane = planes[1].rowStride *
-                                                        detail::alignDimension(totalHeight, heightAlignment, 1, 1);
-
-                    return numPixelLumaPlane + 2 * numPixelChromaPlane;
+                    return channelBufferSize(0) + 2 * channelBufferSize(1);
                 }
 
                 case ImageLayout::NV12: {
-                    const int64_t alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
-                    return (planes[0].rowStride + (planes[0].rowStride >> 1)) * alignedHeight;
+                    return channelBufferSize(0) + channelBufferSize(1);
                 }
 
                 case ImageLayout::CUSTOM: {
-                    const int maxSubsample = maxSubsampleValue();
-
-                    // Compute the amount of contiguous memory we need, taking into account planes subsample
+                    // Each custom channel stores all its depth slices contiguously.
                     int64_t bufferSize = 0;
-                    for (int i = 0; i < numPlanes; ++i) {
-                        bufferSize += planes[i].rowStride *
-                                      detail::alignDimension(
-                                              totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
+                    for (int i = 0; i < numChannels; ++i) {
+                        bufferSize += channelBufferSize(i);
                     }
 
                     return bufferSize;
@@ -138,43 +129,53 @@ struct LayoutDescriptor final {
         return detail::alignDimension(bufferSize, sizeAlignment);
     }
 
+    /// Returns the largest spatial subsampling factor among the image channels.
     int maxSubsampleValue() const {
-        const auto& plane = std::max_element(planes.begin(),
-                                             planes.begin() + numPlanes,
-                                             [](const auto& r, const auto& l) { return r.subsample < l.subsample; });
+        const auto& channel = std::max_element(channels.begin(),
+                                               channels.begin() + numChannels,
+                                               [](const auto& r, const auto& l) { return r.subsample < l.subsample; });
 
-        return plane->subsample;
+        return channel->subsample;
     }
 
 private:
     LayoutDescriptor() = default;
 
-    void updatePlanes() {
+    /// Computes a channel's storage span, including slice padding and aligned subsampled depth.
+    int64_t channelBufferSize(int index) const {
+        const int subsample = channels[index].subsample;
+        const int subsampledDepth = (depth + (1 << subsample) - 1) >> subsample;
+        const int alignedDepth = detail::alignDimension(subsampledDepth, depthAlignment);
+        return channels[index].sliceStride * alignedDepth;
+    }
+
+    /// Computes missing channel strides and offsets from the image dimensions and layout.
+    void updateChannels() {
         using namespace std::string_literals;
 
-        // Compute plane indices
-        for (unsigned i = 0; i < planes.size(); ++i) {
-            planes[i].index = i;
+        // Compute channel indices
+        for (unsigned i = 0; i < channels.size(); ++i) {
+            channels[i].index = i;
         }
 
-        // Compute plane subsample factors
+        // Compute channel subsample factors
         switch (imageLayout) {
             case ImageLayout::PLANAR:
             case ImageLayout::INTERLEAVED:
-                for (auto& plane : planes) {
-                    plane.subsample = 0;
+                for (auto& channel : channels) {
+                    channel.subsample = 0;
                 }
                 break;
 
             case ImageLayout::YUV_420:
             case ImageLayout::NV12:
-                if (numPlanes != 3) {
-                    throw std::invalid_argument("YUV image number of planes must be 3.");
+                if (numChannels != 3) {
+                    throw std::invalid_argument("YUV image number of channels must be 3.");
                 }
 
-                planes[0].subsample = 0;
-                planes[1].subsample = 1;
-                planes[2].subsample = 1;
+                channels[0].subsample = 0;
+                channels[1].subsample = 1;
+                channels[2].subsample = 1;
                 break;
 
             case ImageLayout::CUSTOM:
@@ -185,10 +186,10 @@ private:
                 throw std::invalid_argument("Invalid image layout "s + toString(imageLayout));
         }
 
-        // Compute plane strides
+        // Compute channel strides
         const bool computeStrides = [&]() {
-            for (int i = 0; i < numPlanes; ++i) {
-                if (planes[0].rowStride <= 0) {
+            for (int i = 0; i < numChannels; ++i) {
+                if (channels[0].rowStride <= 0) {
                     return true;
                 }
             }
@@ -201,18 +202,18 @@ private:
             switch (imageLayout) {
                 case ImageLayout::PLANAR: {
                     const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment);
-                    for (auto& plane : planes) {
-                        plane.rowStride = alignedWidth;
-                        plane.pixelStride = 1;
+                    for (auto& channel : channels) {
+                        channel.rowStride = alignedWidth;
+                        channel.pixelStride = 1;
                     }
                     break;
                 }
 
                 case ImageLayout::INTERLEAVED: {
-                    const int alignedWidth = detail::alignDimension(numPlanes * totalWidth, widthAlignment);
-                    for (auto& plane : planes) {
-                        plane.rowStride = alignedWidth;
-                        plane.pixelStride = numPlanes;
+                    const int alignedWidth = detail::alignDimension(numChannels * totalWidth, widthAlignment);
+                    for (auto& channel : channels) {
+                        channel.rowStride = alignedWidth;
+                        channel.pixelStride = numChannels;
                     }
                     break;
                 }
@@ -221,38 +222,38 @@ private:
                     const int alignedLumaWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
                     const int alignedChromaWidth = detail::alignDimension(totalWidth, widthAlignment, 1, 1);
 
-                    planes[0].rowStride = alignedLumaWidth;
-                    planes[0].pixelStride = 1;
+                    channels[0].rowStride = alignedLumaWidth;
+                    channels[0].pixelStride = 1;
 
-                    planes[1].rowStride = alignedChromaWidth;
-                    planes[1].pixelStride = 1;
+                    channels[1].rowStride = alignedChromaWidth;
+                    channels[1].pixelStride = 1;
 
-                    planes[2].rowStride = alignedChromaWidth;
-                    planes[2].pixelStride = 1;
+                    channels[2].rowStride = alignedChromaWidth;
+                    channels[2].pixelStride = 1;
                     break;
                 }
 
                 case ImageLayout::NV12: {
                     const int alignedWidth = detail::alignDimension(totalWidth, widthAlignment, 0, 1);
 
-                    planes[0].rowStride = alignedWidth;
-                    planes[0].pixelStride = 1;
+                    channels[0].rowStride = alignedWidth;
+                    channels[0].pixelStride = 1;
 
-                    planes[1].rowStride = alignedWidth;
-                    planes[1].pixelStride = 2;
+                    channels[1].rowStride = alignedWidth;
+                    channels[1].pixelStride = 2;
 
-                    planes[2].rowStride = alignedWidth;
-                    planes[2].pixelStride = 2;
+                    channels[2].rowStride = alignedWidth;
+                    channels[2].pixelStride = 2;
                     break;
                 }
 
                 case ImageLayout::CUSTOM: {
                     const int maxSubsample = maxSubsampleValue();
 
-                    for (int i = 0; i < numPlanes; ++i) {
-                        planes[i].rowStride = detail::alignDimension(
-                                totalWidth, widthAlignment, planes[i].subsample, maxSubsample);
-                        planes[i].pixelStride = 1;
+                    for (int i = 0; i < numChannels; ++i) {
+                        channels[i].rowStride = detail::alignDimension(
+                                totalWidth, widthAlignment, channels[i].subsample, maxSubsample);
+                        channels[i].pixelStride = 1;
                     }
                     break;
                 }
@@ -262,10 +263,30 @@ private:
             }
         }
 
-        // Compute plane offsets
+        // Compute slice strides from the channel's XY dimensions; depth has no border.
+        const int totalHeight = height + 2 * border;
+        const int maxSubsample = maxSubsampleValue();
+
+        for (int i = 0; i < numChannels; ++i) {
+            if (channels[i].sliceStride > 0) {
+                continue;
+            }
+
+            if (imageLayout == ImageLayout::NV12) {
+                // NV12 chroma rows occupy half the aligned luma height.
+                const int alignedHeight = detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                channels[i].sliceStride = channels[i].rowStride * (alignedHeight >> channels[i].subsample);
+            } else {
+                channels[i].sliceStride = channels[i].rowStride *
+                                          detail::alignDimension(
+                                                  totalHeight, heightAlignment, channels[i].subsample, maxSubsample);
+            }
+        }
+
+        // Compute channel offsets
         const bool computeOffsets = [&]() {
-            for (int i = 0; i < numPlanes; ++i) {
-                if (planes[0].offset < 0) {
+            for (int i = 0; i < numChannels; ++i) {
+                if (channels[0].offset < 0) {
                     return true;
                 }
             }
@@ -273,58 +294,48 @@ private:
         }();
 
         if (computeOffsets) {
-            const int totalHeight = height + 2 * border;
-
             switch (imageLayout) {
                 case ImageLayout::PLANAR: {
-                    const int64_t numPixelPerPlane = planes[0].rowStride *
-                                                     detail::alignDimension(totalHeight, heightAlignment);
+                    const int64_t numPixelPerChannel = channelBufferSize(0);
 
-                    for (unsigned i = 0; i < planes.size(); ++i) {
-                        planes[i].offset = i * numPixelPerPlane;
+                    for (unsigned i = 0; i < channels.size(); ++i) {
+                        channels[i].offset = i * numPixelPerChannel;
                     }
                     break;
                 }
 
                 case ImageLayout::INTERLEAVED: {
-                    for (unsigned i = 0; i < planes.size(); ++i) {
-                        planes[i].offset = i;
+                    for (unsigned i = 0; i < channels.size(); ++i) {
+                        channels[i].offset = i;
                     }
                     break;
                 }
 
                 case ImageLayout::YUV_420: {
-                    const int64_t numPixelLumaPlane = planes[0].rowStride *
-                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
-                    const int64_t numPixelChromaPlane = planes[1].rowStride *
-                                                        detail::alignDimension(totalHeight, heightAlignment, 1, 1);
+                    const int64_t numPixelLumaChannel = channelBufferSize(0);
+                    const int64_t numPixelChromaChannel = channelBufferSize(1);
 
-                    planes[0].offset = 0;
-                    planes[1].offset = numPixelLumaPlane;
-                    planes[2].offset = numPixelLumaPlane + numPixelChromaPlane;
+                    channels[0].offset = 0;
+                    channels[1].offset = numPixelLumaChannel;
+                    channels[2].offset = numPixelLumaChannel + numPixelChromaChannel;
                     break;
                 }
 
                 case ImageLayout::NV12: {
-                    const int64_t numPixelLumaPlane = planes[0].rowStride *
-                                                      detail::alignDimension(totalHeight, heightAlignment, 0, 1);
+                    const int64_t numPixelLumaChannel = channelBufferSize(0);
 
-                    planes[0].offset = 0;
-                    planes[1].offset = numPixelLumaPlane;
-                    planes[2].offset = numPixelLumaPlane + 1;
+                    channels[0].offset = 0;
+                    channels[1].offset = numPixelLumaChannel;
+                    channels[2].offset = numPixelLumaChannel + 1;
                     break;
                 }
 
                 case ImageLayout::CUSTOM: {
-                    const int maxSubsample = maxSubsampleValue();
-
                     int64_t offset = 0;
-                    for (int i = 0; i < numPlanes; ++i) {
-                        planes[i].offset = offset;
+                    for (int i = 0; i < numChannels; ++i) {
+                        channels[i].offset = offset;
 
-                        offset += planes[i].rowStride *
-                                  detail::alignDimension(
-                                          totalHeight, heightAlignment, planes[i].subsample, maxSubsample);
+                        offset += channelBufferSize(i);
                     }
                     break;
                 }
@@ -335,11 +346,11 @@ private:
 
             // Add offset for image border
             if (border > 0) {
-                for (int i = 0; i < numPlanes; ++i) {
-                    const int x = border >> planes[i].subsample;
-                    const int y = border >> planes[i].subsample;
-                    const int64_t borderOffset = y * planes[i].rowStride + x * planes[i].pixelStride;
-                    planes[i].offset += borderOffset;
+                for (int i = 0; i < numChannels; ++i) {
+                    const int x = border >> channels[i].subsample;
+                    const int y = border >> channels[i].subsample;
+                    const int64_t borderOffset = y * channels[i].rowStride + x * channels[i].pixelStride;
+                    channels[i].offset += borderOffset;
                 }
             }
         }
@@ -348,15 +359,18 @@ private:
 
 class LayoutDescriptor::Builder final {
 public:
+    /// Starts from an existing layout, recomputing standard channel layouts on build.
     explicit Builder(const LayoutDescriptor& descriptor) : mDescriptor(descriptor) {
         if (mDescriptor.imageLayout != ImageLayout::CUSTOM) {
-            invalidatePlanes();
+            invalidateChannels();
         }
     }
 
-    Builder(int width, int height) noexcept {
+    /// Starts a layout with the given spatial dimensions; 2D images have one depth slice.
+    Builder(int width, int height, int depth = 1) noexcept {
         mDescriptor.width = width;
         mDescriptor.height = height;
+        mDescriptor.depth = depth;
     }
 
     Builder& imageLayout(ImageLayout imageLayout) noexcept {
@@ -376,17 +390,27 @@ public:
 
     Builder& width(int width) noexcept {
         mDescriptor.width = width;
-        invalidatePlanes();
+        invalidateChannels();
         return *this;
     }
 
+    /// Sets the slice height and recomputes channel layout on build.
     Builder& height(int height) noexcept {
         mDescriptor.height = height;
+        invalidateChannels();
         return *this;
     }
 
-    Builder& numPlanes(int numPlanes) noexcept {
-        mDescriptor.numPlanes = numPlanes;
+    /// Sets the number of depth slices and recomputes channel layout on build.
+    Builder& depth(int depth) noexcept {
+        mDescriptor.depth = depth;
+        invalidateChannels();
+        return *this;
+    }
+
+    /// Sets the number of image channels.
+    Builder& numChannels(int numChannels) noexcept {
+        mDescriptor.numChannels = numChannels;
         return *this;
     }
 
@@ -400,6 +424,17 @@ public:
         return *this;
     }
 
+    /// Sets depth padding and recomputes channel offsets, preserving custom strides.
+    Builder& depthAlignment(int depthAlignment) noexcept {
+        mDescriptor.depthAlignment = depthAlignment;
+
+        for (auto& channel : mDescriptor.channels) {
+            channel.offset = -1;
+        }
+
+        return *this;
+    }
+
     Builder& sizeAlignment(int sizeAlignment) noexcept {
         mDescriptor.sizeAlignment = sizeAlignment;
         return *this;
@@ -410,32 +445,37 @@ public:
         return *this;
     }
 
-    Builder& planeSubsample(int index, int subsample) {
-        mDescriptor.planes[index].subsample = subsample;
+    /// Sets a custom channel's spatial subsampling factor as a power of two.
+    Builder& channelSubsample(int index, int subsample) {
+        mDescriptor.channels[index].subsample = subsample;
         return *this;
     }
 
-    Builder& planeOffset(int index, int offset) {
-        mDescriptor.planes[index].offset = offset;
+    /// Sets a channel's offset from the start of the image buffer, in pixels.
+    Builder& channelOffset(int index, int64_t offset) {
+        mDescriptor.channels[index].offset = offset;
         return *this;
     }
 
-    Builder& planeStrides(int index, int rowStride, int pixelStride = 1) {
-        mDescriptor.planes[index].rowStride = rowStride;
-        mDescriptor.planes[index].pixelStride = pixelStride;
+    /// Sets strides in pixels; a zero slice stride is computed from the aligned slice height.
+    Builder& channelStrides(int index, int64_t rowStride, int64_t pixelStride = 1, int64_t sliceStride = 0) {
+        mDescriptor.channels[index].rowStride = rowStride;
+        mDescriptor.channels[index].pixelStride = pixelStride;
+        mDescriptor.channels[index].sliceStride = sliceStride;
         return *this;
     }
 
+    /// Validates dimensions and computes any missing channel layout values.
     LayoutDescriptor build() {
         // Force YUV pixel type for YUV layouts
         if (model::isYuvLayout(mDescriptor.imageLayout)) {
             pixelType(PixelType::YUV);
         }
 
-        // Force number of planes depending on pixel type
-        const int numPlanesForPixelType = model::pixelNumPlanes(mDescriptor.pixelType);
-        if (numPlanesForPixelType > 0) {
-            numPlanes(numPlanesForPixelType);
+        // Force number of channels depending on pixel type
+        const int numChannelsForPixelType = model::pixelNumChannels(mDescriptor.pixelType);
+        if (numChannelsForPixelType > 0) {
+            numChannels(numChannelsForPixelType);
         }
 
         // Force planar layout for grayscale and bayer pixels
@@ -444,10 +484,12 @@ public:
         }
 
         // Validity checks
-        if (mDescriptor.width <= 0 || mDescriptor.height <= 0 || mDescriptor.numPlanes <= 0) {
+        if (mDescriptor.width <= 0 || mDescriptor.height <= 0 || mDescriptor.depth <= 0 ||
+            mDescriptor.numChannels <= 0) {
             throw std::invalid_argument("Image dimension parameters (width=" + std::to_string(mDescriptor.width) +
                                         ", height=" + std::to_string(mDescriptor.height) +
-                                        ", numPlanes=" + std::to_string(mDescriptor.numPlanes) +
+                                        ", depth=" + std::to_string(mDescriptor.depth) +
+                                        ", numChannels=" + std::to_string(mDescriptor.numChannels) +
                                         ") must be strictly greater than zero.");
         }
         if (mDescriptor.border < 0) {
@@ -462,26 +504,31 @@ public:
             throw std::invalid_argument("heightAlignment (" + std::to_string(mDescriptor.heightAlignment) +
                                         ") must be a power of 2.");
         }
+        if (!math::isPowerOf2(mDescriptor.depthAlignment)) {
+            throw std::invalid_argument("depthAlignment (" + std::to_string(mDescriptor.depthAlignment) +
+                                        ") must be a power of 2.");
+        }
         if (!math::isPowerOf2(mDescriptor.sizeAlignment)) {
             throw std::invalid_argument("sizeAlignment (" + std::to_string(mDescriptor.sizeAlignment) +
                                         ") must be a power of 2.");
         }
-        if (mDescriptor.numPlanes > image::detail::MAX_NUM_PLANES) {
-            throw std::invalid_argument("Image number of planes (" + std::to_string(mDescriptor.numPlanes) +
-                                        ") exceeds limits (" + std::to_string(image::detail::MAX_NUM_PLANES) + ").");
+        if (mDescriptor.numChannels > image::detail::MAX_NUM_CHANNELS) {
+            throw std::invalid_argument("Image number of channels (" + std::to_string(mDescriptor.numChannels) +
+                                        ") exceeds limits (" + std::to_string(image::detail::MAX_NUM_CHANNELS) + ").");
         }
 
-        // Compute plane offsets and strides
-        mDescriptor.updatePlanes();
+        // Compute channel offsets and strides
+        mDescriptor.updateChannels();
 
         return mDescriptor;
     }
 
 private:
-    void invalidatePlanes() {
-        for (unsigned i = 0; i < mDescriptor.planes.size(); ++i) {
-            planeOffset(i, -1);
-            planeStrides(i, 0);
+    /// Clears derived offsets and strides so they are recomputed for new dimensions.
+    void invalidateChannels() {
+        for (unsigned i = 0; i < mDescriptor.channels.size(); ++i) {
+            channelOffset(i, -1);
+            channelStrides(i, 0);
         }
     }
 

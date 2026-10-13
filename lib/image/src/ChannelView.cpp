@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cxximg/image/view/PlaneView.h"
+#include "cxximg/image/view/ChannelView.h"
 
 namespace cxximg {
 
-template class PlaneView<int8_t>;
-template class PlaneView<int16_t>;
-template class PlaneView<int32_t>;
+template class ChannelView<int8_t>;
+template class ChannelView<int16_t>;
+template class ChannelView<int32_t>;
 
-template class PlaneView<uint8_t>;
-template class PlaneView<uint16_t>;
-template class PlaneView<uint32_t>;
+template class ChannelView<uint8_t>;
+template class ChannelView<uint16_t>;
+template class ChannelView<uint32_t>;
 
 #ifdef CXXIMG_HAVE_FLOAT16
-template class PlaneView<half>;
+template class ChannelView<half>;
 #endif
-template class PlaneView<float>;
-template class PlaneView<double>;
+template class ChannelView<float>;
+template class ChannelView<double>;
 
 } // namespace cxximg
